@@ -1,0 +1,12 @@
+# dkvz-blog-backend
+Thought it was time to ditch Java and try something more efficient for a small server.
+
+I still don't know how to Rust very well.
+
+Using **eyre** instead of **failure** for errors and stuff.
+
+## Database
+Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
+
+# TODO
+- [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
