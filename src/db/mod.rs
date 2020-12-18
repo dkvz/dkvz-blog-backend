@@ -1,9 +1,11 @@
 use rusqlite::{Statement, NO_PARAMS};
 mod entities;
+use eyre::WrapErr;
+use color_eyre::Result;
 use entities::*;
 
 // Type alias to make function signatures much clearer:
-type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
+pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 // Trying it as non-async first:
 pub fn all_tags(
@@ -11,7 +13,7 @@ pub fn all_tags(
 ) -> Result<Vec<Tag>> {
   // Do the reference counting thingand get a connection
   let conn = pool.clone().get()?;
-  let stmt = conn.prepare(
+  let mut stmt = conn.prepare(
     "SELECT id, name, main_tag FROM tags ORDER BY name ASC"
   )?;
   stmt.query_map(NO_PARAMS, |row| {
@@ -21,5 +23,6 @@ pub fn all_tags(
       main_tag: row.get(2)?
     })
   })
-  .and_then(Iterator::collect())
+  .and_then(Iterator::collect)
+  .context("Querying for tags")
 }
