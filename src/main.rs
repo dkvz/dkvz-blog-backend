@@ -1,6 +1,6 @@
 mod config;
 mod db;
-use db::{ Pool, all_tags };
+use db::{ Pool, all_tags, comment_count };
 use color_eyre::Result;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 // I think we have to add crate here because
@@ -17,9 +17,11 @@ fn main() -> Result<()> {
         .expect("Database connection failed");
 
     let tags = all_tags(&pool)?;
+    let count = comment_count(&pool, 110)?;
 
     println!("Found config: {:?}", config);
     println!("Found tags: {}", tags.len());
+    println!("Comment count for article 110: {}", count);
 
     Ok(())
 }

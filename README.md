@@ -3,6 +3,8 @@ Thought it was time to ditch Java and try something more efficient for a small s
 
 I still don't know how to Rust very well.
 
+Database is probably missing until I decide to upload an empty one.
+
 Using **eyre** instead of **failure** for errors and stuff.
 
 ## Database
