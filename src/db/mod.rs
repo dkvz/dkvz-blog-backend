@@ -1,8 +1,10 @@
 use rusqlite::{Statement, params, NO_PARAMS};
 mod entities;
-use eyre::WrapErr;
+mod mappers;
+use eyre::{WrapErr, eyre};
 use color_eyre::Result;
 use entities::*;
+use mappers::map_tag;
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -22,15 +24,16 @@ pub fn all_tags(
   let mut stmt = conn.prepare(
     "SELECT id, name, main_tag FROM tags ORDER BY name ASC"
   )?;
-  stmt.query_map(NO_PARAMS, |row| {
+  /*stmt.query_map(NO_PARAMS, |row| {
     Ok(Tag {
       id: row.get(0)?,
       name: row.get(1)?,
       main_tag: row.get(2)?
     })
-  })
-  .and_then(Iterator::collect)
-  .context("Querying for tags")
+  })*/
+  stmt.query_map(NO_PARAMS, map_tag)
+    .and_then(Iterator::collect)
+    .context("Querying for tags")
 }
 
 pub fn comment_count (
@@ -41,6 +44,25 @@ pub fn comment_count (
   let mut stmt = conn.prepare(
     "SELECT count(*) FROM comments WHERE article_id = ?"
   )?;
-  let count: i32 = stmt.query_row(params![article_id], |row| row.get(0))?;
+  let count: i32 = stmt.query_row(
+    params![article_id], 
+    |row| row.get(0)
+  )?;
   Ok(count)
+}
+
+pub fn get_tags_for_article(
+  pool: &Pool,
+  article_id: i32
+) -> Result<Vec<Tag>> {
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(
+    "SELECT tags.id, tags.name, tags.main_tag 
+     FROM article_tags, tags WHERE 
+     article_tags.article_id = ? 
+     AND article_tags.tag_id = tags.id"
+  )?;
+  stmt.query_map(params![article_id], map_tag)
+    .and_then(Iterator::collect)
+    .context("Querying for tags")
 }
