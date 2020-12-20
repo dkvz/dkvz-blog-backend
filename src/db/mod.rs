@@ -1,4 +1,6 @@
-use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql};
+// Have to import the OptionalExtension trait for rusqlite Results to
+// be able to easily provide Result<Option<T>> types.
+use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql, OptionalExtension};
 mod entities;
 mod mappers;
 use eyre::{WrapErr, eyre};
@@ -40,17 +42,18 @@ fn select_one<T, P, F>(
   query: &str, 
   params: P, 
   mapper: F 
-) -> Result<T>
+) -> Result<Option<T>>
   where
   P: IntoIterator,
   P::Item: ToSql,
-  F: FnMut(&Row<'_>) -> Result<T, rusqlite::Error>,
+  F: FnMut(&Row<'_>) -> rusqlite::Result<T>,
 {
-// Do the reference counting thingand get a connection
+// Do the reference counting thing and get a connection
 let conn = pool.clone().get()?;
 let mut stmt = conn.prepare(query)?;
-stmt.query_row(params, mapper)
-  .context("Generic select_one query")
+let res: rusqlite::Result<T> = stmt.query_row(params, mapper);
+res.optional()
+  .context("Generic select_once query")
 }
 
 /*
@@ -83,12 +86,19 @@ pub fn comment_count (
     |row| row.get(0)
   )?;
   Ok(count)*/
-  select_one(
+  let count_opt: Option<i32> = select_one(
     pool,
     "SELECT count(*) FROM comments WHERE article_id = ?",
     params![article_id],
     |row| row.get(0)
-  )
+  )?;
+  // The generic function supports having optional values,
+  // But the count query here should never just not give
+  // any value.
+  match count_opt {
+    Some(count) => Ok(count),
+    None => Err(eyre!("A count query returned no value")) 
+  }
 }
 
 pub fn get_tags_for_article(
@@ -105,3 +115,6 @@ pub fn get_tags_for_article(
     map_tag
   )
 }
+
+// Let's use articles_from_to with:
+// is_short, is_with_content, start, count, tags (string or vec?), order (enum)

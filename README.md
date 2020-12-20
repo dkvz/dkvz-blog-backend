@@ -14,4 +14,5 @@ Some of the database workings were inspired by this example: https://github.com/
 * [Data access class from current backend](https://github.com/dkvz/DoradeBlogEngineSpring/blob/master/src/main/java/eu/dkvz/BlogAuthoring/model/BlogDataAccessSpring.java)
 
 # TODO
+- [ ] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
