@@ -35,6 +35,30 @@ fn select_many<T, P, F>(
     .context("Generic select_many query")
 }
 
+fn select_one<T, P, F>(
+  pool: &Pool, 
+  query: &str, 
+  params: P, 
+  mapper: F 
+) -> Result<T>
+  where
+  P: IntoIterator,
+  P::Item: ToSql,
+  F: FnMut(&Row<'_>) -> Result<T, rusqlite::Error>,
+{
+// Do the reference counting thingand get a connection
+let conn = pool.clone().get()?;
+let mut stmt = conn.prepare(query)?;
+stmt.query_row(params, mapper)
+  .context("Generic select_one query")
+}
+
+/*
+------------------------------------------------------
+Data access functions
+------------------------------------------------------
+*/
+
 pub fn all_tags(
   pool: &Pool
 ) -> Result<Vec<Tag>> {
@@ -50,7 +74,7 @@ pub fn comment_count (
   pool: &Pool,
   article_id: i32
 ) -> Result<i32> {
-  let conn = pool.clone().get()?;
+  /*let conn = pool.clone().get()?;
   let mut stmt = conn.prepare(
     "SELECT count(*) FROM comments WHERE article_id = ?"
   )?;
@@ -58,7 +82,13 @@ pub fn comment_count (
     params![article_id], 
     |row| row.get(0)
   )?;
-  Ok(count)
+  Ok(count)*/
+  select_one(
+    pool,
+    "SELECT count(*) FROM comments WHERE article_id = ?",
+    params![article_id],
+    |row| row.get(0)
+  )
 }
 
 pub fn get_tags_for_article(
