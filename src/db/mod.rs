@@ -1,5 +1,3 @@
-// Have to import the OptionalExtension trait for rusqlite Results to
-// be able to easily provide Result<Option<T>> types.
 use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql, OptionalExtension};
 mod entities;
 mod mappers;
@@ -8,12 +6,12 @@ use color_eyre::Result;
 use entities::*;
 use mappers::map_tag;
 
-// Type alias to make function signatures much clearer:
-pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
-
 /**
  * I'll do all the DB stuff in a non-async way first.
  */
+
+// Type alias to make function signatures much clearer:
+pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 // Stole most of the signature from the rustqlite doc.
 // Careful to use a later version of the crate, 
@@ -51,8 +49,10 @@ fn select_one<T, P, F>(
 // Do the reference counting thing and get a connection
 let conn = pool.clone().get()?;
 let mut stmt = conn.prepare(query)?;
-let res: rusqlite::Result<T> = stmt.query_row(params, mapper);
-res.optional()
+// .optional() won't work unless we import the 
+// OptionalExtension trait from rusqlite.
+stmt.query_row(params, mapper)
+  .optional()
   .context("Generic select_once query")
 }
 
@@ -77,15 +77,6 @@ pub fn comment_count (
   pool: &Pool,
   article_id: i32
 ) -> Result<i32> {
-  /*let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(
-    "SELECT count(*) FROM comments WHERE article_id = ?"
-  )?;
-  let count: i32 = stmt.query_row(
-    params![article_id], 
-    |row| row.get(0)
-  )?;
-  Ok(count)*/
   let count_opt: Option<i32> = select_one(
     pool,
     "SELECT count(*) FROM comments WHERE article_id = ?",
