@@ -1,9 +1,11 @@
 use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql, OptionalExtension};
 mod entities;
 mod mappers;
+mod helpers;
 use eyre::{WrapErr, eyre};
 use color_eyre::Result;
 use entities::*;
+use helpers::generate_query_placeholders;
 use mappers::map_tag;
 
 /**
