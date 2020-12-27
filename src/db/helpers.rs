@@ -3,7 +3,7 @@
  */
 pub fn generate_query_placeholders(name: &str, count: usize) -> String {
   let mut all_clauses: Vec<String> = Vec::with_capacity(count);
-  for i in 0..count {
+  for _ in 0..count {
     all_clauses.push(format!("{} = ?", name));
   }
   all_clauses.join(" AND ")
