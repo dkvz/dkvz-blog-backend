@@ -2,9 +2,13 @@ use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql, OptionalExtension};
 mod entities;
 mod mappers;
 mod helpers;
+mod queries;
 use eyre::{WrapErr, eyre};
 use color_eyre::Result;
 use entities::*;
+// Re-exporting the query building enums and structs:
+pub use queries::{Order, OrderBy};
+use queries::{select_query_builder};
 use helpers::generate_query_placeholders;
 use mappers::map_tag;
 
@@ -14,6 +18,13 @@ use mappers::map_tag;
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
+
+// Some enums used in DB functions:
+pub enum ArticleSelector {
+  SHORT,
+  ARTICLE,
+  ALL
+}
 
 // Stole most of the signature from the rustqlite doc.
 // Careful to use a later version of the crate, 
@@ -109,5 +120,31 @@ pub fn get_tags_for_article(
   )
 }
 
-// Let's use articles_from_to with:
-// is_short, is_with_content, start, count, tags (string or vec?), order (enum)
+// Trying to upgrade from the horrible mess I had in the Java app
+// for article retrieval.
+// The same function has to be able to retrieve ALL articles too.
+// I should probably make some kind of query builder thingy at 
+// some point instead of my infamous crazy string buffer system.
+pub fn articles_from_to(
+  article_selector: ArticleSelector,
+  start: usize,
+  count: usize,
+  tags: Option<Vec<String>>,
+  order: Order
+) -> Result<Vec<Article>> {
+  let mut query = String::from(
+    "SELECT articles.id, articles.title, articles.article_url, 
+    articles.thumb_image, articles.date, articles.user_id, 
+    articles.summary, articles.published"
+  );
+  // Add the article content to the fields list when
+  // ArticleSelector is ALL or ARTICLE:
+  match article_selector {
+    ArticleSelector::ALL | ArticleSelector::ARTICLE => 
+      query.push_str(", articles.content"),
+    ArticleSelector::SHORT => ()
+  }
+  query.push_str(" FROM articles ");
+
+  Ok(Vec::new())
+}
