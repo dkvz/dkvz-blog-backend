@@ -2,6 +2,8 @@
 // convoluted than I thought, but it works. I mean it 
 // will work at some point.
 
+use std::fmt;
+
 // Bunch of enums for query building:
 pub enum Order {
   Asc,
@@ -15,21 +17,30 @@ pub enum QueryType {
   Delete(String)
 }
 
+// I'm going to use this to provide
+// a way to stitch the WHERE clause
+// arguments using either only AND or 
+// only OR. Yes this is kinda weird 
+// I'm sorry.
+// It's a private implementation detail 
+// though.
+// Also at this point I'm aware this 
+// is a boolean.
 enum WhereClauseGlue {
   And,
   Or
 }
 
-pub struct OrderBy<'a> {
+pub struct OrderBy {
   pub order: Order,
-  pub field: &'a str
+  pub field: String
 }
 
-impl<'a> OrderBy<'a> {
-  pub fn new(order: Order, field: &'a str) -> Self {
+impl OrderBy {
+  pub fn new(order: Order, field: String) -> Self {
     OrderBy {
-      order: order,
-      field: field
+      order,
+      field
     }
   }
 }
@@ -40,17 +51,17 @@ impl<'a> OrderBy<'a> {
 // The "q_" in front of field names is 
 // just because "where" is a reserved
 // keyword in Rust.
-pub struct Query<'a> {
+pub struct Query {
   q_fields: Vec<String>, 
   q_type: QueryType,
   q_where: Option<Vec<String>>,
   where_glue: Option<WhereClauseGlue>,
-  q_order: Option<OrderBy<'a>>,
+  q_order: Option<OrderBy>,
   limit: Option<i32>,
   offset: Option<i32>,
 }
 
-impl<'a> Query<'a> {
+impl Query {
   
   pub fn new(query_type: QueryType, fields: Vec<String>) -> Self {
     Query {
@@ -71,7 +82,79 @@ impl<'a> Query<'a> {
 
   pub fn where_and(mut self, q_where: Vec<String>) -> Self {
     self.q_where = Some(q_where);
+    self.where_glue = Some(WhereClauseGlue::And);
     self
+  }
+
+  pub fn where_or(mut self, q_where: Vec<String>) -> Self {
+    self.q_where = Some(q_where);
+    self.where_glue = Some(WhereClauseGlue::Or);
+    self
+  }
+
+  pub fn order(mut self, order: OrderBy) -> Self {
+    self.q_order = Some(order);
+    self
+  }
+
+  pub fn limit(mut self, limit: i32) -> Self {
+    self.limit = Some(limit);
+    self
+  }
+
+  pub fn offset(mut self, offset: i32) -> Self {
+    self.offset = Some(offset);
+    self
+  }
+
+  // Get the "WHERE" part of the query
+  fn query_where_str(&self) -> Option<String> {
+    if let Some(wh) = &self.q_where {
+      format!(
+        "WHERE {} ",
+        &wh.join(
+          
+        )
+      )
+    }
+    String::new()
+  }
+
+}
+
+// Creating the query string will be done by 
+// implementing the Display trait, which will
+// all implement ToString.
+impl fmt::Display for Query {
+
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    // The start part of the query can't be the 
+    // Display trait for QueryType because we 
+    // need access to "q_fields".
+    let mut query = match &self.q_type {
+      QueryType::Select(q_from) => format!(
+        "SELECT {} FROM {} ",
+        &self.q_fields.join(","),
+        &q_from.join(",")
+      ),
+      QueryType::Delete(table) => format!(
+        "DELETE FROM {} ",
+        &table
+      ),
+      QueryType::Insert(table) => format!(
+        "INSERT INTO {} ({}) VALUES ",
+        &table,
+        &self.q_fields.join(",")
+      ),
+      QueryType::Update(table)=> format!(
+        "UPDATE {} SET ",
+        &table
+      ),
+    };
+
+    write!(
+      f, "{}", query
+    )
   }
 
 }
@@ -89,12 +172,10 @@ pub fn select_query_builder(
   limit: Option<i32>,
   offset: Option<i32>
 ) -> String {
-  let mut query = String::from(
-    &format!(
-      "SELECT {} FROM {} ",
-      &q_fields.join(","),
-      &q_from.join(",")
-    ) 
+  let mut query = format!(
+    "SELECT {} FROM {} ",
+    &q_fields.join(","),
+    &q_from.join(",")
   );
   if let Some(wh) = q_where {
     query.push_str(
@@ -157,7 +238,7 @@ mod tests {
       &vec!["my_table_1.name".to_string(), "my_table_2.value".to_string()], 
       &vec!["my_table_1".to_string(), "my_table_2".to_string()], 
       Some(&vec!["my_table_1.id = ?".to_string()]), 
-      Some(OrderBy::new(Order::Desc, "name")), 
+      Some(OrderBy::new(Order::Desc, "name".to_string())), 
       Some(10), 
       Some(20)
     );
