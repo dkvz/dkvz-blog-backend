@@ -1,7 +1,23 @@
+// My QUERY BUILDING system ended up being a lot more
+// convoluted than I thought, but it works. I mean it 
+// will work at some point.
+
 // Bunch of enums for query building:
 pub enum Order {
-  ASC,
-  DESC
+  Asc,
+  Desc
+}
+
+pub enum QueryType {
+  Insert(String),
+  Select(Vec<String>),
+  Update(String),
+  Delete(String)
+}
+
+enum WhereClauseGlue {
+  And,
+  Or
 }
 
 pub struct OrderBy<'a> {
@@ -17,6 +33,49 @@ impl<'a> OrderBy<'a> {
     }
   }
 }
+
+// Decided to use the "builder pattern"
+// they talk about in Rust docs for 
+// query building.
+// The "q_" in front of field names is 
+// just because "where" is a reserved
+// keyword in Rust.
+pub struct Query<'a> {
+  q_fields: Vec<String>, 
+  q_type: QueryType,
+  q_where: Option<Vec<String>>,
+  where_glue: Option<WhereClauseGlue>,
+  q_order: Option<OrderBy<'a>>,
+  limit: Option<i32>,
+  offset: Option<i32>,
+}
+
+impl<'a> Query<'a> {
+  
+  pub fn new(query_type: QueryType, fields: Vec<String>) -> Self {
+    Query {
+      q_fields: fields,
+      q_type: query_type,
+      q_where: None,
+      where_glue: None,
+      q_order: None,
+      limit: None,
+      offset: None
+    }
+  }
+
+  pub fn where_clause(mut self, where_str: String) -> Self {
+    self.q_where = Some(vec![where_str]);
+    self
+  }
+
+  pub fn where_and(mut self, q_where: Vec<String>) -> Self {
+    self.q_where = Some(q_where);
+    self
+  }
+
+}
+
 
 // Decided to put "q_" in front of all args just
 // because "where" is a reserved Rust keyword.
@@ -49,8 +108,8 @@ pub fn select_query_builder(
     query.push_str(&format!("ORDER BY {} ", order.field));
     query.push_str(
       match order.order {
-        Order::ASC => "ASC ",
-        Order::DESC => "DESC "
+        Order::Asc => "ASC ",
+        Order::Desc => "DESC "
       }
     );
   }
@@ -98,7 +157,7 @@ mod tests {
       &vec!["my_table_1.name".to_string(), "my_table_2.value".to_string()], 
       &vec!["my_table_1".to_string(), "my_table_2".to_string()], 
       Some(&vec!["my_table_1.id = ?".to_string()]), 
-      Some(OrderBy::new(Order::DESC, "name")), 
+      Some(OrderBy::new(Order::Desc, "name")), 
       Some(10), 
       Some(20)
     );
