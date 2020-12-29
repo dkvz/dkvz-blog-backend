@@ -123,8 +123,10 @@ pub fn get_tags_for_article(
 // Trying to upgrade from the horrible mess I had in the Java app
 // for article retrieval.
 // The same function has to be able to retrieve ALL articles too.
-// I should probably make some kind of query builder thingy at 
-// some point instead of my infamous crazy string buffer system.
+// Used to have an infamous string buffer query building system,
+// I upgraded to a struct with a builder pattern.
+// That struct isn't actually easy to use but it makes the code
+// easy to read.
 pub fn articles_from_to(
   article_selector: ArticleSelector,
   start: usize,
@@ -132,7 +134,6 @@ pub fn articles_from_to(
   tags: Option<Vec<String>>,
   order: Order
 ) -> Result<Vec<Article>> {
-  
   let mut query = String::from(
     "SELECT articles.id, articles.title, articles.article_url, 
     articles.thumb_image, articles.date, articles.user_id, 
