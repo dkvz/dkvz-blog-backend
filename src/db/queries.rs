@@ -47,10 +47,10 @@ pub struct OrderBy {
 }
 
 impl OrderBy {
-  pub fn new(order: Order, field: String) -> Self {
+  pub fn new(order: Order, field: &str) -> Self {
     OrderBy {
       order,
-      field
+      field: String::from(field)
     }
   }
 }
@@ -206,9 +206,11 @@ impl fmt::Display for Query {
             .collect::<Vec<&str>>()
             .join(",")
         };
+        // I'm adding an extra space because
+        // all the other queries have one.
         write!(
           f,
-          "INSERT INTO {} ({}) VALUES ({})",
+          "INSERT INTO {} ({}) VALUES ({}) ",
           &table,
           &self.q_fields.join(","),
           values_str
@@ -248,7 +250,7 @@ mod tests {
       vec!["my_table_1.name".to_string(), "my_table_2.value".to_string()]
     )
     .where_and(vec!["my_table_1.id = ?".to_string()])
-    .order(OrderBy::new(Order::Desc, "name".to_string()))
+    .order(OrderBy::new(Order::Desc, "name"))
     .limit(10)
     .offset(20)
     .to_string();
@@ -258,4 +260,17 @@ mod tests {
       "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 WHERE my_table_1.id = ? ORDER BY name DESC LIMIT 10 OFFSET 20 ");     
     assert_eq!(query, expected);
   }
+
+  #[test]
+  fn generate_insert_w_placeholders() {
+    let query = Query::new(
+      QueryType::Insert { table: "my_table".to_string(), values: None }, 
+      vec!["my_table.name".to_string(), "my_table.value".to_string()]
+    ).to_string();
+    let expected = String::from(
+      "INSERT INTO my_table (my_table.name,my_table.value) VALUES (?,?) "
+    );
+    assert_eq!(query, expected)
+  }
+
 }
