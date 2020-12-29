@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 // I'm starting with ultra simple datatypes,
 // which is something SQLite fits naturally into.
 
+// These are too simple to be immediately usable
+// as JSON after auto-deserialization. I'll have
+// to create DTO-like objects like real pros do.
+
 #[derive(Serialize, Deserialize)]
 pub struct Article {
   pub id: i32,
@@ -14,7 +18,8 @@ pub struct Article {
   pub summary: String,
   pub content: String,
   pub published: i32,
-  pub short: i32
+  pub short: i32,
+  pub tags: Vec<Tag>
 }
 
 #[derive(Serialize, Deserialize)]

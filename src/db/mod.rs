@@ -8,8 +8,8 @@ use color_eyre::Result;
 use entities::*;
 // Re-exporting the query building enums and structs:
 pub use queries::{Order, OrderBy};
-use queries::{Query};
-use helpers::generate_query_placeholders;
+use queries::{Query, QueryType};
+use helpers::generate_where_placeholders;
 use mappers::map_tag;
 
 /**
@@ -132,6 +132,7 @@ pub fn articles_from_to(
   tags: Option<Vec<String>>,
   order: Order
 ) -> Result<Vec<Article>> {
+  
   let mut query = String::from(
     "SELECT articles.id, articles.title, articles.article_url, 
     articles.thumb_image, articles.date, articles.user_id, 

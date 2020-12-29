@@ -254,7 +254,6 @@ mod tests {
     .limit(10)
     .offset(20)
     .to_string();
-    
     // There's supposed to be an extra space at the end and no space between commas:
     let expected = String::from(
       "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 WHERE my_table_1.id = ? ORDER BY name DESC LIMIT 10 OFFSET 20 ");     

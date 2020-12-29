@@ -1,7 +1,7 @@
 /**
  * Generate a certain amount of query placeholders
  */
-pub fn generate_query_placeholders(name: &str, count: usize) -> String {
+pub fn generate_where_placeholders(name: &str, count: usize) -> String {
   let mut all_clauses: Vec<String> = Vec::with_capacity(count);
   for _ in 0..count {
     all_clauses.push(format!("{} = ?", name));
@@ -18,6 +18,6 @@ mod tests {
     let name = "tags";
     let count: usize = 4;
     let expected = String::from("tags = ? AND tags = ? AND tags = ? AND tags = ?");     
-    assert_eq!(generate_query_placeholders(name, count), expected);
+    assert_eq!(generate_where_placeholders(name, count), expected);
   }
 }
