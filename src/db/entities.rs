@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 pub struct Article {
   pub id: i32,
   pub title: String,
-  pub article_url: String,
+  pub article_url: Option<String>,
   pub thumb_image: String,
   pub date: i32,
   pub user_id: i32,
   pub summary: String,
-  pub content: String,
+  pub content: Option<String>,
   pub published: i32,
   pub short: i32,
   pub tags: Vec<Tag>

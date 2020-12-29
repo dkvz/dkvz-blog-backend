@@ -14,6 +14,11 @@ use mappers::map_tag;
 
 /**
  * I'll do all the DB stuff in a non-async way first.
+ * For those that do not know my style (lol), I never
+ * specify INNER JOIN when that type of JOIN is used,
+ * I always use some "=" in a WHERE clause instead.
+ * I also try to avoid using any of the other JOIN 
+ * whatsoever.
  */
 
 // Type alias to make function signatures much clearer:
@@ -127,26 +132,62 @@ pub fn get_tags_for_article(
 // I upgraded to a struct with a builder pattern.
 // That struct isn't actually easy to use but it makes the code
 // easy to read.
+// Hardcoded to only be able to get published articles.
 pub fn articles_from_to(
   article_selector: ArticleSelector,
   start: usize,
   count: usize,
-  tags: Option<Vec<String>>,
+  tags: Option<Vec<&str>>,
   order: Order
 ) -> Result<Vec<Article>> {
-  let mut query = String::from(
-    "SELECT articles.id, articles.title, articles.article_url, 
-    articles.thumb_image, articles.date, articles.user_id, 
-    articles.summary, articles.published"
-  );
+  let mut from = vec!["articles"];
+  let mut fields = vec![
+    "articles.id",
+    "articles.title", 
+    "articles.article_url", 
+    "articles.thumb_image",
+    "articles.date",
+    "articles.user_id", 
+    "articles.summary",
+    "articles.published"
+  ];
   // Add the article content to the fields list when
   // ArticleSelector is ALL or ARTICLE:
-  match article_selector {
-    ArticleSelector::ALL | ArticleSelector::ARTICLE => 
-      query.push_str(", articles.content"),
-    ArticleSelector::SHORT => ()
+  if let ArticleSelector::ALL | ArticleSelector::ARTICLE = article_selector { 
+    fields.push("articles.content");
   }
-  query.push_str(" FROM articles ");
+  let mut q_where = vec!["articles.published = 1"];
+  // Kinda redundant, "if let" above is almost the same check
+  match article_selector {
+    ArticleSelector::ARTICLE => q_where.push("articles.short = 0"),
+    ArticleSelector::SHORT => q_where.push("articles.short = 1"),
+    _ => ()
+  }
+  if let Some(tag_list) = tags {
+    if tag_list.len() > 0 {
+      from.append(vec!["article_tags", "tags"]);
+      q_where.push("(tags.id = article_tags.tag_id AND \
+        article_tags.article_id = articles.id)");
+      q_where.push(
+        generate_where_placeholders("tags.name", tag_list.len()).as_str()
+      );
+    }
+  }
+  // Build the query. I order by id and not by date for 
+  // performance reasons. I don't know, it's historical.
+  let query = Query::new(
+    QueryType::Select { from },
+    fields
+  )
+  .where_and(q_where)
+  .order(OrderBy::new(order, "articles.id"))
+  .limit(count)
+  .offset(start);
+
+  
+
+  // We always get the tags, even though I never use them on "shorts",
+  // I might do someday.
 
   Ok(Vec::new())
 }

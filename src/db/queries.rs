@@ -67,8 +67,8 @@ pub struct Query<'a> {
   q_where: Option<Vec<&'a str>>,
   where_glue: Option<WhereClauseGlue>,
   q_order: Option<OrderBy>,
-  limit: Option<i32>,
-  offset: Option<i32>,
+  limit: Option<usize>,
+  offset: Option<usize>,
 }
 
 impl<'a> Query<'a> {
@@ -107,12 +107,12 @@ impl<'a> Query<'a> {
     self
   }
 
-  pub fn limit(mut self, limit: i32) -> Self {
+  pub fn limit(mut self, limit: usize) -> Self {
     self.limit = Some(limit);
     self
   }
 
-  pub fn offset(mut self, offset: i32) -> Self {
+  pub fn offset(mut self, offset: usize) -> Self {
     self.offset = Some(offset);
     self
   }
@@ -249,14 +249,17 @@ mod tests {
       QueryType::Select { from: vec!["my_table_1", "my_table_2"] }, 
       vec!["my_table_1.name", "my_table_2.value"]
     )
-    .where_and(vec!["my_table_1.id = ?"])
+    .where_and(vec!["my_table_1.id = ?", "my_table.other_id = ?"])
     .order(OrderBy::new(Order::Desc, "name"))
     .limit(10)
     .offset(20)
     .to_string();
-    // There's supposed to be an extra space at the end and no space between commas:
+    // Thank god there's a way to break long strings but keep them from
+    // having line breaks in them.
     let expected = String::from(
-      "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 WHERE my_table_1.id = ? ORDER BY name DESC LIMIT 10 OFFSET 20 ");     
+      "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 \
+       WHERE my_table_1.id = ? AND my_table.other_id = ? \
+       ORDER BY name DESC LIMIT 10 OFFSET 20 ");
     assert_eq!(query, expected);
   }
 
