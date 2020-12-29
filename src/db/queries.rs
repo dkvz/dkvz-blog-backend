@@ -2,6 +2,9 @@
 // convoluted than I thought, but it works. I mean it 
 // will work at some point.
 
+// IMPORTANT:
+// None of this code is doing any escaping on its own.
+
 use std::fmt;
 
 // Bunch of enums for query building:
@@ -10,11 +13,14 @@ pub enum Order {
   Desc
 }
 
+// When inert values aren't given, "?" prepared
+// statement placeholders are automatically
+// generated.
 pub enum QueryType {
-  Insert(String),
-  Select(Vec<String>),
-  Update(String),
-  Delete(String)
+  Insert { table: String, values: Option<Vec<String>> },
+  Select { from: Vec<String> },
+  Update { table: String },
+  Delete { table: String }
 }
 
 // I'm going to use this to provide
@@ -107,17 +113,53 @@ impl Query {
     self
   }
 
-  // Get the "WHERE" part of the query
-  fn query_where_str(&self) -> Option<String> {
-    if let Some(wh) = &self.q_where {
-      format!(
-        "WHERE {} ",
-        &wh.join(
-          
+  // Get the last part of the query, 
+  // WHERE, ORDER and LIMIT
+  // May return an empty string as 
+  // these clauses are all optional.
+  fn where_order_limit_str(&self) -> String {
+    let mut result = match &self.q_where {
+      Some(wh) => {
+        let glue = self.where_glue.as_ref().unwrap_or(&WhereClauseGlue::And);
+        let glue_str = match glue {
+          WhereClauseGlue::And => " AND ",
+          WhereClauseGlue::Or => " OR "
+        };
+        format!(
+          "WHERE {} ",
+          &wh.join(glue_str)
         )
-      )
+      },
+      None => String::new()
+    };
+    // We don't check if the query type actually
+    // allows using ORDER BY.
+    if let Some(order) = &self.q_order {
+      result.push_str(&format!("ORDER BY {} ", order.field));
+      result.push_str(
+        match order.order {
+          Order::Asc => "ASC ",
+          Order::Desc => "DESC "
+        }
+      );
     }
-    String::new()
+    if let Some(lim) = &self.limit {
+      result.push_str(
+        &format!(
+          "LIMIT {} ",
+          lim
+        )
+      );
+      if let Some(off) = &self.offset {
+        result.push_str(
+          &format!(
+            "OFFSET {} ",
+            off
+          )
+        );
+      }
+    }
+    result
   }
 
 }
@@ -132,26 +174,47 @@ impl fmt::Display for Query {
     // Display trait for QueryType because we 
     // need access to "q_fields".
     let mut query = match &self.q_type {
-      QueryType::Select(q_from) => format!(
-        "SELECT {} FROM {} ",
-        &self.q_fields.join(","),
-        &q_from.join(",")
-      ),
-      QueryType::Delete(table) => format!(
-        "DELETE FROM {} ",
-        &table
-      ),
-      QueryType::Insert(table) => format!(
-        "INSERT INTO {} ({}) VALUES ",
+      QueryType::Select { from: q_from } => {
+        format!(
+          "SELECT {} FROM {} {}",
+          &self.q_fields.join(","),
+          &q_from.join(","),
+          &self.where_order_limit_str()
+        )
+      },
+      QueryType::Delete { table } => format!(
+        "DELETE FROM {} {}",
         &table,
-        &self.q_fields.join(",")
+        &self.where_order_limit_str()
       ),
-      QueryType::Update(table)=> format!(
-        "UPDATE {} SET ",
-        &table
+      QueryType::Insert { table, values } => {
+        // Check if we got values or fill with
+        // prepared statement placeholders:
+        let values_str = match values {
+          Some(vals) => vals.join(","),
+          // Dunno if this is the fastest way
+          // but it looks cool.
+          None => self.q_fields
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(",")
+        };
+        format!(
+          "INSERT INTO {} ({}) VALUES ({})",
+          &table,
+          &self.q_fields.join(","),
+          values_str
+        )
+      },
+      QueryType::Update { table } => format!(
+        "UPDATE {} SET {} {}",
+        &table,
+        &self.q_fields.join(","),
+        &self.where_order_limit_str()
       ),
     };
-
+    
     write!(
       f, "{}", query
     )
