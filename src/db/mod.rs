@@ -8,7 +8,7 @@ use color_eyre::Result;
 use entities::*;
 // Re-exporting the query building enums and structs:
 pub use queries::{Order, OrderBy};
-use queries::{select_query_builder};
+use queries::{Query};
 use helpers::generate_query_placeholders;
 use mappers::map_tag;
 

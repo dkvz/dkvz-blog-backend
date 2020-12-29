@@ -1,6 +1,10 @@
 // My QUERY BUILDING system ended up being a lot more
-// convoluted than I thought, but it works. I mean it 
-// will work at some point.
+// convoluted than I thought, but it works.
+// The weirdest part is how to combine OR and AND in
+// where clauses, since it's expecting either ONLY Ors,
+// or ONLY ANDs. Which can be hacked by providing strings
+// with AND or OR already present in them to the query 
+// builder.
 
 // IMPORTANT:
 // None of this code is doing any escaping on its own.
@@ -173,16 +177,18 @@ impl fmt::Display for Query {
     // The start part of the query can't be the 
     // Display trait for QueryType because we 
     // need access to "q_fields".
-    let mut query = match &self.q_type {
+    match &self.q_type {
       QueryType::Select { from: q_from } => {
-        format!(
+        write!(
+          f,
           "SELECT {} FROM {} {}",
           &self.q_fields.join(","),
           &q_from.join(","),
           &self.where_order_limit_str()
         )
       },
-      QueryType::Delete { table } => format!(
+      QueryType::Delete { table } => write!(
+        f,
         "DELETE FROM {} {}",
         &table,
         &self.where_order_limit_str()
@@ -200,80 +206,24 @@ impl fmt::Display for Query {
             .collect::<Vec<&str>>()
             .join(",")
         };
-        format!(
+        write!(
+          f,
           "INSERT INTO {} ({}) VALUES ({})",
           &table,
           &self.q_fields.join(","),
           values_str
         )
       },
-      QueryType::Update { table } => format!(
+      QueryType::Update { table } => write!(
+        f,
         "UPDATE {} SET {} {}",
         &table,
         &self.q_fields.join(","),
         &self.where_order_limit_str()
       ),
-    };
-    
-    write!(
-      f, "{}", query
-    )
-  }
-
-}
-
-
-// Decided to put "q_" in front of all args just
-// because "where" is a reserved Rust keyword.
-// This should probably be a struct with a
-// builder pattern.
-pub fn select_query_builder(
-  q_fields: &Vec<String>, 
-  q_from: &Vec<String>,
-  q_where: Option<&Vec<String>>,
-  q_order: Option<OrderBy>,
-  limit: Option<i32>,
-  offset: Option<i32>
-) -> String {
-  let mut query = format!(
-    "SELECT {} FROM {} ",
-    &q_fields.join(","),
-    &q_from.join(",")
-  );
-  if let Some(wh) = q_where {
-    query.push_str(
-      &format!(
-        "WHERE {} ",
-        &wh.join(",")
-      ) 
-    );
-  }
-  if let Some(order) = q_order {
-    query.push_str(&format!("ORDER BY {} ", order.field));
-    query.push_str(
-      match order.order {
-        Order::Asc => "ASC ",
-        Order::Desc => "DESC "
-      }
-    );
-  }
-  if let Some(lim) = limit {
-    query.push_str(
-      &format!(
-        "LIMIT {} ",
-        lim
-      )
-    );
-    if let Some(off) = offset {
-      query.push_str(
-        &format!(
-          "OFFSET {} ",
-          off
-        )
-      );
     }
   }
-  query
+
 }
 
 #[cfg(test)]
@@ -282,14 +232,10 @@ mod tests {
 
   #[test]
   fn generate_simple_select() {
-    let query = select_query_builder(
-      &vec!["my_table.name".to_string(), "my_table.value".to_string()], 
-      &vec!["my_table".to_string()], 
-      None, 
-      None, 
-      None, 
-      None
-    );
+    let query = Query::new(
+      QueryType::Select { from: vec!["my_table".to_string()] }, 
+      vec!["my_table.name".to_string(), "my_table.value".to_string()]
+    ).to_string();
     // There's supposed to be an extra space at the end and no space between commas:
     let expected = String::from("SELECT my_table.name,my_table.value FROM my_table ");     
     assert_eq!(query, expected);
@@ -297,17 +243,19 @@ mod tests {
 
   #[test]
   fn generate_full_select() {
-    let query = select_query_builder(
-      &vec!["my_table_1.name".to_string(), "my_table_2.value".to_string()], 
-      &vec!["my_table_1".to_string(), "my_table_2".to_string()], 
-      Some(&vec!["my_table_1.id = ?".to_string()]), 
-      Some(OrderBy::new(Order::Desc, "name".to_string())), 
-      Some(10), 
-      Some(20)
-    );
+    let query = Query::new(
+      QueryType::Select { from: vec!["my_table_1".to_string(), "my_table_2".to_string()] }, 
+      vec!["my_table_1.name".to_string(), "my_table_2.value".to_string()]
+    )
+    .where_and(vec!["my_table_1.id = ?".to_string()])
+    .order(OrderBy::new(Order::Desc, "name".to_string()))
+    .limit(10)
+    .offset(20)
+    .to_string();
+    
     // There's supposed to be an extra space at the end and no space between commas:
     let expected = String::from(
-      "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 WHERE my_table_1.id = ? ");     
+      "SELECT my_table_1.name,my_table_2.value FROM my_table_1,my_table_2 WHERE my_table_1.id = ? ORDER BY name DESC LIMIT 10 OFFSET 20 ");     
     assert_eq!(query, expected);
   }
 }
