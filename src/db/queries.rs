@@ -20,11 +20,11 @@ pub enum Order {
 // When inert values aren't given, "?" prepared
 // statement placeholders are automatically
 // generated.
-pub enum QueryType {
-  Insert { table: String, values: Option<Vec<String>> },
+pub enum QueryType<'a> {
+  Insert { table: &'a str, values: Option<Vec<String>> },
   Select { from: Vec<String> },
-  Update { table: String },
-  Delete { table: String }
+  Update { table: &'a str },
+  Delete { table: &'a str }
 }
 
 // I'm going to use this to provide
@@ -61,9 +61,9 @@ impl OrderBy {
 // The "q_" in front of field names is 
 // just because "where" is a reserved
 // keyword in Rust.
-pub struct Query {
+pub struct Query<'a> {
   q_fields: Vec<String>, 
-  q_type: QueryType,
+  q_type: QueryType<'a>,
   q_where: Option<Vec<String>>,
   where_glue: Option<WhereClauseGlue>,
   q_order: Option<OrderBy>,
@@ -71,9 +71,9 @@ pub struct Query {
   offset: Option<i32>,
 }
 
-impl Query {
+impl<'a> Query<'a> {
   
-  pub fn new(query_type: QueryType, fields: Vec<String>) -> Self {
+  pub fn new(query_type: QueryType<'a>, fields: Vec<String>) -> Self {
     Query {
       q_fields: fields,
       q_type: query_type,
@@ -171,7 +171,7 @@ impl Query {
 // Creating the query string will be done by 
 // implementing the Display trait, which will
 // all implement ToString.
-impl fmt::Display for Query {
+impl<'a> fmt::Display for Query<'a> {
 
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // The start part of the query can't be the 
@@ -264,7 +264,7 @@ mod tests {
   #[test]
   fn generate_insert_w_placeholders() {
     let query = Query::new(
-      QueryType::Insert { table: "my_table".to_string(), values: None }, 
+      QueryType::Insert { table: "my_table", values: None }, 
       vec!["my_table.name".to_string(), "my_table.value".to_string()]
     ).to_string();
     let expected = String::from(
