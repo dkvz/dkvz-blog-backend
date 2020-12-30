@@ -154,8 +154,9 @@ pub fn articles_from_to(
     "articles.short"
   ];
   // Add the article content to the fields list when
-  // ArticleSelector is ALL or ARTICLE:
-  if let ArticleSelector::All | ArticleSelector::Article = article_selector { 
+  // ArticleSelector is ALL or SHORT (we don't add it
+  // to ARTICLES because these have huge content):
+  if let ArticleSelector::All | ArticleSelector::Short = article_selector { 
     fields.push("articles.content");
   }
   let mut q_where = vec!["articles.published = 1"];

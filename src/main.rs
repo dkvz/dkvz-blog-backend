@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let count = comment_count(&pool, 110)?;
     let articles = articles_from_to(&pool, ArticleSelector::Short, 0, 10, None, Order::Desc)?;
     for article in &articles {
-        println!("{:?}\n---", article);
+        println!("{} - {}", article.id, article.title);
     }
     println!("Found config: {:?}", config);
     println!("Found tags: {}", tags.len());

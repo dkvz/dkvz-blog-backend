@@ -30,10 +30,12 @@ pub fn map_articles(
   */
   let (content, article_url): (Option<String>, Option<String>) = 
     match article_type {
-      ArticleSelector::All | ArticleSelector::Article => 
+      ArticleSelector::All => 
         (Some(row.get(9)?), Some(row.get(2)?)),
       ArticleSelector::Short => 
-        (None, None)
+        (Some(row.get(9)?), None),
+      ArticleSelector::Article => 
+        (None, Some(row.get(2)?)),
     };
   Ok(
     Article {
