@@ -10,7 +10,7 @@ use entities::*;
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
 use helpers::generate_where_placeholders;
-use mappers::map_tag;
+use mappers::{map_tag, map_articles};
 
 /**
  * I'll do all the DB stuff in a non-async way first.
@@ -26,9 +26,9 @@ pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 // Some enums used in DB functions:
 pub enum ArticleSelector {
-  SHORT,
-  ARTICLE,
-  ALL
+  Short,
+  Article,
+  All
 }
 
 // Stole most of the signature from the rustqlite doc.
@@ -110,7 +110,7 @@ pub fn comment_count (
   }
 }
 
-pub fn get_tags_for_article(
+pub fn tags_for_article(
   pool: &Pool,
   article_id: i32
 ) -> Result<Vec<Tag>> {
@@ -134,6 +134,7 @@ pub fn get_tags_for_article(
 // easy to read.
 // Hardcoded to only be able to get published articles.
 pub fn articles_from_to(
+  pool: &Pool,
   article_selector: ArticleSelector,
   start: usize,
   count: usize,
@@ -149,27 +150,35 @@ pub fn articles_from_to(
     "articles.date",
     "articles.user_id", 
     "articles.summary",
-    "articles.published"
+    "articles.published",
+    "articles.short"
   ];
   // Add the article content to the fields list when
   // ArticleSelector is ALL or ARTICLE:
-  if let ArticleSelector::ALL | ArticleSelector::ARTICLE = article_selector { 
+  if let ArticleSelector::All | ArticleSelector::Article = article_selector { 
     fields.push("articles.content");
   }
   let mut q_where = vec!["articles.published = 1"];
   // Kinda redundant, "if let" above is almost the same check
   match article_selector {
-    ArticleSelector::ARTICLE => q_where.push("articles.short = 0"),
-    ArticleSelector::SHORT => q_where.push("articles.short = 1"),
+    ArticleSelector::Article => q_where.push("articles.short = 0"),
+    ArticleSelector::Short => q_where.push("articles.short = 1"),
     _ => ()
   }
-  if let Some(tag_list) = tags {
+  // Have to declare this here as it has to live as long as the
+  // q_where vector does.
+  // I could just use a copy and fix this but uh... Yeah.
+  let placeholders: String;
+  if let Some(tag_list) = &tags {
     if tag_list.len() > 0 {
-      from.append(vec!["article_tags", "tags"]);
+      // Append actually drains ("move" is more accurate) the 
+      // provided vector, so it needs a mutable one.
+      from.append(&mut vec!["article_tags", "tags"]);
       q_where.push("(tags.id = article_tags.tag_id AND \
         article_tags.article_id = articles.id)");
+      placeholders = generate_where_placeholders("tags.name", tag_list.len());
       q_where.push(
-        generate_where_placeholders("tags.name", tag_list.len()).as_str()
+        placeholders.as_str()
       );
     }
   }
@@ -179,15 +188,36 @@ pub fn articles_from_to(
     QueryType::Select { from },
     fields
   )
-  .where_and(q_where)
-  .order(OrderBy::new(order, "articles.id"))
-  .limit(count)
-  .offset(start);
+    .where_and(q_where)
+    .order(OrderBy::new(order, "articles.id"))
+    .limit(count)
+    .offset(start)
+    .to_string();
 
+  // haven't thought of something more "optimal" than
+  // providing an empty vector.
+  let params = match tags {
+    Some(ts) => ts,
+    None => Vec::new()
+  };
+
+  select_many(
+    pool, 
+    query.as_str(), 
+    params, 
+    |row| {
+      let article_id = row.get(0)?;
+      // We always get the tags, even though I never use them on "shorts",
+      // I might do someday.
+      // My "error handling" is subpar, mapping Eyre error into one of the
+      // parameter-less member of rusqlite::Error.
+      map_articles(
+        row, 
+        tags_for_article(pool, article_id)
+          .map_err(|_| rusqlite::Error::InvalidQuery)?, 
+        &article_selector
+      )
+    }
+  )
   
-
-  // We always get the tags, even though I never use them on "shorts",
-  // I might do someday.
-
-  Ok(Vec::new())
 }

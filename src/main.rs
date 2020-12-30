@@ -1,6 +1,13 @@
 mod config;
 mod db;
-use db::{ Pool, all_tags, comment_count };
+use db::{ 
+    Pool, 
+    all_tags, 
+    comment_count, 
+    articles_from_to, 
+    ArticleSelector,
+    Order
+};
 use color_eyre::Result;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 // I think we have to add crate here because
@@ -18,7 +25,10 @@ fn main() -> Result<()> {
 
     let tags = all_tags(&pool)?;
     let count = comment_count(&pool, 110)?;
-
+    let articles = articles_from_to(&pool, ArticleSelector::Short, 0, 10, None, Order::Desc)?;
+    for article in &articles {
+        println!("{:?}\n---", article);
+    }
     println!("Found config: {:?}", config);
     println!("Found tags: {}", tags.len());
     println!("Comment count for article 110: {}", count);

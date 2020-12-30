@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 // as JSON after auto-deserialization. I'll have
 // to create DTO-like objects like real pros do.
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Article {
   pub id: i32,
   pub title: String,
@@ -22,7 +22,7 @@ pub struct Article {
   pub tags: Vec<Tag>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Tag {
   pub id: i32,
   pub name: String,
