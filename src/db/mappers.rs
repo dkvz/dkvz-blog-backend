@@ -2,6 +2,14 @@ use super::entities::*;
 use super::{ArticleSelector};
 use rusqlite::{Row, Error};
 
+// Decided to use something larger than i32 for...
+// reasons. I don't know I liked the challenge.
+// Then I found out they only provide From traits
+// for i64 because of the minus sign or something.
+pub fn map_count(row: &Row) -> Result<i64, Error> {
+  Ok(row.get(0)?)
+}
+
 pub fn map_tag(row: &Row) -> Result<Tag, Error> {
   Ok(Tag {
     id: row.get(0)?,

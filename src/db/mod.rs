@@ -1,4 +1,11 @@
-use rusqlite::{Statement, params, NO_PARAMS, Row, ToSql, OptionalExtension};
+use rusqlite::{
+  Statement, 
+  params, 
+  NO_PARAMS, 
+  Row, 
+  ToSql, 
+  OptionalExtension
+};
 mod entities;
 mod mappers;
 mod helpers;
@@ -10,7 +17,7 @@ use entities::*;
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
 use helpers::generate_where_placeholders;
-use mappers::{map_tag, map_articles};
+use mappers::{map_tag, map_articles, map_count};
 
 /**
  * I'll do all the DB stuff in a non-async way first.
@@ -71,7 +78,21 @@ let mut stmt = conn.prepare(query)?;
 // OptionalExtension trait from rusqlite.
 stmt.query_row(params, mapper)
   .optional()
-  .context("Generic select_once query")
+  .context("Generic select_one query")
+}
+
+fn select_count<P>(
+  pool: &Pool, 
+  query: &str, 
+  params: P, 
+) -> Result<i64> 
+  where
+  P: IntoIterator,
+  P::Item: ToSql,
+{
+  let count = select_one(pool, query, params, map_count)?
+    .unwrap_or(0);
+  Ok(count)
 }
 
 /*
@@ -91,23 +112,28 @@ pub fn all_tags(
   )
 }
 
-pub fn comment_count (
+pub fn comment_count(
   pool: &Pool,
   article_id: i32
-) -> Result<i32> {
-  let count_opt: Option<i32> = select_one(
+) -> Result<i64> {
+  /*let count_opt: Option<i32> = select_one(
     pool,
     "SELECT count(*) FROM comments WHERE article_id = ?",
     params![article_id],
     |row| row.get(0)
-  )?;
+  )?;*/
   // The generic function supports having optional values,
   // But the count query here should never just not give
   // any value.
-  match count_opt {
+  /*match count_opt {
     Some(count) => Ok(count),
     None => Err(eyre!("A count query returned no value")) 
-  }
+  }*/
+  select_count(
+    pool,
+    "SELECT count(*) FROM comments WHERE article_id = ?",
+    params![article_id]
+  )
 }
 
 pub fn tags_for_article(
