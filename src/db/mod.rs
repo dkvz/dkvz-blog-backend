@@ -97,6 +97,48 @@ fn select_count<P>(
 
 /*
 ------------------------------------------------------
+Reusable mappers and query functions
+------------------------------------------------------
+*/
+
+fn full_article_mapper(
+  pool: &Pool,
+  row: &Row
+) -> Result<Article, rusqlite::Error> {
+  let article_id = row.get(0)?;
+  let short: i32 = row.get(8)?;
+  // Due to how I wrote the mapper function,
+  // I have to use the "selector" All for articles
+  // or the content is ignored.
+  let article_type: ArticleSelector = 
+    if short == 0 { ArticleSelector::All }
+    else { ArticleSelector::Short };
+  // Get the tags:
+  map_article(
+    row, 
+    tags_for_article(pool, article_id)
+      .map_err(|_| rusqlite::Error::InvalidQuery)?, 
+    &article_type
+  )
+}
+
+fn insert_article_tag(
+  pool: &Pool,
+  tag: &Tag,
+  article_id: i32
+) -> Result<usize> {
+  let query = Query::new(
+    QueryType::Insert { table: "article_tags", values: None },
+    vec!["article_id, tag_id"]
+  ).to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(params![article_id, tag.id])
+    .context("Insert tag for article")
+}
+
+/*
+------------------------------------------------------
 Data access functions
 ------------------------------------------------------
 */
@@ -259,18 +301,23 @@ pub fn article_by_id(
     summary, published, short, content FROM articles WHERE id = ?",
     params![id],
     |row| {
-      let article_id = row.get(0)?;
-      let short: i32 = row.get(8)?;
-      let article_type: ArticleSelector = 
-        if short == 0 { ArticleSelector::Article }
-        else { ArticleSelector::Short };
-      // Get the tags:
-      map_article(
-        row, 
-        tags_for_article(pool, article_id)
-          .map_err(|_| rusqlite::Error::InvalidQuery)?, 
-        &article_type
-      )
+      full_article_mapper(&pool, &row)
+    }
+  )
+}
+
+pub fn article_by_url(
+  pool: &Pool,
+  url: &str
+) -> Result<Option<Article>> {
+  select_one(
+    pool,
+    "SELECT id, title, article_url, thumb_image, date, user_id, \
+    summary, published, short, content FROM articles \
+    WHERE article_url = ?",
+    params![url],
+    |row| {
+      full_article_mapper(&pool, &row)
     }
   )
 }

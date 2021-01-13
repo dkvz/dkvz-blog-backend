@@ -17,3 +17,4 @@ Some of the database workings were inspired by this example: https://github.com/
 - [x] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Test coverage is lacking in queries.rs.
+- [ ] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
