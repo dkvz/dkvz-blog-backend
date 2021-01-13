@@ -18,7 +18,7 @@ pub fn map_tag(row: &Row) -> Result<Tag, Error> {
   })
 }
 
-pub fn map_articles(
+pub fn map_article(
   row: &Row, 
   tags: Vec<Tag>, 
   article_type: &ArticleSelector

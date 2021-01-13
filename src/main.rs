@@ -5,6 +5,7 @@ use db::{
     all_tags, 
     comment_count, 
     articles_from_to, 
+    article_by_id, 
     ArticleSelector,
     Order
 };
@@ -29,6 +30,13 @@ fn main() -> Result<()> {
     for article in &articles {
         println!("{} - {}", article.id, article.title);
     }
+    let id = 110;
+    let article = article_by_id(&pool, id)?;
+    match article {
+        Some(article) => println!("Article: {:?}", article),
+        None => println!("No article found for id {}", &id)
+    }
+
     println!("Found config: {:?}", config);
     println!("Found tags: {}", tags.len());
     println!("Comment count for article 110: {}", count);

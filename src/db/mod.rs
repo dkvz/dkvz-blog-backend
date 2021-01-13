@@ -17,7 +17,7 @@ use entities::*;
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
 use helpers::generate_where_placeholders;
-use mappers::{map_tag, map_articles, map_count};
+use mappers::{map_tag, map_article, map_count};
 
 /**
  * I'll do all the DB stuff in a non-async way first.
@@ -238,7 +238,7 @@ pub fn articles_from_to(
       // I might do someday.
       // My "error handling" is subpar, mapping Eyre error into one of the
       // parameter-less member of rusqlite::Error.
-      map_articles(
+      map_article(
         row, 
         tags_for_article(pool, article_id)
           .map_err(|_| rusqlite::Error::InvalidQuery)?, 
@@ -247,4 +247,30 @@ pub fn articles_from_to(
     }
   )
   
+}
+
+pub fn article_by_id(
+  pool: &Pool,
+  id: i32
+) -> Result<Option<Article>> {
+  select_one(
+    pool,
+    "SELECT id, title, article_url, thumb_image, date, user_id, \
+    summary, published, short, content FROM articles WHERE id = ?",
+    params![id],
+    |row| {
+      let article_id = row.get(0)?;
+      let short: i32 = row.get(8)?;
+      let article_type: ArticleSelector = 
+        if short == 0 { ArticleSelector::Article }
+        else { ArticleSelector::Short };
+      // Get the tags:
+      map_article(
+        row, 
+        tags_for_article(pool, article_id)
+          .map_err(|_| rusqlite::Error::InvalidQuery)?, 
+        &article_type
+      )
+    }
+  )
 }
