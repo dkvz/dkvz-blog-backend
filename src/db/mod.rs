@@ -137,6 +137,25 @@ fn insert_article_tag(
     .context("Insert tag for article")
 }
 
+fn insert_article_fulltext(
+  pool: &Pool,
+  article: &Article
+) -> Result<usize> {
+  let query = Query::new(
+    QueryType::Insert { table: "articles_ft", values: None },
+    vec!["id", "title", "content"]
+  ).to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(
+    params![
+      article.id, 
+      article.title, 
+      article.content.as_ref().unwrap_or(&String::new())
+    ]
+  ).context("Insert fulltext data for article")
+}
+
 /*
 ------------------------------------------------------
 Data access functions
