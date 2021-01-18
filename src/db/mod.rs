@@ -140,6 +140,22 @@ fn insert_article_tag(
     .context("Insert tag for article")
 }
 
+fn delete_article_tag(
+  pool: &Pool,
+  tag_id: i32,
+  article_id: i32
+) -> Result<usize> {
+  let query = Query::new(
+    QueryType::Delete { table: "article_tags" }
+  )
+    .where_and(&["tag_id = ?", "article_id = ?"])
+    .to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(params![tag_id, article_id])
+    .context("Delete tag from article")
+}
+
 fn insert_article_fulltext(
   pool: &Pool,
   article: &Article
@@ -162,9 +178,6 @@ fn insert_article_fulltext(
   ).context("Insert fulltext data for article")
 }
 
-// Yes I know this looks very similar to the previous
-// function. Sometimes code repetition is alright guys 
-// (by which I mean ME).
 fn update_article_fulltext(
   pool: &Pool,
   article: &Article
@@ -188,6 +201,9 @@ fn update_article_fulltext(
   ).context("Update fulltext data for article")
 }
 
+// Yes I know this looks very similar to the previous
+// function. Sometimes code repetition is alright guys 
+// (by which I mean ME).
 fn delete_article_fulltest(
   pool: &Pool,
   article_id: i32
@@ -389,3 +405,5 @@ pub fn article_by_url(
     }
   )
 }
+
+// TODO: Insert article
