@@ -128,8 +128,11 @@ fn insert_article_tag(
   article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
-    QueryType::Insert { table: "article_tags", values: None },
-    &["article_id, tag_id"]
+    QueryType::Insert { 
+      table: "article_tags",
+      fields: &["article_id, tag_id"], 
+      values: None 
+    }
   ).to_string();
   let conn = pool.clone().get()?;
   let mut stmt = conn.prepare(&query)?;
@@ -142,8 +145,11 @@ fn insert_article_fulltext(
   article: &Article
 ) -> Result<usize> {
   let query = Query::new(
-    QueryType::Insert { table: "articles_ft", values: None },
-    &["id", "title", "content"]
+    QueryType::Insert { 
+      table: "articles_ft",
+      fields: &["id", "title", "content"], 
+      values: None 
+    }
   ).to_string();
   let conn = pool.clone().get()?;
   let mut stmt = conn.prepare(&query)?;
@@ -154,6 +160,47 @@ fn insert_article_fulltext(
       article.content.as_ref().unwrap_or(&String::new())
     ]
   ).context("Insert fulltext data for article")
+}
+
+// Yes I know this looks very similar to the previous
+// function. Sometimes code repetition is alright guys 
+// (by which I mean ME).
+fn update_article_fulltext(
+  pool: &Pool,
+  article: &Article
+) -> Result<usize> {
+  let query = Query::new(
+    QueryType::Update { 
+      table: "articles_ft",
+      fields: &["title = ?", "content = ?"]
+    }
+  )
+    .where_clause("id = ?")
+    .to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(
+    params![ 
+      article.title, 
+      article.content.as_ref().unwrap_or(&String::new()),
+      article.id
+    ]
+  ).context("Update fulltext data for article")
+}
+
+fn delete_article_fulltest(
+  pool: &Pool,
+  article_id: i32
+) -> Result<usize> {
+  let query = Query::new(
+    QueryType::Delete { table: "articles_ft" }
+  )
+    .where_clause("id = ?")
+    .to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(params![article_id])
+    .context("Delete fulltext data for article")
 }
 
 /*
@@ -273,8 +320,10 @@ pub fn articles_from_to(
   // Build the query. I order by id and not by date for 
   // performance reasons. I don't know, it's historical.
   let query = Query::new(
-    QueryType::Select { from: &from },
-    &fields
+    QueryType::Select { 
+      from: &from,
+      fields: &fields
+    }
   )
     .where_and(&q_where)
     .order(OrderBy::new(order, "articles.id"))

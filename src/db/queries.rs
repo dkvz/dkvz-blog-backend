@@ -21,9 +21,13 @@ pub enum Order {
 // statement placeholders are automatically
 // generated.
 pub enum QueryType<'a> {
-  Insert { table: &'a str, values: Option<&'a[&'a str]> },
-  Select { from: &'a[&'a str] },
-  Update { table: &'a str },
+  Insert { 
+    table: &'a str, 
+    fields: &'a[&'a str], 
+    values: Option<&'a[&'a str]> 
+  },
+  Select { from: &'a[&'a str], fields: &'a[&'a str] },
+  Update { table: &'a str, fields: &'a[&'a str] },
   Delete { table: &'a str }
 }
 
@@ -67,7 +71,6 @@ impl OrderBy {
 // references and uh... Lifetime and 
 // stuff.
 pub struct Query<'a> {
-  q_fields: &'a[&'a str], 
   q_type: QueryType<'a>,
   q_where: Option<Vec<&'a str>>,
   where_glue: Option<WhereClauseGlue>,
@@ -78,9 +81,8 @@ pub struct Query<'a> {
 
 impl<'a> Query<'a> {
   
-  pub fn new(query_type: QueryType<'a>, fields: &'a[&'a str]) -> Self {
+  pub fn new(query_type: QueryType<'a>) -> Self {
     Query {
-      q_fields: fields,
       q_type: query_type,
       q_where: None,
       where_glue: None,
@@ -183,11 +185,11 @@ impl<'a> fmt::Display for Query<'a> {
     // Display trait for QueryType because we 
     // need access to "q_fields".
     match &self.q_type {
-      QueryType::Select { from: q_from } => {
+      QueryType::Select { from: q_from, fields: q_fields } => {
         write!(
           f,
           "SELECT {} FROM {} {}",
-          &self.q_fields.join(","),
+          &q_fields.join(","),
           &q_from.join(","),
           &self.where_order_limit_str()
         )
@@ -198,14 +200,14 @@ impl<'a> fmt::Display for Query<'a> {
         &table,
         &self.where_order_limit_str()
       ),
-      QueryType::Insert { table, values } => {
+      QueryType::Insert { table, fields, values } => {
         // Check if we got values or fill with
         // prepared statement placeholders:
         let values_str = match values {
           Some(vals) => vals.join(","),
           // Dunno if this is the fastest way
           // but it looks cool.
-          None => self.q_fields
+          None => fields
             .iter()
             .map(|_| "?")
             .collect::<Vec<&str>>()
@@ -217,15 +219,15 @@ impl<'a> fmt::Display for Query<'a> {
           f,
           "INSERT INTO {} ({}) VALUES ({}) ",
           &table,
-          &self.q_fields.join(","),
+          &fields.join(","),
           values_str
         )
       },
-      QueryType::Update { table } => write!(
+      QueryType::Update { table, fields } => write!(
         f,
         "UPDATE {} SET {} {}",
         &table,
-        &self.q_fields.join(","),
+        &fields.join(","),
         &self.where_order_limit_str()
       ),
     }
@@ -240,8 +242,10 @@ mod tests {
   #[test]
   fn generate_simple_select() {
     let query = Query::new(
-      QueryType::Select { from: &["my_table"] }, 
-      &["my_table.name", "my_table.value"]
+      QueryType::Select { 
+        from: &["my_table"],
+        fields: &["my_table.name", "my_table.value"]
+      }
     ).to_string();
     // There's supposed to be an extra space at the end and no space between commas:
     let expected = String::from("SELECT my_table.name,my_table.value FROM my_table ");     
@@ -251,8 +255,10 @@ mod tests {
   #[test]
   fn generate_full_select() {
     let query = Query::new(
-      QueryType::Select { from: &["my_table_1", "my_table_2"] }, 
-      &["my_table_1.name", "my_table_2.value"]
+      QueryType::Select { 
+        from: &["my_table_1", "my_table_2"],
+        fields: &["my_table_1.name", "my_table_2.value"]
+      }  
     )
     .where_and(&["my_table_1.id = ?", "my_table.other_id = ?"])
     .order(OrderBy::new(Order::Desc, "name"))
@@ -271,11 +277,29 @@ mod tests {
   #[test]
   fn generate_insert_w_placeholders() {
     let query = Query::new(
-      QueryType::Insert { table: "my_table", values: None }, 
-      &["my_table.name", "my_table.value"]
+      QueryType::Insert { 
+        table: "my_table", 
+        fields: &["my_table.name", "my_table.value"],
+        values: None 
+      }
     ).to_string();
     let expected = String::from(
       "INSERT INTO my_table (my_table.name,my_table.value) VALUES (?,?) "
+    );
+    assert_eq!(query, expected)
+  }
+
+  #[test]
+  fn generate_delete() {
+    let query = Query::new(
+      QueryType::Delete { 
+        table: "my_table"
+      }
+    )
+      .where_clause("id = ?")
+      .to_string();
+    let expected = String::from(
+      "DELETE FROM my_table WHERE id = ? "
     );
     assert_eq!(query, expected)
   }
