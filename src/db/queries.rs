@@ -61,10 +61,15 @@ impl OrderBy {
 // The "q_" in front of field names is 
 // just because "where" is a reserved
 // keyword in Rust.
+// q_where had to be an owned vector 
+// because of the where_clause method 
+// and the need for array slices to be 
+// references and uh... Lifetime and 
+// stuff.
 pub struct Query<'a> {
   q_fields: &'a[&'a str], 
   q_type: QueryType<'a>,
-  q_where: Option<&'a[&'a str]>,
+  q_where: Option<Vec<&'a str>>,
   where_glue: Option<WhereClauseGlue>,
   q_order: Option<OrderBy>,
   limit: Option<usize>,
@@ -86,19 +91,18 @@ impl<'a> Query<'a> {
   }
 
   pub fn where_clause(mut self, where_str: &'static str) -> Self {
-    let wh: &'static Vec<&'static str> = &vec![where_str];
-    self.q_where = Some(&wh);
+    self.q_where = Some(vec![where_str]);
     self
   }
 
   pub fn where_and(mut self, q_where: &'a[&'a str]) -> Self {
-    self.q_where = Some(q_where);
+    self.q_where = Some(q_where.to_vec());
     self.where_glue = Some(WhereClauseGlue::And);
     self
   }
 
   pub fn where_or(mut self, q_where: &'a[&'a str]) -> Self {
-    self.q_where = Some(q_where);
+    self.q_where = Some(q_where.to_vec());
     self.where_glue = Some(WhereClauseGlue::Or);
     self
   }
