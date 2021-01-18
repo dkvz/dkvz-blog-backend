@@ -21,8 +21,8 @@ pub enum Order {
 // statement placeholders are automatically
 // generated.
 pub enum QueryType<'a> {
-  Insert { table: &'a str, values: Option<Vec<&'a str>> },
-  Select { from: Vec<&'a str> },
+  Insert { table: &'a str, values: Option<&'a[&'a str]> },
+  Select { from: &'a[&'a str] },
   Update { table: &'a str },
   Delete { table: &'a str }
 }
@@ -62,9 +62,9 @@ impl OrderBy {
 // just because "where" is a reserved
 // keyword in Rust.
 pub struct Query<'a> {
-  q_fields: Vec<&'a str>, 
+  q_fields: &'a[&'a str], 
   q_type: QueryType<'a>,
-  q_where: Option<Vec<&'a str>>,
+  q_where: Option<&'a[&'a str]>,
   where_glue: Option<WhereClauseGlue>,
   q_order: Option<OrderBy>,
   limit: Option<usize>,
@@ -73,7 +73,7 @@ pub struct Query<'a> {
 
 impl<'a> Query<'a> {
   
-  pub fn new(query_type: QueryType<'a>, fields: Vec<&'a str>) -> Self {
+  pub fn new(query_type: QueryType<'a>, fields: &'a[&'a str]) -> Self {
     Query {
       q_fields: fields,
       q_type: query_type,
@@ -85,18 +85,19 @@ impl<'a> Query<'a> {
     }
   }
 
-  pub fn where_clause(mut self, where_str: &'a str) -> Self {
-    self.q_where = Some(vec![where_str]);
+  pub fn where_clause(mut self, where_str: &'static str) -> Self {
+    let wh: &'static Vec<&'static str> = &vec![where_str];
+    self.q_where = Some(&wh);
     self
   }
 
-  pub fn where_and(mut self, q_where: Vec<&'a str>) -> Self {
+  pub fn where_and(mut self, q_where: &'a[&'a str]) -> Self {
     self.q_where = Some(q_where);
     self.where_glue = Some(WhereClauseGlue::And);
     self
   }
 
-  pub fn where_or(mut self, q_where: Vec<&'a str>) -> Self {
+  pub fn where_or(mut self, q_where: &'a[&'a str]) -> Self {
     self.q_where = Some(q_where);
     self.where_glue = Some(WhereClauseGlue::Or);
     self
@@ -235,8 +236,8 @@ mod tests {
   #[test]
   fn generate_simple_select() {
     let query = Query::new(
-      QueryType::Select { from: vec!["my_table"] }, 
-      vec!["my_table.name", "my_table.value"]
+      QueryType::Select { from: &["my_table"] }, 
+      &["my_table.name", "my_table.value"]
     ).to_string();
     // There's supposed to be an extra space at the end and no space between commas:
     let expected = String::from("SELECT my_table.name,my_table.value FROM my_table ");     
@@ -246,10 +247,10 @@ mod tests {
   #[test]
   fn generate_full_select() {
     let query = Query::new(
-      QueryType::Select { from: vec!["my_table_1", "my_table_2"] }, 
-      vec!["my_table_1.name", "my_table_2.value"]
+      QueryType::Select { from: &["my_table_1", "my_table_2"] }, 
+      &["my_table_1.name", "my_table_2.value"]
     )
-    .where_and(vec!["my_table_1.id = ?", "my_table.other_id = ?"])
+    .where_and(&["my_table_1.id = ?", "my_table.other_id = ?"])
     .order(OrderBy::new(Order::Desc, "name"))
     .limit(10)
     .offset(20)
@@ -267,7 +268,7 @@ mod tests {
   fn generate_insert_w_placeholders() {
     let query = Query::new(
       QueryType::Insert { table: "my_table", values: None }, 
-      vec!["my_table.name", "my_table.value"]
+      &["my_table.name", "my_table.value"]
     ).to_string();
     let expected = String::from(
       "INSERT INTO my_table (my_table.name,my_table.value) VALUES (?,?) "

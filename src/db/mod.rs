@@ -129,7 +129,7 @@ fn insert_article_tag(
 ) -> Result<usize> {
   let query = Query::new(
     QueryType::Insert { table: "article_tags", values: None },
-    vec!["article_id, tag_id"]
+    &["article_id, tag_id"]
   ).to_string();
   let conn = pool.clone().get()?;
   let mut stmt = conn.prepare(&query)?;
@@ -143,7 +143,7 @@ fn insert_article_fulltext(
 ) -> Result<usize> {
   let query = Query::new(
     QueryType::Insert { table: "articles_ft", values: None },
-    vec!["id", "title", "content"]
+    &["id", "title", "content"]
   ).to_string();
   let conn = pool.clone().get()?;
   let mut stmt = conn.prepare(&query)?;
@@ -273,10 +273,10 @@ pub fn articles_from_to(
   // Build the query. I order by id and not by date for 
   // performance reasons. I don't know, it's historical.
   let query = Query::new(
-    QueryType::Select { from },
-    fields
+    QueryType::Select { from: &from },
+    &fields
   )
-    .where_and(q_where)
+    .where_and(&q_where)
     .order(OrderBy::new(order, "articles.id"))
     .limit(count)
     .offset(start)
