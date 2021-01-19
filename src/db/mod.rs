@@ -6,7 +6,7 @@ use rusqlite::{
   ToSql, 
   OptionalExtension
 };
-mod entities;
+pub mod entities;
 mod mappers;
 mod helpers;
 mod queries;
@@ -31,6 +31,7 @@ use mappers::{map_tag, map_article, map_count};
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
+type Connection = r2d2::PooledConnection<r2d2_sqlite::SqliteConnectionManager>;
 
 // Some enums used in DB functions:
 pub enum ArticleSelector {
@@ -123,43 +124,47 @@ fn full_article_mapper(
   )
 }
 
+// Trying to reuse connections here.
 fn insert_article_tag(
-  pool: &Pool,
-  tag: &Tag,
+  connection: &Connection,
+  tag_id: i32,
   article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
     QueryType::Insert { 
       table: "article_tags",
-      fields: &["article_id, tag_id"], 
+      fields: &["article_id", "tag_id"], 
       values: None 
     }
   ).to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
-  stmt.execute(params![article_id, tag.id])
+  /*let conn = match connection {
+    Some(conn) => conn,
+    None => &pool.clone().get()?
+  };*/
+  let mut stmt = connection.prepare(&query)?;
+  stmt.execute(params![article_id, tag_id])
     .context("Insert tag for article")
 }
 
-fn delete_article_tag(
-  pool: &Pool,
-  tag_id: i32,
+fn delete_all_tags_for_article(
+  connection: &Connection,
   article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
     QueryType::Delete { table: "article_tags" }
   )
-    .where_and(&["tag_id = ?", "article_id = ?"])
+    .where_clause("article_id = ?")
     .to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
-  stmt.execute(params![tag_id, article_id])
+  
+  let mut stmt = connection.prepare(&query)?;
+  stmt.execute(params![article_id])
     .context("Delete tag from article")
 }
 
 fn insert_article_fulltext(
-  pool: &Pool,
-  article: &Article
+  connection: &Connection,
+  article: &Article,
+  article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
     QueryType::Insert { 
@@ -168,8 +173,8 @@ fn insert_article_fulltext(
       values: None 
     }
   ).to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
+  //let conn = pool.clone().get()?;
+  let mut stmt = connection.prepare(&query)?;
   stmt.execute(
     params![
       article.id, 
@@ -180,7 +185,7 @@ fn insert_article_fulltext(
 }
 
 fn update_article_fulltext(
-  pool: &Pool,
+  connection: &Connection,
   article: &Article
 ) -> Result<usize> {
   let query = Query::new(
@@ -191,8 +196,8 @@ fn update_article_fulltext(
   )
     .where_clause("id = ?")
     .to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
+  //let conn = pool.clone().get()?;
+  let mut stmt = connection.prepare(&query)?;
   stmt.execute(
     params![ 
       article.title, 
@@ -205,8 +210,8 @@ fn update_article_fulltext(
 // Yes I know this looks very similar to the previous
 // function. Sometimes code repetition is alright guys 
 // (by which I mean ME).
-fn delete_article_fulltest(
-  pool: &Pool,
+fn delete_article_fulltext(
+  connection: &Connection,
   article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
@@ -214,8 +219,7 @@ fn delete_article_fulltest(
   )
     .where_clause("id = ?")
     .to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
+  let mut stmt = connection.prepare(&query)?;
   stmt.execute(params![article_id])
     .context("Delete fulltext data for article")
 }
@@ -408,12 +412,11 @@ pub fn article_by_url(
 }
 
 // Returns a result with the ID of the inserted article when
-// successful. It's an i64 because that's what the SQLite
-// lib is providing.
+// successful.
 pub fn insert_article(
   pool: &Pool,
-  article: &Article
-) -> Result<i64> {
+  article: &mut Article
+) -> Result<i32> {
   // We expect the date to have been set by the caller,
   // which has the responsibility to put current date 
   // when needed.
@@ -453,16 +456,68 @@ pub fn insert_article(
       article.short
     ]
   )?;
-  let article_id: i64 = conn.last_insert_rowid();
-  // Insert tags. This creates an extra connection in 
-  // the called function. Oh well...
+  // Could be an error if the id is too large to fit inside i32.
+  // Shouldn't happen though - But I should replace all the i32s 
+  // for i64s at some point.
+  let article_id: i32 = i32::try_from(conn.last_insert_rowid())?;
+  // At some point I decided to also modify the struct:
+  article.id = article_id;
+  // Insert tags. I tried to reuse the current connection because
+  // I'm fun like that.
   for tag in article.tags.iter() {
-    // Could be an error if the id is too large to fit inside i32.
-    // Shouldn't happen though - But I should replace all the i32s 
-    // for i64s at some point.
-    insert_article_tag(&pool, tag, i32::try_from(article_id)?)?;
+    insert_article_tag(&conn, tag.id, article_id)?;
   }
   // Insert fulltext data:
-  insert_article_fulltext(&pool, &article)?;
+  insert_article_fulltext(&conn, &article, article.id)?;
   Ok(article_id)
+}
+
+// Deletes so much stuff it should really be a
+// transaction. Oh well...
+// Note that it doesn't error if nothing is deleted 
+// (e.g. because article doesn't exist),
+// just returns Ok(0).
+pub fn delete_article(
+  pool: &Pool,
+  article_id: i32
+) -> Result<usize> {
+  let conn = pool.clone().get()?;
+  // Remove fulltext and tags first:
+  delete_article_fulltext(&conn, article_id)?;
+  delete_all_tags_for_article(&conn, article_id)?;
+  // Delete all comments:
+  let q_del_comms = Query::new(
+    QueryType::Delete { table: "comments" }
+  )
+    .where_clause("article_id = ?")
+    .to_string();
+  let mut stmt = conn.prepare(&q_del_comms)?;
+  let parms = params![article_id];
+  stmt.execute(parms)?;
+  // Remove the actual article, shadowing 
+  // previous vars:
+  let query = Query::new(
+    QueryType::Delete { table: "articles" }
+  )
+    .where_clause("id = ?")
+    .to_string();
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(parms)
+    .context("Delete article")
+}
+
+// Updating articles is weird in that we check for 
+// the presence of fields to update or we don't touch
+// them (because the API expects this behavior).
+// We don't check if the article exists here, will just
+// return Ok(0) if nothing happened.
+pub fn udpate_article(
+  pool: &Pool,
+  article: &ArticleUpdate
+) -> Result<usize> {
+  
+  // Delete all tags and re-add them all.
+  // This is easier than checking what's there or not.
+  
+  Ok(3)
 }
