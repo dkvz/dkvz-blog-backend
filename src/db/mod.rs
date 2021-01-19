@@ -11,12 +11,13 @@ mod mappers;
 mod helpers;
 mod queries;
 use eyre::{WrapErr, eyre};
+use std::convert::TryFrom;
 use color_eyre::Result;
 use entities::*;
 // Re-exporting the query building enums and structs:
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
-use helpers::generate_where_placeholders;
+use helpers::{generate_where_placeholders, stripped_article_content};
 use mappers::{map_tag, map_article, map_count};
 
 /**
@@ -173,7 +174,7 @@ fn insert_article_fulltext(
     params![
       article.id, 
       article.title, 
-      article.content.as_ref().unwrap_or(&String::new())
+      stripped_article_content(&article)
     ]
   ).context("Insert fulltext data for article")
 }
@@ -195,7 +196,7 @@ fn update_article_fulltext(
   stmt.execute(
     params![ 
       article.title, 
-      article.content.as_ref().unwrap_or(&String::new()),
+      stripped_article_content(&article),
       article.id
     ]
   ).context("Update fulltext data for article")
@@ -406,4 +407,62 @@ pub fn article_by_url(
   )
 }
 
-// TODO: Insert article
+// Returns a result with the ID of the inserted article when
+// successful. It's an i64 because that's what the SQLite
+// lib is providing.
+pub fn insert_article(
+  pool: &Pool,
+  article: &Article
+) -> Result<i64> {
+  // We expect the date to have been set by the caller,
+  // which has the responsibility to put current date 
+  // when needed.
+  // As always, I'm not using transactions because 
+  // nobody got time for that but it would be better
+  // as a single transaction.
+  let query = Query::new(
+    QueryType::Insert {
+      table: "articles",
+      fields: &[
+        "title", 
+        "article_url", 
+        "thumb_image", 
+        "date", 
+        "user_id", 
+        "summary", 
+        "content", 
+        "published", 
+        "short"
+      ],
+      values: None
+    }
+  ).to_string();
+  let conn = pool.clone().get()?;
+
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(
+    params![
+      article.title,
+      article.article_url,
+      article.thumb_image,
+      article.date,
+      article.user_id,
+      article.summary,
+      article.content,
+      article.published,
+      article.short
+    ]
+  )?;
+  let article_id: i64 = conn.last_insert_rowid();
+  // Insert tags. This creates an extra connection in 
+  // the called function. Oh well...
+  for tag in article.tags.iter() {
+    // Could be an error if the id is too large to fit inside i32.
+    // Shouldn't happen though - But I should replace all the i32s 
+    // for i64s at some point.
+    insert_article_tag(&pool, tag, i32::try_from(article_id)?)?;
+  }
+  // Insert fulltext data:
+  insert_article_fulltext(&pool, &article)?;
+  Ok(article_id)
+}

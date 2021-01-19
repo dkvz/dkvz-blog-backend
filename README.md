@@ -16,5 +16,7 @@ Some of the database workings were inspired by this example: https://github.com/
 # TODO
 - [x] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
-- [ ] Test coverage is lacking in queries.rs.
-- [ ] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
+- [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
+- [ ] Do shorts get inserted with content NULL or empty string?
+- [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
+- [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.

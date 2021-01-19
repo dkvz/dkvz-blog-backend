@@ -1,3 +1,6 @@
+use html2text::from_read;
+use super::entities::{Article};
+
 /**
  * Generate a certain amount of query placeholders
  */
@@ -7,6 +10,17 @@ pub fn generate_where_placeholders(name: &str, count: usize) -> String {
     all_clauses.push(format!("{} = ?", name));
   }
   all_clauses.join(" AND ")
+}
+
+pub fn strip_html(html: &String) -> String {
+  from_read(html.as_bytes(), 70)
+}
+
+pub fn stripped_article_content(article: &Article) -> String {
+  match &article.content {
+    None => String::new(),
+    Some(content) => strip_html(content)
+  }
 }
 
 #[cfg(test)]
