@@ -17,7 +17,11 @@ use entities::*;
 // Re-exporting the query building enums and structs:
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
-use helpers::{generate_where_placeholders, stripped_article_content};
+use helpers::{
+  generate_where_placeholders, 
+  stripped_article_content,
+  generate_field_equal_qmark
+};
 use mappers::{map_tag, map_article, map_count};
 
 /**
@@ -179,32 +183,50 @@ fn insert_article_fulltext(
     params![
       article.id, 
       article.title, 
-      stripped_article_content(&article)
+      stripped_article_content(&article.content)
     ]
   ).context("Insert fulltext data for article")
 }
 
+// I can't use Article as argument here because
+// the update method uses a different struct 
+// entirely, I'd have to implement From and 
+// that's useless memory allocation so yeah.
 fn update_article_fulltext(
   connection: &Connection,
-  article: &Article
+  article: &ArticleUpdate
 ) -> Result<usize> {
+  // We just return Ok(0) immediately if there's 
+  // nothing to update, we don't error for that
+  // case.
+  match (&article.title, &article.content) {
+    (None, None) => return Ok(0),
+    _ => ()
+  };
+  let mut fields: Vec<&str> = Vec::new();
+  let mut values: Vec<&dyn ToSql> = Vec::new();
+  let (f_title, f_content) = ("title = ?", "content = ?");
+  if let Some(title) = &article.title {
+    fields.push(f_title);
+    values.push(title);
+  }
+  if let Some(content) = &article.content {
+    fields.push(f_content);
+    values.push(content);
+  }
+  values.push(&article.id);
   let query = Query::new(
     QueryType::Update { 
       table: "articles_ft",
-      fields: &["title = ?", "content = ?"]
+      fields: &fields
     }
   )
     .where_clause("id = ?")
     .to_string();
   //let conn = pool.clone().get()?;
   let mut stmt = connection.prepare(&query)?;
-  stmt.execute(
-    params![ 
-      article.title, 
-      stripped_article_content(&article),
-      article.id
-    ]
-  ).context("Update fulltext data for article")
+  stmt.execute(values)
+    .context("Update fulltext data for article")
 }
 
 // Yes I know this looks very similar to the previous
@@ -245,19 +267,6 @@ pub fn comment_count(
   pool: &Pool,
   article_id: i32
 ) -> Result<i64> {
-  /*let count_opt: Option<i32> = select_one(
-    pool,
-    "SELECT count(*) FROM comments WHERE article_id = ?",
-    params![article_id],
-    |row| row.get(0)
-  )?;*/
-  // The generic function supports having optional values,
-  // But the count query here should never just not give
-  // any value.
-  /*match count_opt {
-    Some(count) => Ok(count),
-    None => Err(eyre!("A count query returned no value")) 
-  }*/
   select_count(
     pool,
     "SELECT count(*) FROM comments WHERE article_id = ?",
@@ -511,13 +520,91 @@ pub fn delete_article(
 // them (because the API expects this behavior).
 // We don't check if the article exists here, will just
 // return Ok(0) if nothing happened.
+// Also, was complaining about code repetition before,
+// this function put it in a different perspective.
 pub fn udpate_article(
   pool: &Pool,
   article: &ArticleUpdate
 ) -> Result<usize> {
-  
-  // Delete all tags and re-add them all.
-  // This is easier than checking what's there or not.
-  
-  Ok(3)
+  // Gotta use Strings or I get a whole bunch of
+  // temporary values dropped in my evil "if let"
+  // mania below.
+  let mut fields: Vec<String> = Vec::new();
+  // If the ToSql trait is imported, we can put a 
+  // whole bunch of different data types in the same
+  // vector.
+  let mut values: Vec<&dyn ToSql> = Vec::new();
+  // Kind of ugly but we do what we can - Time for a 
+  // WHOLE BUNCH OF IF LET statements.
+  // Could be made cleaner by putting all the option
+  // statuses in some list paired with their names
+  // and work from there.
+  if let Some(title) = &article.title {
+    fields.push(generate_field_equal_qmark("title"));
+    values.push(title);
+  }
+  if let Some(article_url) = &article.article_url {
+    fields.push(generate_field_equal_qmark("article_url"));
+    values.push(article_url);
+  }
+  if let Some(thumb_image) = &article.thumb_image {
+    fields.push(generate_field_equal_qmark("thumb_image"));
+    values.push(thumb_image);
+  }
+  if let Some(date) = &article.date {
+    fields.push(generate_field_equal_qmark("date"));
+    values.push(date);
+  }
+  if let Some(user_id) = &article.user_id {
+    fields.push(generate_field_equal_qmark("user_id"));
+    values.push(user_id);
+  }
+  if let Some(summary) = &article.summary {
+    fields.push(generate_field_equal_qmark("summary"));
+    values.push(summary);
+  }
+  if let Some(content) = &article.content {
+    fields.push(generate_field_equal_qmark("content"));
+    values.push(content);
+  }
+  if let Some(published) = &article.published {
+    fields.push(generate_field_equal_qmark("published"));
+    values.push(published);
+  }
+  // Check that there's at least one field OR that tags are present.
+  let got_tags: bool = match &article.tags {
+    Some(_) => true,
+    None => false
+  };
+  if fields.len() == 0 && !got_tags {
+    // Return immediately, chose to return no error:
+    Ok(0)
+  } else {
+    // update the article ; Need to transform the Vec of Strings to 
+    // an array of &str too.
+    let query = Query::new(
+      QueryType::Update { 
+        table: "articles", 
+        fields: &fields.iter().map(|s| s as &str).collect::<Vec<&str>>()
+      }
+    )
+      .where_clause("article_id = ?")
+      .to_string();
+    // We need the article id in values too:
+    values.push(&article.id);
+    let conn = pool.clone().get()?;
+    let mut stmt = conn.prepare(&query)?;
+    let result = stmt.execute(values)?;
+    // Update the fulltext data:
+    update_article_fulltext(&conn, &article)?;
+    if let Some(tags) = &article.tags {
+      // Delete all tags and re-add them all.
+      // This is easier than checking what's there or not.
+      delete_all_tags_for_article(&conn, article.id)?;
+      for tag in tags.iter() {
+        insert_article_tag(&conn, tag.id, article.id)?;
+      }
+    }
+    Ok(result)
+  }
 }

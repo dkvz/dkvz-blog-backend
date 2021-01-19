@@ -17,7 +17,7 @@ pub enum Order {
   Desc
 }
 
-// When inert values aren't given, "?" prepared
+// When insert values aren't given, "?" prepared
 // statement placeholders are automatically
 // generated.
 pub enum QueryType<'a> {
