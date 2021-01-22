@@ -167,7 +167,23 @@ fn delete_all_tags_for_article(
 
 fn insert_article_fulltext(
   connection: &Connection,
-  article: &Article,
+  article: &Article
+) -> Result<usize> {
+  insert_article_fulltext_by_values(
+    &connection, 
+    &article.title, 
+    &article.content, 
+    article.id
+  )
+}
+
+// Need this to work around not having to create
+// some weird trait to work as a generic for 
+// "partial" articles.
+fn insert_article_fulltext_by_values(
+  connection: &Connection,
+  title: &String,
+  content: &Option<String>,
   article_id: i32
 ) -> Result<usize> {
   let query = Query::new(
@@ -181,9 +197,9 @@ fn insert_article_fulltext(
   let mut stmt = connection.prepare(&query)?;
   stmt.execute(
     params![
-      article.id, 
-      article.title, 
-      stripped_article_content(&article.content)
+      article_id, 
+      title, 
+      stripped_article_content(&content)
     ]
   ).context("Insert fulltext data for article")
 }
@@ -477,7 +493,7 @@ pub fn insert_article(
     insert_article_tag(&conn, tag.id, article_id)?;
   }
   // Insert fulltext data:
-  insert_article_fulltext(&conn, &article, article.id)?;
+  insert_article_fulltext(&conn, &article)?;
   Ok(article_id)
 }
 
@@ -607,4 +623,35 @@ pub fn udpate_article(
     }
     Ok(result)
   }
+}
+
+// Rebuilds the entire fulltext index from the articles table.
+pub fn rebuild_fulltext(pool: &Pool) -> Result<usize> {
+  // SELECT id, title, content FROM articles WHERE published = 1 ORDER BY id ASC
+  let conn = pool.clone().get()?;
+  // Delete all the current fulltext info.
+  // Doesn't need to be a prepared statement but I use them everywhere
+  // anyway for convenience and future-proofing.
+  let mut stmt = conn.prepare("DELETE FROM articles_fr")?;
+  stmt.execute(NO_PARAMS)?;
+
+  let mut stmt = conn.prepare(
+    "SELECT id, title, content FROM articles \
+    WHERE published = 1 ORDER BY id ASC"
+  )?;
+  let mut rows = stmt.query(NO_PARAMS)?;
+  let mut i = 0;
+  while let Some(row) = rows.next()? {
+    let id: i32 = row.get(0)?;
+    let title: String = row.get(1)?;
+    let content: String = row.get(2)?;
+    insert_article_fulltext_by_values(
+      &conn, 
+      &title, 
+      &Some(content),
+      id
+    )?;
+    i += 1;
+  }
+  Ok(i)
 }

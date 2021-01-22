@@ -22,3 +22,4 @@ Some of the database workings were inspired by this example: https://github.com/
 - [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
 - [ ] I'm still debating whether SQL errors should cause full program crash when it'll be running as an Actix server.
+- [ ] To re-test: article insertion, article update, rebuilding fulltext index entirely.
