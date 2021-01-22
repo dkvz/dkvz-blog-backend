@@ -22,7 +22,12 @@ use helpers::{
   stripped_article_content,
   generate_field_equal_qmark
 };
-use mappers::{map_tag, map_article, map_count};
+use mappers::{
+  map_tag, 
+  map_article, 
+  map_count, 
+  map_comment
+};
 
 /**
  * I'll do all the DB stuff in a non-async way first.
@@ -694,7 +699,15 @@ pub fn insert_comment(
   Ok(id)
 }
 
-// TODO Get last comment
+pub fn last_comment(pool: &Pool) -> Result<Option<Comment>> {
+  select_one(
+    &pool,
+    "SELECT id, article_id, author, comment, date \
+     FROM comments ORDER BY id DESC LIMIT 1",
+     NO_PARAMS,
+    map_comment
+  )
+}
 
 // TODO Comments from-to... Or something like that
 

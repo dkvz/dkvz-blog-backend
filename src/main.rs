@@ -8,6 +8,7 @@ use db::{
     article_by_url,
     insert_article,
     delete_article,
+    last_comment,
     ArticleSelector,
     Order
 };
@@ -73,6 +74,12 @@ fn main() -> Result<()> {
   /* // Snippet to delete articles
   let result = delete_article(&pool, 121)?;
   println!("Affected {} rows", result); */
+
+  let last_comment: Option<Comment> = last_comment(&pool)?;
+  match last_comment {
+    Some(com) => println!("{:?}", com),
+    None => println!("No comment found")
+  }
 
   Ok(())
 }

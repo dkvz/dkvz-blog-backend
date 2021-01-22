@@ -61,3 +61,21 @@ pub fn map_article(
     }
   )
 }
+
+// Some comment queries do not ask for client_ip.
+pub fn map_comment(row: &Row) -> Result<Comment, Error> {
+  let client_ip: Option<String> = match row.get(5) {
+    Ok(ip) => Some(ip),
+    Err(_) => None
+  };
+  Ok(
+    Comment {
+      id: row.get(0)?,
+      article_id: row.get(1)?,
+      author: row.get(2)?,
+      comment: row.get(3)?,
+      date: row.get(4)?,
+      client_ip
+    }
+  )
+}

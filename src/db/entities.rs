@@ -54,5 +54,5 @@ pub struct Comment {
   pub author: String,
   pub comment: String,
   pub date: i32,
-  pub client_ip: String
+  pub client_ip: Option<String>
 }
