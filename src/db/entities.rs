@@ -47,3 +47,12 @@ pub struct Tag {
   pub main_tag: i32
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Comment {
+  pub id: i32,
+  pub article_id: i32,
+  pub author: String,
+  pub comment: String,
+  pub date: i32,
+  pub client_ip: String
+}

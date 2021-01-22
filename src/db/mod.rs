@@ -655,3 +655,47 @@ pub fn rebuild_fulltext(pool: &Pool) -> Result<usize> {
   }
   Ok(i)
 }
+
+// Very similar to insert_article.
+pub fn insert_comment(
+  pool: &Pool,
+  comment: &mut Comment
+) -> Result<i32> {
+  let query = Query::new(
+    QueryType::Insert { 
+      table: "comments",
+      fields: &[
+        "article_id",
+        "author", 
+        "comment", 
+        "date", 
+        "client_ip"
+      ],
+      values: None 
+    }
+  ).to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
+  stmt.execute(
+    params![
+      comment.article_id,
+      comment.author,
+      comment.comment,
+      comment.date,
+      comment.client_ip
+    ]
+  )?;
+  // Could be an error if the id is too large to fit inside i32.
+  // Shouldn't happen though - But I should replace all the i32s 
+  // for i64s at some point.
+  let id: i32 = i32::try_from(conn.last_insert_rowid())?;
+  // At some point I decided to also modify the struct:
+  comment.id = id;
+  Ok(id)
+}
+
+// TODO Get last comment
+
+// TODO Comments from-to... Or something like that
+
+// TODO Implement search function
