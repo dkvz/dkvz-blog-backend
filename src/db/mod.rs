@@ -709,6 +709,39 @@ pub fn last_comment(pool: &Pool) -> Result<Option<Comment>> {
   )
 }
 
-// TODO Comments from-to... Or something like that
+pub fn comments_from_to(
+  pool: &Pool,
+  start: usize,
+  count: usize,
+  article_id: i32
+) -> Result<Vec<Comment>> {
+  let query = Query::new(
+    QueryType::Select {
+      from: &["comments", "articles"],
+      fields: &[
+        "comments.id",
+        "comments.article_id",
+        "comments.author",
+        "comments.comment",
+        "comments.date"
+      ]
+    }
+  )
+    .where_and(&[
+      "articles.id = ?", 
+      "articles.id = comments.article_id"
+    ])
+    .order(OrderBy::new(Order::Asc, "comments.id"))
+    .limit(count)
+    .offset(start)
+    .to_string();
+
+  select_many(
+    pool, 
+    query.as_str(), 
+    params![article_id], 
+    map_comment
+  )
+}
 
 // TODO Implement search function
