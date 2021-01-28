@@ -26,7 +26,8 @@ use mappers::{
   map_tag, 
   map_article, 
   map_count, 
-  map_comment
+  map_comment,
+  map_search_result
 };
 
 /**
@@ -744,4 +745,38 @@ pub fn comments_from_to(
   )
 }
 
-// TODO Implement search function
+// Uses SQLite fulltext search.
+// WARNING: The API endpoint or whatever is using the DB 
+// lib will have to clean the search terms up itself first.
+pub fn search_published_articles(
+  pool: &Pool,
+  terms: &[&str]
+) -> Result<Vec<Article>> {
+  // Copy pasted the query from the old backend. It's probably suboptimal.
+  // As other things are in here.
+  let query = "SELECT articles_ft.id, articles_ft.title, \
+    articles.article_url, articles.short, articles.date, articles.user_id, \
+    snippet(articles_ft, 2, '<b>', '</b>', ' [...] ', 50) AS snippet FROM \
+    articles_ft, articles WHERE articles_ft MATCH ? \
+    and articles.id = articles_ft.id and articles.published = 1 \
+    ORDER BY rank LIMIT 15";
+  select_many(
+    pool,
+    query,
+    params![terms.join(" ")],
+    map_search_result
+  )
+}
+
+// TODO Add all the stats data function.
+// Since my stats are in another DB file, they should
+// receive a completely different "pool".
+// The data functions just do the data things, no 
+// hashing or whatnot is done here.
+pub fn insert_article_stat(
+  pool: &Pool,
+  article_stat: &mut ArticleStat
+) -> Result<i64> {
+
+  Ok(3)
+}

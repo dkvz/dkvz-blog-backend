@@ -25,3 +25,4 @@ Some of the database workings were inspired by this example: https://github.com/
 - [ ] To re-test: article insertion, article update, rebuilding fulltext index entirely.
 - [ ] Dates could be options in entities, I could just unwrap_or to a function that gets the current date in insert functions.
 - [ ] Test all the comment DB functions.
+- [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.

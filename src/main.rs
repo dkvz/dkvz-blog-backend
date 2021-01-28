@@ -9,6 +9,7 @@ use db::{
     insert_article,
     delete_article,
     last_comment,
+    search_published_articles,
     ArticleSelector,
     Order
 };
@@ -75,10 +76,19 @@ fn main() -> Result<()> {
   let result = delete_article(&pool, 121)?;
   println!("Affected {} rows", result); */
 
+  /* // Snippet for last comment
   let last_comment: Option<Comment> = last_comment(&pool)?;
   match last_comment {
     Some(com) => println!("{:?}", com),
     None => println!("No comment found")
+  }*/
+
+  let result = search_published_articles(
+    &pool,
+    &["slip", "prout"]
+  )?;
+  for article in &result {
+    println!("{:?}", article);
   }
 
   Ok(())

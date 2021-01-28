@@ -79,3 +79,21 @@ pub fn map_comment(row: &Row) -> Result<Comment, Error> {
     }
   )
 }
+
+pub fn map_search_result(row: &Row) -> Result<Article, Error> {
+  Ok(
+    Article {
+      id: row.get(0)?,
+      title: row.get(1)?,
+      article_url: Some(row.get(2)?),
+      short: row.get(3)?,
+      date: row.get(4)?,
+      user_id: row.get(5)?,
+      summary: row.get(6)?,
+      content: None,
+      published: 1,
+      thumb_image: String::from(""),
+      tags: Vec::new()
+    }
+  )
+}

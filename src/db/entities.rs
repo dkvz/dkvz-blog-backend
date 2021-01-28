@@ -56,3 +56,14 @@ pub struct Comment {
   pub date: i32,
   pub client_ip: Option<String>
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ArticleStat {
+  pub id: i64,
+  pub article_id: i32,
+  pub pseudo_ua: String,
+  pub pseudo_ip: String,
+  pub client_ua: String,
+  pub client_ip: String,
+  pub date: Option<i32>
+}
