@@ -13,7 +13,7 @@ pub struct Article {
   pub title: String,
   pub article_url: Option<String>,
   pub thumb_image: String,
-  pub date: i32,
+  pub date: i64,
   pub user_id: i32,
   pub summary: String,
   pub content: Option<String>,
@@ -53,7 +53,7 @@ pub struct Comment {
   pub article_id: i32,
   pub author: String,
   pub comment: String,
-  pub date: i32,
+  pub date: i64,
   pub client_ip: Option<String>
 }
 
@@ -68,5 +68,5 @@ pub struct ArticleStat {
   pub country: String,
   pub region: String,
   pub city: String,
-  pub date: Option<i32>
+  pub date: Option<i64>
 }

@@ -769,7 +769,6 @@ pub fn search_published_articles(
   )
 }
 
-// TODO Add all the stats data function.
 // Since my stats are in another DB file, they should
 // receive a completely different "pool".
 // The data functions just do the data things, no 
@@ -796,9 +795,26 @@ pub fn insert_article_stat(
     }
   )
     .to_string();
+  let conn = pool.clone().get()?;
+  let mut stmt = conn.prepare(&query)?;
   // Check if there's a date, we need to generate 
   // one otherwise.
   // Gonna use unwrap_or to do that.
+  stmt.execute(
+    params![
+      article_stat.article_id,
+      article_stat.pseudo_ua,
+      article_stat.pseudo_ip,
+      article_stat.country,
+      article_stat.region,
+      article_stat.city,
+      article_stat.client_ua,
+      article_stat.client_ip,
+      article_stat.date.unwrap_or(current_timestamp())
+    ]
+  )?;
+  let id = conn.last_insert_rowid();
+  article_stat.id = id;
 
-  Ok(3)
+  Ok(id)
 }
