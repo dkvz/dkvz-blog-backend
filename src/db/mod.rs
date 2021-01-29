@@ -20,7 +20,8 @@ use queries::{Query, QueryType};
 use helpers::{
   generate_where_placeholders, 
   stripped_article_content,
-  generate_field_equal_qmark
+  generate_field_equal_qmark,
+  current_timestamp
 };
 use mappers::{
   map_tag, 
@@ -777,6 +778,27 @@ pub fn insert_article_stat(
   pool: &Pool,
   article_stat: &mut ArticleStat
 ) -> Result<i64> {
+  let query = Query::new(
+    QueryType::Insert { 
+      table: "article_stats",
+      fields: &[
+        "article_id", 
+        "pseudo_ua", 
+        "pseudo_ip", 
+        "country", 
+        "region", 
+        "city", 
+        "client_ua", 
+        "client_ip", 
+        "date"
+      ], 
+      values: None
+    }
+  )
+    .to_string();
+  // Check if there's a date, we need to generate 
+  // one otherwise.
+  // Gonna use unwrap_or to do that.
 
   Ok(3)
 }

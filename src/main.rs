@@ -85,7 +85,7 @@ fn main() -> Result<()> {
 
   let result = search_published_articles(
     &pool,
-    &["slip", "prout"]
+    &["fleur", "pantalon"]
   )?;
   for article in &result {
     println!("{:?}", article);

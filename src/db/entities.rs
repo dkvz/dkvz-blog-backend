@@ -65,5 +65,8 @@ pub struct ArticleStat {
   pub pseudo_ip: String,
   pub client_ua: String,
   pub client_ip: String,
+  pub country: String,
+  pub region: String,
+  pub city: String,
   pub date: Option<i32>
 }
