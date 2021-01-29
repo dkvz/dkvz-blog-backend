@@ -1,5 +1,6 @@
 mod config;
 mod db;
+mod stats;
 use db::{ 
     Pool, 
     all_tags, 

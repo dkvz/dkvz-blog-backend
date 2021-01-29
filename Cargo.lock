@@ -172,6 +172,7 @@ dependencies = [
  "dotenv",
  "eyre",
  "html2text",
+ "linecount",
  "r2d2",
  "r2d2_sqlite",
  "rusqlite",
@@ -334,6 +335,12 @@ dependencies = [
  "pkg-config",
  "vcpkg",
 ]
+
+[[package]]
+name = "linecount"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5d5a4a243b9cf052d37af99679cc93b08a791f444a4a1b21bb4efcaf01847d8"
 
 [[package]]
 name = "linked-hash-map"
