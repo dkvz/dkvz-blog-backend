@@ -9,6 +9,29 @@ pub struct WordlistPseudoyimizer {
   line_count: usize
 }
 
+// I could more than one way to find lines in my 
+// wordlist.
+// https://docs.rs/indexed-line-reader/0.2.1/src/indexed_line_reader
+// uses a binary tree created initially with all the lines position 
+// as start and end bytes in the file. Kinda smart, do not know how
+// much memory that represents though.
+// Seeking line by line is easier (using "readline()") and can be 
+// buffered but I don't know how expensive it is.
+
+// Looks like it takes around 23ms to seek to an advanced line in 
+// the wordlist:
+/*
+$ time head -n 400000 words.txt | tail -n 1
+teadish
+
+real	0m0.023s
+user	0m0.020s
+sys	0m0.000s
+*/
+// This is annoying to do repeatedly but I could cache the results
+// that have been seen already. That structure needs a limit to 
+// how much data it can hold though.
+
 // Using open instead of new, that's what they do 
 // with the File struct to return a Result.
 impl WordlistPseudoyimizer {
