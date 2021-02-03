@@ -31,6 +31,8 @@ sys	0m0.000s
 // This is annoying to do repeatedly but I could cache the results
 // that have been seen already. That structure needs a limit to 
 // how much data it can hold though.
+// Also, I'm aware the CLI and piping all of the lines until the 
+// one I want should be slower than what I'll do in Rust.
 
 // Using open instead of new, that's what they do 
 // with the File struct to return a Result.
@@ -41,7 +43,7 @@ impl WordlistPseudoyimizer {
       Err(why) => Err(eyre!("Could not open file {} - {}", filename, why)),
       Ok(file) => {
         match line_count(&file) {
-          Err(why) => Err(eyre!("Count not count lines in file - {}", why)),
+          Err(why) => Err(eyre!("Could not count lines in file - {}", why)),
           Ok(line_count) => Ok(
             WordlistPseudoyimizer {
               file,
@@ -61,6 +63,19 @@ where R: Read {
   count_lines(handle)
     .context("Counting lines in word list")
 }
+
+// Improvised caching system, thought of using either a Vec
+// or a LinkedList, because I wanted to move the last seen
+// hashes to the front of the structure. Not sure that's 
+// worth it as browsing a Vec is really quick anyway but 
+// needing to move items around isn't something a Vec is 
+// made for and I need it for the automatic entry 
+// "expires when structure is full" mechanism I wanted.
+// In short, I don't know if a linked list is more effective
+// than shifting a whole bunch of elements in a Vec everytime.
+// However, they say in the Rust docs that array-based data
+// structures are often always faster because CPU cache and
+// CPUS BE FAST.
 
 #[cfg(test)]
 mod tests {
