@@ -1,12 +1,17 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::collections::VecDeque;
 use linecount::count_lines;
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 
+// Capacity of the queue I use for caching
+const CACHE_CAPACITY: usize = 50;
+
 pub struct WordlistPseudoyimizer {
   file: File,
-  line_count: usize
+  line_count: usize,
+  cache: Cache
 }
 
 // I could more than one way to find lines in my 
@@ -47,7 +52,8 @@ impl WordlistPseudoyimizer {
           Ok(line_count) => Ok(
             WordlistPseudoyimizer {
               file,
-              line_count
+              line_count,
+              cache: Cache::new(CACHE_CAPACITY)
             }
           )
         }
@@ -76,6 +82,41 @@ where R: Read {
 // However, they say in the Rust docs that array-based data
 // structures are often always faster because CPU cache and
 // CPUS BE FAST.
+type CacheEntry = (u64, String);
+
+struct Cache {
+  cache: VecDeque<CacheEntry>,
+  capacity: usize
+}
+
+impl Cache {
+
+  pub fn new(capacity: usize) -> Self {
+    Self {
+      capacity,
+      cache: VecDeque::with_capacity(capacity)
+    }
+  }
+
+  pub fn add(mut self, entry: CacheEntry) {
+    // If we're at capacity, pop an item:
+    if self.cache.len() >= self.capacity {
+      self.cache.pop_front();
+    }
+    self.cache.push_back(entry);
+  }
+
+  pub fn get(&self, hash: u64) -> Option<&CacheEntry> {
+    // Iterate in reverse:
+    for entry in self.cache.iter().rev() {
+      if entry.0 == hash {
+        return Some(entry);
+      }
+    }
+    None
+  }
+
+}
 
 #[cfg(test)]
 mod tests {
