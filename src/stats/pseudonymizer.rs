@@ -66,8 +66,13 @@ impl WordlistPseudoyimizer {
 fn line_count<R>(handle: R) 
 -> Result<usize>
 where R: Read {
-  count_lines(handle)
-    .context("Counting lines in word list")
+  let lines_c = count_lines(handle)
+    .context("Counting lines in word list")?;
+  if lines_c < 1 {
+    Err(eyre!("Source file needs to have at least one line (I suggest more)"))
+  } else {
+    Ok(lines_c)
+  }
 }
 
 // Improvised caching system, thought of using either a Vec
@@ -98,7 +103,7 @@ impl Cache {
     }
   }
 
-  pub fn add(mut self, entry: CacheEntry) {
+  pub fn add(&mut self, entry: CacheEntry) {
     // If we're at capacity, pop an item:
     if self.cache.len() >= self.capacity {
       self.cache.pop_front();
@@ -134,5 +139,25 @@ mod tests {
     let sut = WordlistPseudoyimizer::open("./resources/words.txt").unwrap();
     assert_eq!(sut.line_count, 466462);
   }
+
+  #[test]
+  fn cache_miss_on_empty_cache() {
+    let cache = Cache::new(CACHE_CAPACITY);
+    let miss = cache.get(2389472);
+    assert_eq!(miss, None);
+  }
+
+  #[test]
+  fn cache_hit_and_miss() {
+    let mut cache = Cache::new(CACHE_CAPACITY);
+    cache.add((3, String::from("3")));
+    cache.add((6, String::from("6")));
+    let miss = cache.get(2389472);
+    let hit = cache.get(3).unwrap();
+    assert_eq!(miss, None);
+    assert_eq!(3, hit.0);
+    assert_eq!("3", hit.1);
+  }
+
 }
 
