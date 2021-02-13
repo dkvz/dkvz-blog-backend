@@ -1,17 +1,23 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::{BufReader};
 use std::collections::VecDeque;
 use linecount::count_lines;
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
+use std::convert::{TryFrom, TryInto};
+use sha1::{Sha1, Digest};
 
 // Capacity of the queue I use for caching
 const CACHE_CAPACITY: usize = 50;
+// Max value for indexing words
+const MAX: u64 = u64::MAX;
 
 pub struct WordlistPseudoyimizer {
   file: File,
-  line_count: usize,
-  cache: Cache
+  line_count: u64,
+  cache: Cache,
+  increment: u64
 }
 
 // I could more than one way to find lines in my 
@@ -53,7 +59,8 @@ impl WordlistPseudoyimizer {
             WordlistPseudoyimizer {
               file,
               line_count,
-              cache: Cache::new(CACHE_CAPACITY)
+              cache: Cache::new(CACHE_CAPACITY),
+              increment: (MAX / line_count) + 1
             }
           )
         }
@@ -61,18 +68,48 @@ impl WordlistPseudoyimizer {
     }
   }
 
+  // Starts at line 0 to line_count - 1!
+  fn find_value_at_line(&self, line: u64) -> Result<String> {
+    // Buffer through the file from the start as explained here:
+    // https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
+    let reader = BufReader::new(&self.file).lines();
+    // If requested line number is higher than total count of
+    // lines we just loop over and start again from 0.
+    // Also makes asing for "line_count" result in line 0, which
+    // is nice.
+    let line_n = line % self.line_count;
+    
+    Ok(String::new())
+  }
+
 }
 
 fn line_count<R>(handle: R) 
--> Result<usize>
+-> Result<u64>
 where R: Read {
   let lines_c = count_lines(handle)
     .context("Counting lines in word list")?;
   if lines_c < 1 {
     Err(eyre!("Source file needs to have at least one line (I suggest more)"))
   } else {
-    Ok(lines_c)
+    Ok(u64::try_from(lines_c)?)
   }
+}
+
+fn hash_to_8_bytes(value: &str) -> [u8; 8] {
+  let mut hasher = Sha1::new();
+  hasher.update(value.as_bytes());
+  // acquire hash digest in the form of GenericArray,
+  // which in this case is equivalent to [u8; 20]
+  let result = hasher.finalize();
+  // Take a slice of byte o to 7, should never error:
+  result[0..8].try_into().unwrap()
+}
+
+fn bytes_to_u64(hash: [u8; 8]) -> u64 {
+  // Convert to u64 using the current platform preferred 
+  // endian (little endian or big):
+  u64::from_ne_bytes(hash)
 }
 
 // Improvised caching system, thought of using either a Vec
@@ -157,6 +194,21 @@ mod tests {
     assert_eq!(miss, None);
     assert_eq!(3, hit.0);
     assert_eq!("3", hit.1);
+  }
+
+  #[test]
+  fn sha1_extract_first_8_bytes() {
+    // Take a slice of byte o to 7:
+    let extract: [u8; 8] = hash_to_8_bytes("hello world");
+    assert_eq!(extract.len(), 8);
+    assert_eq!(extract, [42, 174, 108, 53, 201, 79, 207, 180]);
+  }
+
+  #[test]
+  fn hash_to_u64() {
+    let bytes = hash_to_8_bytes("hello world");
+    let value: u64 = bytes_to_u64(bytes);
+    assert_eq!(value, 13028719972609469994);
   }
 
 }
