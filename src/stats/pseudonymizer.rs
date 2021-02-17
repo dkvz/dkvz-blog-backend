@@ -78,8 +78,14 @@ impl WordlistPseudoyimizer {
     // Also makes asing for "line_count" result in line 0, which
     // is nice.
     let line_n = line % self.line_count;
-    
-    Ok(String::new())
+    let mut i = 0;
+    for line in reader {
+      if i == line_n {
+        return line.context("Could not read line in word list");
+      }
+      i += 1;
+    }
+    Err(eyre!("Went to the very end of the wordlist for some reason - This shouldn't happen"))
   }
 
 }
