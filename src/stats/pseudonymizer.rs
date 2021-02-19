@@ -15,7 +15,7 @@ const CACHE_CAPACITY: usize = 50;
 const MAX: u64 = u64::MAX;
 
 pub struct WordlistPseudoyimizer {
-  file: File,
+  filename: String,
   line_count: u64,
   cache: Cache,
   increment: u64
@@ -58,7 +58,7 @@ impl WordlistPseudoyimizer {
           Err(why) => Err(eyre!("Could not count lines in file - {}", why)),
           Ok(line_count) => Ok(
             WordlistPseudoyimizer {
-              file,
+              filename: String::from(filename),
               line_count,
               cache: Cache::new(CACHE_CAPACITY),
               increment: (MAX / line_count) + 1
@@ -73,7 +73,10 @@ impl WordlistPseudoyimizer {
   fn find_value_at_line(&self, line: u64) -> Result<String> {
     // Buffer through the file from the start as explained here:
     // https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
-    let reader = BufReader::new(&self.file).lines();
+    // I have to reopen a File handle everytime because reusing one
+    // doesn't work. Or I don't know how to make it work.
+    let file = File::open(&self.filename)?;
+    let reader = BufReader::new(file).lines();
     // If requested line number is higher than total count of
     // lines we just loop over and start again from 0.
     // Also makes asing for "line_count" result in line 0, which
@@ -229,9 +232,20 @@ mod tests {
     let mut sut = WordlistPseudoyimizer::open(
       "./resources/fixtures/fixed_wordlist.txt"
     ).unwrap();
-    assert_eq!("Line 2", sut.pseudonymize("test").unwrap());
+    assert_eq!("Line 10", sut.pseudonymize("test").unwrap());
     // Test the cache, I guess:
-    assert_eq!("Line 2", sut.pseudonymize("test").unwrap());
+    assert_eq!("Line 10", sut.pseudonymize("test").unwrap());
+  }
+
+  #[test]
+  fn pseudonymize_string_2() {
+    let mut sut = WordlistPseudoyimizer::open(
+      "./resources/fixtures/fixed_wordlist.txt"
+    ).unwrap();
+    assert_eq!(
+      "Line 15", 
+      sut.pseudonymize("This is a very long string right there").unwrap()
+    );
   }
 
   #[test]
