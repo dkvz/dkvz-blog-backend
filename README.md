@@ -13,6 +13,13 @@ Some of the database workings were inspired by this example: https://github.com/
 ## Uselful links
 * [Data access class from current backend](https://github.com/dkvz/DoradeBlogEngineSpring/blob/master/src/main/java/eu/dkvz/BlogAuthoring/model/BlogDataAccessSpring.java)
 
+## IP Location
+I'm using ip2location, more precisely the DB5.LITE from here https://lite.ip2location.com/ip2location-lite. I guess I'll be using the IPv4 BIN.
+
+Rust library that looks promising: https://github.com/marirs/rust-ip2location.
+
+They have the DB committed on Github but I thought I probably shouldn't. 
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
@@ -26,4 +33,4 @@ Some of the database workings were inspired by this example: https://github.com/
 - [ ] Dates could be options in entities, I could just unwrap_or to a function that gets the current date in insert functions.
 - [ ] Test all the comment DB functions.
 - [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.
-- [ ] Create a limited length fixture instead of the full wordlist.
+- [x] Create a limited length fixture instead of the full wordlist.

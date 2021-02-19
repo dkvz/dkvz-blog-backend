@@ -1,3 +1,5 @@
 /target
 db.sqlite
 stats.sqlite
+resources/ip_location
+*.BIN

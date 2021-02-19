@@ -221,7 +221,7 @@ mod tests {
 
   #[test]
   fn find_line_in_fixture() {
-    let mut sut = WordlistPseudoyimizer::open(
+    let sut = WordlistPseudoyimizer::open(
       "./resources/fixtures/fixed_wordlist.txt"
     ).unwrap();
     assert_eq!("Line 1", sut.find_value_at_line(0).unwrap());
@@ -234,6 +234,7 @@ mod tests {
     ).unwrap();
     assert_eq!("Line 11", sut.pseudonymize("test").unwrap());
     // Test the cache, I guess:
+    assert_eq!(1, sut.cache.cache.len());
     assert_eq!("Line 11", sut.pseudonymize("test").unwrap());
   }
 
@@ -251,6 +252,7 @@ mod tests {
   #[test]
   fn can_clone_cache_entry() {
     // Might look like a stupid test but I needed to know.
+    // In the end I'm not even cloning cache entries. Oh well.
     let sut = CacheEntry::new(22, String::from("value"));
     let mut clone = sut.clone();
     assert_eq!(sut, clone);
