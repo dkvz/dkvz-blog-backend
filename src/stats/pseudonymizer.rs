@@ -104,7 +104,7 @@ impl WordlistPseudoyimizer {
     match self.cache.get(hash) {
       Some(entry) => Ok(entry.value.clone()),
       None => {
-        let pseudo = self.find_value_at_line(hash)?;
+        let pseudo = self.find_value_at_line(hash / &self.increment)?;
         self.cache.add(CacheEntry::new(hash, pseudo.clone()));
         Ok(pseudo)
       }
@@ -232,9 +232,9 @@ mod tests {
     let mut sut = WordlistPseudoyimizer::open(
       "./resources/fixtures/fixed_wordlist.txt"
     ).unwrap();
-    assert_eq!("Line 10", sut.pseudonymize("test").unwrap());
+    assert_eq!("Line 11", sut.pseudonymize("test").unwrap());
     // Test the cache, I guess:
-    assert_eq!("Line 10", sut.pseudonymize("test").unwrap());
+    assert_eq!("Line 11", sut.pseudonymize("test").unwrap());
   }
 
   #[test]
@@ -243,7 +243,7 @@ mod tests {
       "./resources/fixtures/fixed_wordlist.txt"
     ).unwrap();
     assert_eq!(
-      "Line 15", 
+      "Line 3", 
       sut.pseudonymize("This is a very long string right there").unwrap()
     );
   }
