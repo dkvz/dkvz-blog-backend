@@ -94,10 +94,10 @@ impl WordlistPseudoyimizer {
     let hash = bytes_to_u64(hash_to_8_bytes(value));
     // Check if we have it in cache, add it otherwise.
     match self.cache.get(hash) {
-      Some(entry) => Ok(entry.1.as_str()),
+      Some(entry) => Ok(entry.value.as_str()),
       None => {
         let pseudo = self.find_value_at_line(hash)?;
-        self.cache.add((hash, String::from(pseudo)));
+        //self.cache.add((hash, String::from(pseudo)));
         Ok("machin")
       }
     }
@@ -145,7 +145,22 @@ fn bytes_to_u64(hash: [u8; 8]) -> u64 {
 // However, they say in the Rust docs that array-based data
 // structures are often always faster because CPU cache and
 // CPUS BE FAST.
-type CacheEntry = (u64, String);
+#[derive(PartialEq, Debug, Clone)]
+struct CacheEntry {
+  key: u64,
+  value: String
+}
+
+impl CacheEntry {
+
+  pub fn new(key: u64, value: String) -> Self {
+    Self {
+      key,
+      value,
+    }
+  } 
+
+}
 
 struct Cache {
   cache: VecDeque<CacheEntry>,
@@ -172,7 +187,7 @@ impl Cache {
   pub fn get(&self, hash: u64) -> Option<&CacheEntry> {
     // Iterate in reverse:
     for entry in self.cache.iter().rev() {
-      if entry.0 == hash {
+      if entry.key == hash {
         return Some(entry);
       }
     }
@@ -199,6 +214,15 @@ mod tests {
   }
 
   #[test]
+  fn can_clone_cache_entry() {
+    let sut = CacheEntry::new(22, String::from("value"));
+    let mut clone = sut.clone();
+    assert_eq!(sut, clone);
+    clone.value = "changed".to_string();
+    assert_ne!(sut.value, clone.value);
+  }
+
+  #[test]
   fn cache_miss_on_empty_cache() {
     let cache = Cache::new(CACHE_CAPACITY);
     let miss = cache.get(2389472);
@@ -208,13 +232,13 @@ mod tests {
   #[test]
   fn cache_hit_and_miss() {
     let mut cache = Cache::new(CACHE_CAPACITY);
-    cache.add((3, String::from("3")));
-    cache.add((6, String::from("6")));
+    cache.add(CacheEntry::new(3, String::from("3")));
+    cache.add(CacheEntry::new(6, String::from("6")));
     let miss = cache.get(2389472);
     let hit = cache.get(3).unwrap();
     assert_eq!(miss, None);
-    assert_eq!(3, hit.0);
-    assert_eq!("3", hit.1);
+    assert_eq!(3, hit.key);
+    assert_eq!("3", hit.value);
   }
 
   #[test]
