@@ -194,7 +194,7 @@ impl Cache {
     // Iterate in reverse:
     for entry in self.cache.iter().rev() {
       if entry.key == hash {
-        return Some(entry);
+        return Some(&entry);
       }
     }
     None
