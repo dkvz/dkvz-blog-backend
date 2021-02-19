@@ -79,14 +79,19 @@ impl WordlistPseudoyimizer {
     // Also makes asing for "line_count" result in line 0, which
     // is nice.
     let line_n = line % self.line_count;
-    let mut i = 0;
+    let mut i: u64 = 0;
     for line in reader {
       if i == line_n {
         return line.context("Could not read line in word list");
       }
       i += 1;
     }
-    Err(eyre!("Went to the very end of the wordlist for some reason - This shouldn't happen"))
+    Err(
+      eyre!(
+        "Went to the very end of the wordlist for line {} - This shouldn't happen",
+        line_n
+      )
+    )
   }
 
   pub fn pseudonymize(&mut self, value: &str) -> Result<String> {
@@ -209,6 +214,24 @@ mod tests {
     };*/
     let sut = WordlistPseudoyimizer::open("./resources/words.txt").unwrap();
     assert_eq!(sut.line_count, 466462);
+  }
+
+  #[test]
+  fn find_line_in_fixture() {
+    let mut sut = WordlistPseudoyimizer::open(
+      "./resources/fixtures/fixed_wordlist.txt"
+    ).unwrap();
+    assert_eq!("Line 1", sut.find_value_at_line(0).unwrap());
+  }
+
+  #[test]
+  fn pseudonymize_string_1() {
+    let mut sut = WordlistPseudoyimizer::open(
+      "./resources/fixtures/fixed_wordlist.txt"
+    ).unwrap();
+    assert_eq!("Line 2", sut.pseudonymize("test").unwrap());
+    // Test the cache, I guess:
+    assert_eq!("Line 2", sut.pseudonymize("test").unwrap());
   }
 
   #[test]
