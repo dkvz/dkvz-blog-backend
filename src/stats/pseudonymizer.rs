@@ -6,6 +6,7 @@ use linecount::count_lines;
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use std::convert::{TryFrom, TryInto};
+use std::rc::Rc;
 use sha1::{Sha1, Digest};
 
 // Capacity of the queue I use for caching
@@ -86,6 +87,20 @@ impl WordlistPseudoyimizer {
       i += 1;
     }
     Err(eyre!("Went to the very end of the wordlist for some reason - This shouldn't happen"))
+  }
+
+  pub fn pseudonymize(&mut self, value: &str) -> Result<&str> {
+    // Hash the value:
+    let hash = bytes_to_u64(hash_to_8_bytes(value));
+    // Check if we have it in cache, add it otherwise.
+    match self.cache.get(hash) {
+      Some(entry) => Ok(entry.1.as_str()),
+      None => {
+        let pseudo = self.find_value_at_line(hash)?;
+        self.cache.add((hash, String::from(pseudo)));
+        Ok("machin")
+      }
+    }
   }
 
 }
