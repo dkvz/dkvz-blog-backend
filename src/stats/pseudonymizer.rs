@@ -89,16 +89,16 @@ impl WordlistPseudoyimizer {
     Err(eyre!("Went to the very end of the wordlist for some reason - This shouldn't happen"))
   }
 
-  pub fn pseudonymize(&mut self, value: &str) -> Result<&str> {
+  pub fn pseudonymize(&mut self, value: &str) -> Result<String> {
     // Hash the value:
     let hash = bytes_to_u64(hash_to_8_bytes(value));
     // Check if we have it in cache, add it otherwise.
     match self.cache.get(hash) {
-      Some(entry) => Ok(entry.value.as_str()),
+      Some(entry) => Ok(entry.value.clone()),
       None => {
         let pseudo = self.find_value_at_line(hash)?;
-        //self.cache.add((hash, String::from(pseudo)));
-        Ok("machin")
+        self.cache.add(CacheEntry::new(hash, pseudo.clone()));
+        Ok(pseudo)
       }
     }
   }
@@ -152,14 +152,12 @@ struct CacheEntry {
 }
 
 impl CacheEntry {
-
   pub fn new(key: u64, value: String) -> Self {
     Self {
       key,
       value,
     }
   } 
-
 }
 
 struct Cache {
@@ -215,6 +213,7 @@ mod tests {
 
   #[test]
   fn can_clone_cache_entry() {
+    // Might look like a stupid test but I needed to know.
     let sut = CacheEntry::new(22, String::from("value"));
     let mut clone = sut.clone();
     assert_eq!(sut, clone);
