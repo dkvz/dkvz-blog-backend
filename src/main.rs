@@ -1,21 +1,23 @@
 mod config;
 mod db;
 mod stats;
+mod utils;
 use db::{ 
-    Pool, 
-    all_tags, 
-    comment_count, 
-    articles_from_to, 
-    article_by_url,
-    insert_article,
-    delete_article,
-    last_comment,
-    search_published_articles,
-    ArticleSelector,
-    Order
+  Pool, 
+  all_tags, 
+  comment_count, 
+  articles_from_to, 
+  article_by_url,
+  insert_article,
+  delete_article,
+  last_comment,
+  search_published_articles,
+  ArticleSelector,
+  Order
 };
 use db::entities::*;
-use stats::ip_location::IpLocator;
+use std::net::{IpAddr, Ipv4Addr};
+use stats::{StatsService, BaseArticleStat};
 use color_eyre::Result;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 // I think we have to add crate here because
@@ -31,11 +33,12 @@ fn main() -> Result<()> {
   let pool = Pool::new(manager)
     .expect("Database connection failed");
 
-
   /*
   let tags = all_tags(&pool)?;
   let count = comment_count(&pool, 110)?;
-  let articles = articles_from_to(&pool, ArticleSelector::Short, 0, 10, None, Order::Desc)?;
+  let articles = articles_from_to(&pool, Arlet manager = SqliteConnectionManager::file(&config.db_path);
+  let pool = Pool::new(manager)
+    .expect("Database connection failed");ticleSelector::Short, 0, 10, None, Order::Desc)?;
   for article in &articles {
       println!("{} - {}", article.id, article.title);
   }
@@ -94,8 +97,14 @@ fn main() -> Result<()> {
     println!("{:?}", article);
   }*/
 
-  let mut ip_locator = IpLocator::open(&config.iploc_path)?;
-  println!("{:?}", ip_locator.geo_info("127.0.0.1"));
+  let stats_service = StatsService::open(&pool, &config.wordlist_path, &config.iploc_path)?;
+  stats_service.insert_article_stats(
+    BaseArticleStat { 
+      article_id: 120,
+      client_ip: IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
+      client_ua: "Firefox 28".to_string()
+    }
+  )?;
 
   Ok(())
 }

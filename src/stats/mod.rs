@@ -8,15 +8,24 @@ use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
-use crate::db::{Pool, Connection, insert_article_stat};
+use std::net::IpAddr;
+use crate::db::{Pool, insert_article_stat};
 use crate::db::entities::ArticleStat;
-
-mod pseudonymizer;
+use crate::utils::text_utils::first_letter_to_upper;
+pub mod pseudonymizer;
 pub mod ip_location;
+use ip_location::{IpLocator, GeoInfo};
+use pseudonymizer::WordlistPseudoyimizer;
+
+pub struct BaseArticleStat {
+  pub article_id: i32,
+  pub client_ua: String,
+  pub client_ip: IpAddr
+}
 
 enum StatsMessage {
   Close,
-  InsertArticleStats(ArticleStat)
+  InsertArticleStats(BaseArticleStat)
 }
 
 pub struct StatsService {
@@ -24,12 +33,21 @@ pub struct StatsService {
   thread_handle: Option<JoinHandle<()>>
 }
 
+// TODO Add a way to generate the ArticleStats object from 
+// StatsService, could be a static method.
+/*let mut ip_locator = IpLocator::open(&config.iploc_path)?;
+  println!("{:?}", ip_locator.geo_info("127.0.0.1"));*/
+
 impl StatsService {
 
   pub fn open(
-    pool: &Pool
+    pool: &Pool,
+    wordlist_path: &str,
+    iploc_path: &str
   ) -> Result<StatsService> 
   {
+    let mut pseudonymizer = WordlistPseudoyimizer::open(wordlist_path)?;
+    let mut ip_locator = IpLocator::open(iploc_path)?;
     let (tx, rx) = mpsc::channel::<StatsMessage>();
     let connection = pool.clone().get()?;
     let thread_handle = thread::spawn(move || loop {
@@ -40,7 +58,33 @@ impl StatsService {
               println!("Stats thread terminating...");
               break;
             },
-            StatsMessage::InsertArticleStats(article_stat) => {
+            StatsMessage::InsertArticleStats(base_article_stat) => {
+              let client_ip = base_article_stat.client_ip.to_string();
+              // Get the geoip info:
+              let geo_info = match ip_locator.geo_info(&client_ip) {
+                Ok(info) => info,
+                Err(e) => {
+                  eprintln!("Error from StatsService for IP Location \
+                    - {}", e);
+                  GeoInfo {
+                    country: String::new(),
+                    region: String::new(),
+                    city: String::new()
+                  }
+                }
+              };
+              let article_stat = ArticleStat {
+                id: -1,
+                article_id: base_article_stat.article_id,
+                pseudo_ua: pseudonymize(&mut pseudonymizer, &base_article_stat.client_ua),
+                pseudo_ip: pseudonymize(&mut pseudonymizer, &client_ip),
+                client_ua: base_article_stat.client_ua,
+                client_ip,
+                date: None,
+                country: geo_info.country,
+                region: geo_info.region,
+                city: geo_info.city
+              };
               if let Err(e) = insert_article_stat(&connection, &article_stat) {
                 eprintln!("Error from StatsService: \
                   could not insert ArticleStats - {}", e);
@@ -58,14 +102,33 @@ impl StatsService {
     })
   }
 
-  // TODO We have to check if thread is alive before
-  // using it. Return error immediately if not.
   pub fn insert_article_stats(
-    article_stats: &ArticleStat
+    &self,
+    article_stats: BaseArticleStat
   ) -> Result<()> {
-    
+    // The message sending will fail if the thread is dead.
+    // I could make everything panic in that case but I 
+    // won't.
+    let tx = self.tx.clone();
+    tx.send(StatsMessage::InsertArticleStats(article_stats))
+      .context("Send article stats to stats thread")
   }
 
+}
+
+fn pseudonymize(
+  pseudonymizer: &mut WordlistPseudoyimizer,
+  value: &str
+) -> String {
+  // We just return an empty string if the pseudonimizer 
+  // doesn't work for some reason, but we log the error.
+  match pseudonymizer.pseudonymize(value) {
+    Ok(pseudo) => first_letter_to_upper(pseudo),
+    Err(e) => {
+      eprintln!("Error - Could not pseudonymize value - {}", e);
+      String::new()
+    }
+  }
 }
 
 // Not sure that'll work but Drop is a good place to ask for 

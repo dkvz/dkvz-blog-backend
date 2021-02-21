@@ -23,8 +23,7 @@ They have the DB committed on Github but I thought I probably shouldn't.
 # TODO
 - [x] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
-- [ ] Intercept the closing/interrupt signal to send a close signal for the stats thread. I could use a specific signal to close the Actix thread if that's possible AND/OR **use Drop on the future StatsService to signal for thread end (and maybe wait for it to end?)**.
-- [ ] Should use a Logger instead of println! inside of StatsService.
+- [ ] Should use a Logger instead of println! inside of StatsService. Need to create the logging service thingy at some point.
 - [ ] I need some sort of constructor for ArticleStat using Article and the extra data.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [ ] Do shorts get inserted with content NULL or empty string?
