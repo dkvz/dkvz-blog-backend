@@ -18,7 +18,7 @@ I'm using ip2location, more precisely the DB5.LITE from here https://lite.ip2loc
 
 Rust library that looks promising: https://github.com/marirs/rust-ip2location.
 
-They have the DB committed on Github but I thought I probably shouldn't. 
+They have the DB committed on Github but I thought I probably shouldn't.
 
 # TODO
 - [x] I need a generic function for "count" queries.

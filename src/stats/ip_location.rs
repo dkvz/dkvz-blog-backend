@@ -5,6 +5,7 @@ use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 
 // Expecting a specific set of Geo data:
+#[derive(Debug)]
 pub struct GeoInfo {
   pub country: String,
   pub region: String,
@@ -28,7 +29,30 @@ impl IpLocator {
     }
   }
 
-  // Add function to request GeoInfo:
-  
+  // Add function to request GeoInfo.
+  // The "db" object has to be mutable.
+  pub fn geo_info(&mut self, ip: &str) -> Result<GeoInfo> {
+    match self.db.ip_lookup(ip) {
+      Ok(record) => {
+        let country = match record.country {
+          Some(country) => country.long_name,
+          None => String::new()
+        };
+        Ok(GeoInfo {
+          country,
+          region: record.region.unwrap_or(String::new()),
+          city: record.city.unwrap_or(String::new())
+        })
+      },
+      Err(_) => Err(
+        eyre!("Error with IP location")
+      )
+    }
+  }
+
+  pub fn geo_info_from_ip_addr(&mut self, ip: IpAddr) 
+  -> Result<GeoInfo> {
+    self.geo_info(&ip.to_string())
+  }
 
 }

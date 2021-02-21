@@ -6,7 +6,8 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-  pub db_path: String
+  pub db_path: String,
+  pub iploc_path: String
 }
 
 impl Config {

@@ -15,6 +15,7 @@ use db::{
     Order
 };
 use db::entities::*;
+use stats::ip_location::IpLocator;
 use color_eyre::Result;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 // I think we have to add crate here because
@@ -84,13 +85,17 @@ fn main() -> Result<()> {
     None => println!("No comment found")
   }*/
 
+  /* // Snippet for search
   let result = search_published_articles(
     &pool,
     &["fleur", "pantalon"]
   )?;
   for article in &result {
     println!("{:?}", article);
-  }
+  }*/
+
+  let mut ip_locator = IpLocator::open(&config.iploc_path)?;
+  println!("{:?}", ip_locator.geo_info("127.0.0.1"));
 
   Ok(())
 }
