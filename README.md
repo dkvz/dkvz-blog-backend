@@ -23,6 +23,7 @@ They have the DB committed on Github but I thought I probably shouldn't.
 # TODO
 - [x] I need a generic function for "count" queries.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
+- [ ] Intercept the closing/interrupt signal to send a close signal for the stats thread. I could use a specific signal to close the Actix thread if that's possible.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [ ] Do shorts get inserted with content NULL or empty string?
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
