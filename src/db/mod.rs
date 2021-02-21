@@ -42,7 +42,7 @@ use mappers::{
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
-type Connection = r2d2::PooledConnection<r2d2_sqlite::SqliteConnectionManager>;
+pub type Connection = r2d2::PooledConnection<r2d2_sqlite::SqliteConnectionManager>;
 
 // Some enums used in DB functions:
 pub enum ArticleSelector {
@@ -774,9 +774,10 @@ pub fn search_published_articles(
 // The data functions just do the data things, no 
 // hashing or whatnot is done here.
 pub fn insert_article_stat(
-  pool: &Pool,
-  article_stat: &mut ArticleStat
-) -> Result<i64> {
+  connection: &Connection,
+  //article_stat: &mut ArticleStat
+  article_stat: &ArticleStat
+) -> Result<usize> {
   let query = Query::new(
     QueryType::Insert { 
       table: "article_stats",
@@ -795,8 +796,8 @@ pub fn insert_article_stat(
     }
   )
     .to_string();
-  let conn = pool.clone().get()?;
-  let mut stmt = conn.prepare(&query)?;
+  //let conn = pool.clone().get()?;
+  let mut stmt = connection.prepare(&query)?;
   // Check if there's a date, we need to generate 
   // one otherwise.
   // Gonna use unwrap_or to do that.
@@ -812,9 +813,10 @@ pub fn insert_article_stat(
       article_stat.client_ip,
       article_stat.date.unwrap_or(current_timestamp())
     ]
-  )?;
-  let id = conn.last_insert_rowid();
+  ).context("Insert article stats")
+  // This is unsed in a multithreaded context, I'd rather
+  // not update the id.
+  /*let id = conn.last_insert_rowid();
   article_stat.id = id;
-
-  Ok(id)
+  Ok(id)*/
 }
