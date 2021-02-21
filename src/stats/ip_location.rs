@@ -35,13 +35,18 @@ impl IpLocator {
     match self.db.ip_lookup(ip) {
       Ok(record) => {
         let country = match record.country {
-          Some(country) => country.long_name,
+          Some(country) => remove_dash(country.long_name),
           None => String::new()
         };
+        let region = record.region.unwrap_or(String::new());
+        let city = record.city.unwrap_or(String::new());
+        // For some reasons, ip2location seems to add dashes
+        // for certain IP addresses - Removing it for empty 
+        // string
         Ok(GeoInfo {
           country,
-          region: record.region.unwrap_or(String::new()),
-          city: record.city.unwrap_or(String::new())
+          region: remove_dash(region),
+          city: remove_dash(city)
         })
       },
       Err(_) => Err(
@@ -55,4 +60,12 @@ impl IpLocator {
     self.geo_info(&ip.to_string())
   }
 
+}
+
+fn remove_dash(value: String) -> String {
+  if value == "-" {
+    String::new()
+  } else {
+    value
+  }
 }
