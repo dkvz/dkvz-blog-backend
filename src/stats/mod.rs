@@ -12,6 +12,7 @@ use std::net::IpAddr;
 use crate::db::{Pool, insert_article_stat};
 use crate::db::entities::ArticleStat;
 use crate::utils::text_utils::first_letter_to_upper;
+use crate::utils::ip_utils::extract_first_bytes;
 pub mod pseudonymizer;
 pub mod ip_location;
 use ip_location::{IpLocator, GeoInfo};
@@ -79,7 +80,7 @@ impl StatsService {
                 pseudo_ua: pseudonymize(&mut pseudonymizer, &base_article_stat.client_ua),
                 pseudo_ip: pseudonymize(&mut pseudonymizer, &client_ip),
                 client_ua: base_article_stat.client_ua,
-                client_ip,
+                client_ip: extract_first_bytes(&client_ip),
                 date: None,
                 country: geo_info.country,
                 region: geo_info.region,
