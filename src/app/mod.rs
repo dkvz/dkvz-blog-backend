@@ -1,7 +1,8 @@
-use actix_web::{middleware, web, App, HttpServer, HttpResponse};
+use actix_web::{middleware, web, App, HttpServer, HttpResponse, HttpRequest};
 use r2d2_sqlite::{self, SqliteConnectionManager};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
+use std::net::{IpAddr, Ipv4Addr};
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.
@@ -22,7 +23,6 @@ pub struct AppState {
 // there's this #[actix_web::main] decorator thingy that I'm 
 // going to use in main.rs.
 pub async fn run() -> Result<()> {
-
   let config = Config::from_env()
     .expect("Configuration (environment or .env file) is missing");
   let manager = SqliteConnectionManager::file(&config.db_path);
@@ -47,7 +47,7 @@ pub async fn run() -> Result<()> {
     }
   );
   
-  HttpServer::new(|| {
+  HttpServer::new(move|| {
     App::new()
       .app_data(app_state.clone())
       .wrap(middleware::Logger::default())
@@ -63,10 +63,22 @@ pub async fn run() -> Result<()> {
 
 // TODO Declare route config function:
 fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
-  cfg.route("/", web::get().to(|| {
-      HttpResponse::Ok().body("Hello from root!")
-  }))
+  cfg.route("/", web::get().to(
+    |app_state: web::Data<AppState>| 
+      {
+        match app_state.stats_service.insert_article_stats(
+          BaseArticleStat { 
+            article_id: 120,
+            client_ip: IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
+            client_ua: "Firefox 28".to_string()
+          }
+        ) {
+          Ok(_) => HttpResponse::Ok().body("Worked. I think."),
+          Err(e) => HttpResponse::Ok().body(format!("Error: {}", e))
+        }
+      }
+  ))
   .route("/test", web::get().to(|| {
-      HttpResponse::Ok().body("Hello from test!")
+    HttpResponse::Ok().body("Hello from test!")
   }));
 }

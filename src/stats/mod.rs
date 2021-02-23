@@ -4,7 +4,7 @@
  * systems together.
  */
 
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, SyncSender};
 use std::thread::{self, JoinHandle};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
@@ -30,7 +30,7 @@ enum StatsMessage {
 }
 
 pub struct StatsService {
-  tx: Sender<StatsMessage>,
+  tx: SyncSender<StatsMessage>,
   thread_handle: Option<JoinHandle<()>>
 }
 
@@ -49,7 +49,11 @@ impl StatsService {
   {
     let mut pseudonymizer = WordlistPseudoyimizer::open(wordlist_path)?;
     let mut ip_locator = IpLocator::open(iploc_path)?;
-    let (tx, rx) = mpsc::channel::<StatsMessage>();
+    // That 3 is very totally completely arbitrary.
+    // Supposed to be the buffer size for messages, producers will
+    // block the thread if the buffer is full. Will still error if
+    // receiving end is disconnected, which is good.
+    let (tx, rx) = mpsc::sync_channel::<StatsMessage>(3);
     let connection = pool.clone().get()?;
     let thread_handle = thread::spawn(move || loop {
       match rx.recv() {
@@ -110,6 +114,12 @@ impl StatsService {
     // The message sending will fail if the thread is dead.
     // I could make everything panic in that case but I 
     // won't.
+    // TODO: I'm almost certain I shouldn't clone the 
+    // sender for every single insert, it should be clone
+    // once per thread (Actix worker threads in my case).
+    // I thought of having a separate struct that serves
+    // as a remote for the StatsServce and that could just
+    // derive Clone, and hopefuly that would work.
     let tx = self.tx.clone();
     tx.send(StatsMessage::InsertArticleStats(article_stats))
       .context("Send article stats to stats thread")

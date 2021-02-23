@@ -50,7 +50,8 @@ There's another interesting approach, combining .env, here: https://github.com/f
 
 # TODO
 - [x] I need a generic function for "count" queries.
-- [ ] Should I use the lib.rs and main.rs split when I add Actix?
+- [ ] Log a message when server is started.
+- [ ] IP+port should be configurable from the .env with some kind of default value maybe?
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] Should use a Logger instead of println! inside of StatsService. Need to create the logging service thingy at some point.
@@ -67,3 +68,4 @@ There's another interesting approach, combining .env, here: https://github.com/f
 - [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.
 - [x] Create a limited length fixture instead of the full wordlist.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs.
+- [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
