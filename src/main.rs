@@ -2,6 +2,7 @@ mod config;
 mod db;
 mod stats;
 mod utils;
+mod app;
 use db::{ 
   Pool, 
   all_tags, 
@@ -16,6 +17,7 @@ use db::{
   Order
 };
 use db::entities::*;
+use std::env;
 use std::net::{IpAddr, Ipv4Addr};
 use stats::{StatsService, BaseArticleStat};
 use color_eyre::Result;
@@ -25,7 +27,17 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 // use as a dependency.
 use crate::config::Config;
 
-fn main() -> Result<()> {
+#[actix_web::main]
+async fn main() -> Result<()> {
+  if env::var("RUST_LOG").ok().is_none() {
+    env::set_var("RUST_LOG", "actix_web=info");
+  }
+  env_logger::init();
+
+  app::run().await
+}
+
+/*fn main() -> Result<()> {
   let config = Config::from_env()
     .expect("Configuration (environment or .env file) is missing");
 
@@ -97,6 +109,7 @@ fn main() -> Result<()> {
     println!("{:?}", article);
   }*/
 
+  /*// StatsService snippet
   let stats_service = StatsService::open(&pool, &config.wordlist_path, &config.iploc_path)?;
   stats_service.insert_article_stats(
     BaseArticleStat { 
@@ -104,7 +117,7 @@ fn main() -> Result<()> {
       client_ip: IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
       client_ua: "Firefox 28".to_string()
     }
-  )?;
+  )?;*/
 
   Ok(())
-}
+}*/

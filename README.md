@@ -20,6 +20,34 @@ Rust library that looks promising: https://github.com/marirs/rust-ip2location.
 
 They have the DB committed on Github but I thought I probably shouldn't.
 
+## Logging
+The crate [env_logger](https://docs.rs/env_logger/0.8.3/env_logger) integreates with Actix but I can also use it in my StatsService.
+
+Got version 0.7 in my Actix notes.
+
+You basically use it like so:
+```rs
+use log::{debug, error, log_enabled, info, Level};
+
+env_logger::init();
+
+debug!("this is a debug {}", "message");
+error!("this is printed by default");
+
+if log_enabled!(Level::Info) {
+    let x = 3 * 4; // expensive computation
+    info!("the answer was: {}", x);
+}
+```
+Provided the `RUST_LOG` env variable is set.
+
+For Actix they were manually setting it to "info" with the following line (before the call to init()):
+```rs
+std::env::set_var("RUST_LOG", "actix_web=info");
+```
+
+There's another interesting approach, combining .env, here: https://github.com/fairingrey/actix-realworld-example-app/blob/master/src/main.rs
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [ ] Should I use the lib.rs and main.rs split when I add Actix?
