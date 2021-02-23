@@ -66,3 +66,4 @@ There's another interesting approach, combining .env, here: https://github.com/f
 - [ ] Test all the comment DB functions.
 - [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.
 - [x] Create a limited length fixture instead of the full wordlist.
+- [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs.
