@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 // Adding the context method to errors:
 use eyre::WrapErr;
 use color_eyre::Result;
@@ -16,7 +15,6 @@ pub struct Config {
 impl Config {
 
   pub fn from_env() -> Result<Config> {
-    dotenv().ok();
     let mut c = config::Config::new();
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 

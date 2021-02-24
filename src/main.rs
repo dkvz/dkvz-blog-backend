@@ -6,9 +6,11 @@ mod app;
 
 use std::env;
 use color_eyre::Result;
+use dotenv::dotenv;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
+  dotenv().ok();
   if env::var("RUST_LOG").ok().is_none() {
     env::set_var("RUST_LOG", "info,actix_web=info");
   }
