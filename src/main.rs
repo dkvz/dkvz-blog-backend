@@ -30,7 +30,7 @@ use crate::config::Config;
 #[actix_web::main]
 async fn main() -> Result<()> {
   if env::var("RUST_LOG").ok().is_none() {
-    env::set_var("RUST_LOG", "actix_web=info");
+    env::set_var("RUST_LOG", "info,actix_web=info");
   }
   env_logger::init();
 

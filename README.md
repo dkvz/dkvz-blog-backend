@@ -25,6 +25,12 @@ The crate [env_logger](https://docs.rs/env_logger/0.8.3/env_logger) integreates 
 
 Got version 0.7 in my Actix notes.
 
+We also need the "log" crate explicitely imported:
+```
+log = "0.4.0"
+env_logger = "0.8.3"
+```
+
 You basically use it like so:
 ```rs
 use log::{debug, error, log_enabled, info, Level};
@@ -47,6 +53,9 @@ std::env::set_var("RUST_LOG", "actix_web=info");
 ```
 
 There's another interesting approach, combining .env, here: https://github.com/fairingrey/actix-realworld-example-app/blob/master/src/main.rs
+
+## CORS
+I think there's an example in the official "examples" repo, otherwise this middleware sounds promising: https://github.com/actix/examples/tree/master/web-cors
 
 # TODO
 - [x] I need a generic function for "count" queries.
