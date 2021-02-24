@@ -54,7 +54,7 @@ pub async fn run() -> Result<()> {
       .wrap(middleware::Logger::default())
       .configure(base_endpoints_config)
   })
-  .bind("127.0.0.1:8080")?
+  .bind(&config.bind_address)?
   .run()
   .await
   .context("Start Actix web server")

@@ -51,15 +51,21 @@ For Actix they were manually setting it to "info" with the following line (befor
 ```rs
 std::env::set_var("RUST_LOG", "actix_web=info");
 ```
-
 There's another interesting approach, combining .env, here: https://github.com/fairingrey/actix-realworld-example-app/blob/master/src/main.rs
+
+The RUST_LOG value shown above won't show any log message from sources that aren't actix_web, which isn't ideal.
+
+I use it like so, which means default log level for sources is info, and then specify a log level for actix_web (which incidentally is also info, but you get the point):
+```
+std::env::set_var("RUST_LOG", "info,actix_web=info");
+```
 
 ## CORS
 I think there's an example in the official "examples" repo, otherwise this middleware sounds promising: https://github.com/actix/examples/tree/master/web-cors
 
 # TODO
 - [x] I need a generic function for "count" queries.
-- [ ] Log a message when server is started.
+- [x] Log a message when server is started -> Actix already does that.
 - [ ] IP+port should be configurable from the .env with some kind of default value maybe?
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.

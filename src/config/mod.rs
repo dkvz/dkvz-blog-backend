@@ -9,7 +9,8 @@ pub struct Config {
   pub db_path: String,
   pub stats_db_path: String,
   pub iploc_path: String,
-  pub wordlist_path: String
+  pub wordlist_path: String,
+  pub bind_address: String
 }
 
 impl Config {

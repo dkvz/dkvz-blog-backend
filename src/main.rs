@@ -3,29 +3,9 @@ mod db;
 mod stats;
 mod utils;
 mod app;
-use db::{ 
-  Pool, 
-  all_tags, 
-  comment_count, 
-  articles_from_to, 
-  article_by_url,
-  insert_article,
-  delete_article,
-  last_comment,
-  search_published_articles,
-  ArticleSelector,
-  Order
-};
-use db::entities::*;
+
 use std::env;
-use std::net::{IpAddr, Ipv4Addr};
-use stats::{StatsService, BaseArticleStat};
 use color_eyre::Result;
-use r2d2_sqlite::{self, SqliteConnectionManager};
-// I think we have to add crate here because
-// of the other crate named "config" that we
-// use as a dependency.
-use crate::config::Config;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -33,6 +13,10 @@ async fn main() -> Result<()> {
     env::set_var("RUST_LOG", "info,actix_web=info");
   }
   env_logger::init();
+  // Also set a default BIND_ADDRESS when absent:
+  if env::var("BIND_ADDRESS").ok().is_none() {
+    env::set_var("BIND_ADDRESS", "127.0.0.1:8080");
+  }
 
   app::run().await
 }
