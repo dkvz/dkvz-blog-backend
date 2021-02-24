@@ -9,6 +9,7 @@ use std::thread::{self, JoinHandle};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use std::net::IpAddr;
+use log::{error, info, debug};
 use crate::db::{Pool, insert_article_stat};
 use crate::db::entities::ArticleStat;
 use crate::utils::text_utils::first_letter_to_upper;
@@ -18,6 +19,7 @@ pub mod ip_location;
 use ip_location::{IpLocator, GeoInfo};
 use pseudonymizer::WordlistPseudoyimizer;
 
+#[derive(Debug)]
 pub struct BaseArticleStat {
   pub article_id: i32,
   pub client_ua: String,
@@ -33,11 +35,6 @@ pub struct StatsService {
   tx: SyncSender<StatsMessage>,
   thread_handle: Option<JoinHandle<()>>
 }
-
-// TODO Add a way to generate the ArticleStats object from 
-// StatsService, could be a static method.
-/*let mut ip_locator = IpLocator::open(&config.iploc_path)?;
-  println!("{:?}", ip_locator.geo_info("127.0.0.1"));*/
 
 impl StatsService {
 
@@ -55,12 +52,13 @@ impl StatsService {
     // receiving end is disconnected, which is good.
     let (tx, rx) = mpsc::sync_channel::<StatsMessage>(3);
     let connection = pool.clone().get()?;
+    info!("Starting stats thread...");
     let thread_handle = thread::spawn(move || loop {
       match rx.recv() {
         Ok(msg) => {
           match msg {
             StatsMessage::Close => {
-              println!("Stats thread terminating...");
+              info!("Stats thread terminating...");
               break;
             },
             StatsMessage::InsertArticleStats(base_article_stat) => {
@@ -69,7 +67,7 @@ impl StatsService {
               let geo_info = match ip_locator.geo_info(&client_ip) {
                 Ok(info) => info,
                 Err(e) => {
-                  eprintln!("Error from StatsService for IP Location \
+                  error!("Error from StatsService for IP Location \
                     - {}", e);
                   GeoInfo {
                     country: String::new(),
@@ -90,8 +88,9 @@ impl StatsService {
                 region: geo_info.region,
                 city: geo_info.city
               };
+              debug!("Inserting article stats: {:?}", article_stat);
               if let Err(e) = insert_article_stat(&connection, &article_stat) {
-                eprintln!("Error from StatsService: \
+                error!("Error from StatsService: \
                   could not insert ArticleStats - {}", e);
               }
             }
@@ -121,6 +120,7 @@ impl StatsService {
     // as a remote for the StatsServce and that could just
     // derive Clone, and hopefuly that would work.
     let tx = self.tx.clone();
+    debug!("Sending stats to stats thread: {:?}", article_stats);
     tx.send(StatsMessage::InsertArticleStats(article_stats))
       .context("Send article stats to stats thread")
   }
@@ -136,7 +136,7 @@ fn pseudonymize(
   match pseudonymizer.pseudonymize(value) {
     Ok(pseudo) => first_letter_to_upper(pseudo),
     Err(e) => {
-      eprintln!("Error - Could not pseudonymize value - {}", e);
+      error!("Error - Could not pseudonymize value - {}", e);
       String::new()
     }
   }
@@ -148,8 +148,8 @@ fn pseudonymize(
 impl Drop for StatsService {
   fn drop(&mut self) {
     match self.tx.clone().send(StatsMessage::Close) {
-      Ok(_) => println!("StatsService is closing..."),
-      Err(e) => eprintln!("Could not close StatsService - {}", e)
+      Ok(_) => info!("StatsService is closing..."),
+      Err(e) => error!("Could not close StatsService - {}", e)
     }
     // I would have waited for the thread_handle to join here
     // but you can't. Something about it already being dropped

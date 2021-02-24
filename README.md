@@ -66,11 +66,10 @@ I think there's an example in the official "examples" repo, otherwise this middl
 # TODO
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
-- [ ] IP+port should be configurable from the .env with some kind of default value maybe?
+- [x] IP+port should be configurable from the .env with some kind of default value maybe?
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
-- [ ] Should use a Logger instead of println! inside of StatsService. Need to create the logging service thingy at some point.
-- [ ] I need some sort of constructor for ArticleStat using Article and the extra data.
+- [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [ ] Do shorts get inserted with content NULL or empty string?
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
