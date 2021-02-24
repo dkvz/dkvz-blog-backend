@@ -7,6 +7,39 @@ Database is probably missing until I decide to upload an empty one.
 
 Using **eyre** instead of **failure** for errors and stuff.
 
+# Endpoints
+I think I never really documented them. Now is probably a good time.
+
+## / - GET
+Currently returns the text "nothing here" - I might be returning JSON from now on.
+
+## /article/{articleUrl} - GET
+Gets the requested article in JSON format. Can use an article ID instead of the URL slug.
+
+Throws a 404 if nothing is found.
+
+Format differs slighly with shorts and full articles.
+
+Full article:
+```json
+"date": "18/02/2021 17:40:21+0100",
+"summary": "...",
+"thumbImage": "stuff/img.png",
+"author": "DkVZ",
+"commentsCount": "0",
+"id": "120",
+"title": "Titre",
+"articleURL": "truc_machin"
+"content": "...",
+"tags": [
+    {
+        "name": "Some tag",
+        "id" : 2,
+        "mainTag": true
+    }
+]
+```
+
 ## Database
 Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
 
@@ -81,5 +114,5 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [ ] Test all the comment DB functions.
 - [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.
 - [x] Create a limited length fixture instead of the full wordlist.
-- [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs.
+- [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
