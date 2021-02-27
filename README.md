@@ -40,6 +40,119 @@ Full article:
 ]
 ```
 
+Short:
+```json
+"date": "18/02/2021 17:40:21+0100",
+"summary": "...",
+"thumbImage": "stuff/img.png",
+"author": "DkVZ",
+"commentsCount": "0",
+"id": "120",
+"title": "Titre",
+"articleURL": null,
+"content": "...",
+"tags": []
+```
+
+We can remove articleURL completely for shorts. I think.
+
+At the moment tags is always empty for shorts but I'm leaving it there just in case.
+
+## /articles-starting-from/{articleId} - GET
+Accepts a few extra query string params:
+* max - Max amount of articles to get per request, defaults to 30.
+* tags - Comma separated list of tag names (URL encoded by the client), defaults to empty string.
+* order - expects the strings "asc" or "desc", defaults to "desc".
+
+Returns a list of articles starting from the given article ID, which is used here as a very simple "offset".
+
+**Completely ignores "short" and non-published articles**.
+
+## /tags - GET
+Gets the full list of tags in JSON format, ordered by name ASC.
+
+Example with a single tag:
+```json
+[
+    {
+        "name": "Art & Beauté",
+        "mainTag": 1,
+        "id": 7
+    },
+]
+```
+
+## /comments - POST
+Expects a URL encoded standard form submission format with fields:
+* comment -> Limit length to 2000 chars
+* author -> Trim + limit length to 70 chars - Refuse if length is 0 after trim with Bad Request
+* article_id -> Supposed to be parsed from a string
+* articleurl
+
+We need either article_id or articleurl, Bad Request when both are absent.
+
+Returns posted comment as JSON if it worked. Example output:
+```json
+"id": 299,
+"author": "Paul",
+"date": "dd/MM/yyyy HH:mm:ssZ",
+"comment": "The actual comment"
+```
+
+## /last-comment - GET
+Outputs the last comment or a 404 if there aren't any.
+
+I need to add the article_id to the list of fields (probably as "articleId" since I use cameCase everywhere else).
+
+## /import-articles - GET
+Supposed to set a lock during the import so that another import cannot take place at the same time.
+
+Sends that response when import is already in progress:
+```json
+"status": "error",
+"message": "Import already in progress"
+```
+Altough having that exact format or not doesn't matter.
+
+**This endpoint has to be publicly available**.
+
+When import works, we get a list such as the following:
+```json
+[
+    "status": "success",
+    "message": "Article inserted",
+    "id": 22
+]
+```
+Could technically be a mix of "success" and "error" as status.
+
+Message explains if article or short was inserted (displays if it was an article or short), updated, deleted, or shows the relevant error message.
+
+## /rss - GET
+Only works for a set of allowed IP addresses or returns a forbidden exception.
+
+Outputs the full RSS feed as XML, all published articles in descending order.
+
+## /gimme-sitemap - GET
+Returns the sitemap as "application/xml" MIME type. No CORS required.
+
+Gets all the articles and shorts. Used to post all the articles first then all the shorts.
+
+Query string parameters:
+* articlesRoot - Defaults to "dkvz.eu/articles" - Absolute article URLs are created from it.
+
+## /rebuild-indexes - GET
+Only works for a set of allowed IP addresses or returns a forbidden exception.
+
+Supposed to set a lock so that you can't run two of these at the same time.
+
+Rebuilds the fulltext index completely.
+
+## /render-article/{articleUrl} - GET
+Renders a barebones version of the full article page in HTML for search engines. Doesn't need any CORS.
+
+Will require setting up templating of some sort. I might put an example in resources later on - Previous backend was using a Thymeleaf template, maybe we can reuse it?
+
 ## Database
 Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
 
