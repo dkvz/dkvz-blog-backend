@@ -128,6 +128,34 @@ Could technically be a mix of "success" and "error" as status.
 
 Message explains if article or short was inserted (displays if it was an article or short), updated, deleted, or shows the relevant error message.
 
+Specifically, we had "IO Error" and "JSON parsing error".
+
+# /articles/search - POST
+I'm using a weird rate limiter on that endpoint which basically blocks (with Forbidden HTTP error) ALL searches when a certain threshold is reached.
+
+Expects a specific JSON body:
+```json
+include: [
+    "search term 1",
+    "search term 2"
+]
+```
+
+Will respond with Bad Request if the include array is empty or null, which implies it going into a cleaning up function that replaces a few special chars as in the following Java Regex:
+```
+"[+*$%\\s]"
+```
+Which I think doesn't actually replace `+` or `*` at the moment. And we could allow `*` as it works in SQLite fulltext search queries.
+
+When everything goes right, sends a list of "search results":
+```json
+"id": 34,
+"title": "Some article title",
+"articleURL": "some_url",
+"snippet": " [...] Data from fulltext search "
+```
+Where "articleURL" is the article ID as string for shorts.
+
 ## /rss - GET
 Only works for a set of allowed IP addresses or returns a forbidden exception.
 
