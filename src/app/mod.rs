@@ -9,7 +9,7 @@ use std::net::{IpAddr, Ipv4Addr};
 // use as a dependency.
 use crate::config::Config;
 use crate::db::Pool;
-use crate::stats::{StatsService, BaseArticleStat};
+use crate::stats::{StatsService};
 mod handlers;
 mod dtos;
 
@@ -81,8 +81,5 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
       }*/
     handlers::index
   ))
-  .route("/test", web::get().to(|| {
-    info!("Is this working?");
-    HttpResponse::Ok().body("Hello from test!")
-  }));
+  .route("/tags", web::get().to(handlers::tags));
 }

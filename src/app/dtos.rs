@@ -20,6 +20,7 @@ mod tests {
       name: "Some Tag".to_string(),
       main_tag: 1
     };
+    // into() moves ownership. I think.
     let dto: TagDto = sut.into();
     assert_eq!(12, dto.id);
   }
