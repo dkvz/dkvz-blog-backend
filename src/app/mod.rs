@@ -10,6 +10,8 @@ use std::net::{IpAddr, Ipv4Addr};
 use crate::config::Config;
 use crate::db::Pool;
 use crate::stats::{StatsService, BaseArticleStat};
+mod handlers;
+mod dtos;
 
 
 // Declare app state struct:
@@ -61,11 +63,10 @@ pub async fn run() -> Result<()> {
 
 }
 
-
-// TODO Declare route config function:
+// Route configuration:
 fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
   cfg.route("/", web::get().to(
-    |app_state: web::Data<AppState>| 
+    /*|app_state: web::Data<AppState>| 
       {
         match app_state.stats_service.insert_article_stats(
           BaseArticleStat { 
@@ -77,7 +78,8 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
           Ok(_) => HttpResponse::Ok().body("Worked. I think."),
           Err(e) => HttpResponse::Ok().body(format!("Error: {}", e))
         }
-      }
+      }*/
+    handlers::index
   ))
   .route("/test", web::get().to(|| {
     info!("Is this working?");

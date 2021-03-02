@@ -13,6 +13,20 @@ I think I never really documented them. Now is probably a good time.
 ## / - GET
 Currently returns the text "nothing here" - I might be returning JSON from now on.
 
+## /tags - GET
+Gets the full list of tags in JSON format, ordered by name ASC.
+
+Example with a single tag:
+```json
+[
+  {
+    "name": "Art & Beauté",
+    "mainTag": 1,
+    "id": 7
+  },
+]
+```
+
 ## /article/{articleUrl} - GET
 Gets the requested article in JSON format. Can use an article ID instead of the URL slug.
 
@@ -32,11 +46,11 @@ Full article:
 "articleURL": "truc_machin"
 "content": "...",
 "tags": [
-    {
-        "name": "Some tag",
-        "id" : 2,
-        "mainTag": true
-    }
+  {
+    "name": "Some tag",
+    "id" : 2,
+    "mainTag": true
+  }
 ]
 ```
 
@@ -67,20 +81,6 @@ Accepts a few extra query string params:
 Returns a list of articles starting from the given article ID, which is used here as a very simple "offset".
 
 **Completely ignores "short" and non-published articles**.
-
-## /tags - GET
-Gets the full list of tags in JSON format, ordered by name ASC.
-
-Example with a single tag:
-```json
-[
-    {
-        "name": "Art & Beauté",
-        "mainTag": 1,
-        "id": 7
-    },
-]
-```
 
 ## /comments - POST
 Expects a URL encoded standard form submission format with fields:
@@ -119,9 +119,9 @@ Altough having that exact format or not doesn't matter.
 When import works, we get a list such as the following:
 ```json
 [
-    "status": "success",
-    "message": "Article inserted",
-    "id": 22
+  "status": "success",
+  "message": "Article inserted",
+  "id": 22
 ]
 ```
 Could technically be a mix of "success" and "error" as status.
@@ -136,8 +136,8 @@ I'm using a weird rate limiter on that endpoint which basically blocks (with For
 Expects a specific JSON body:
 ```json
 include: [
-    "search term 1",
-    "search term 2"
+  "search term 1",
+  "search term 2"
 ]
 ```
 
@@ -215,8 +215,8 @@ debug!("this is a debug {}", "message");
 error!("this is printed by default");
 
 if log_enabled!(Level::Info) {
-    let x = 3 * 4; // expensive computation
-    info!("the answer was: {}", x);
+  let x = 3 * 4; // expensive computation
+  info!("the answer was: {}", x);
 }
 ```
 Provided the `RUST_LOG` env variable is set.

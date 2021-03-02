@@ -40,7 +40,7 @@ pub struct ArticleUpdate {
   pub tags: Option<Vec<Tag>>
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Tag {
   pub id: i32,
   pub name: String,
