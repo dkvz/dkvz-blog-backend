@@ -41,6 +41,7 @@ pub struct ArticleUpdate {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Tag {
   pub id: i32,
   pub name: String,

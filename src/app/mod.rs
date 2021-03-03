@@ -81,5 +81,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
       }*/
     handlers::index
   ))
-  .route("/tags", web::get().to(handlers::tags));
+  .route("/tags", web::get().to(handlers::tags))
+  .route("/article/{articleUrl}", web::get().to(handlers::article));
 }

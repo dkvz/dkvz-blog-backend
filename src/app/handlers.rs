@@ -35,3 +35,8 @@ pub async fn tags(
     Err(e) => Err(Error::DatabaseError(e.to_string()))
   }
 }
+
+pub async fn article(path: web::Path<(String,)>) -> HttpResponse {
+  let article_url = path.into_inner().0;
+  HttpResponse::Ok().body(format!("Requested article_url: {}", article_url))
+}
