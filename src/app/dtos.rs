@@ -24,4 +24,22 @@ mod tests {
     let dto: TagDto = sut.into();
     assert_eq!(12, dto.id);
   }
+
+  #[test]
+  fn vec_tag_to_vec_dto() {
+    let t1 = Tag {
+      id: 12,
+      name: "Some Tag 1".to_string(),
+      main_tag: 1
+    };
+    let t2 = Tag {
+      id: 27,
+      name: "Some Tag 2".to_string(),
+      main_tag: 1
+    };
+    let sut: Vec<Tag> = vec![t1, t2];
+    let converted: Vec<TagDto> = sut.into();
+    assert_eq!(27, converted[1].id);
+  }
+
 }

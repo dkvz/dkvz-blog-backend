@@ -4,9 +4,11 @@ use actix_web::{
   HttpResponse, 
   Result
 };
+use std::convert::From;
 use crate::db::{
   all_tags
 };
+use super::dtos::*;
 use super::error::Error;
 use super::AppState;
 
@@ -26,7 +28,7 @@ pub async fn tags(
   app_state: web::Data<AppState>
 ) -> Result<HttpResponse, Error> {
   match all_tags(&app_state.pool) {
-    Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
+    Ok(tags) => Ok(HttpResponse::Ok().json(Vec::<TagDto>::from(tags))),
     // I could use something to log the error message
     // somewhere because it won't be shown in browsers
     // for security reasons (see "error" module).
