@@ -639,6 +639,7 @@ dependencies = [
  "chrono",
  "color-eyre",
  "config",
+ "derive_more",
  "dotenv",
  "env_logger",
  "eyre",

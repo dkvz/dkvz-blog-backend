@@ -12,7 +12,7 @@ use crate::db::Pool;
 use crate::stats::{StatsService};
 mod handlers;
 mod dtos;
-
+mod error;
 
 // Declare app state struct:
 pub struct AppState {
