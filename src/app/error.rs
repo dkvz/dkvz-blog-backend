@@ -32,11 +32,11 @@ pub enum Error {
 impl ResponseError for Error {
   fn error_response(&self) -> HttpResponse {
     match self {
-      Error::InternalServerError(msg) | Error::DatabaseError(msg) => 
+      Error::InternalServerError(_) | Error::DatabaseError(_) => 
         HttpResponse::InternalServerError().body(self.to_string()),
-      Error::Forbidden(msg) => HttpResponse::Forbidden().body(self.to_string()),
-      Error::NotFound(msg) => HttpResponse::NotFound().body(self.to_string()),
-      Error::BadRequest(msg) => HttpResponse::BadRequest().body(self.to_string())
+      Error::Forbidden(_) => HttpResponse::Forbidden().body(self.to_string()),
+      Error::NotFound(_) => HttpResponse::NotFound().body(self.to_string()),
+      Error::BadRequest(_) => HttpResponse::BadRequest().body(self.to_string())
     }
   }
 }
