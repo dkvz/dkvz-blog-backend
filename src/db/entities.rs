@@ -19,7 +19,9 @@ pub struct Article {
   pub content: Option<String>,
   pub published: i32,
   pub short: i32,
-  pub tags: Vec<Tag>
+  pub tags: Vec<Tag>,
+  pub author: String,
+  pub comments_count: i64
 }
 
 // Object I use to fit my "udpate only what's in 

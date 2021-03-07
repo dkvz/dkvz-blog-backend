@@ -40,6 +40,8 @@ use mappers::{
  * whatsoever.
  */
 
+const ANONYMOUS_USERNAME: &'static str = "Anonymous";
+
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 pub type Connection = r2d2::PooledConnection<r2d2_sqlite::SqliteConnectionManager>;
@@ -120,18 +122,23 @@ fn full_article_mapper(
 ) -> Result<Article, rusqlite::Error> {
   let article_id = row.get(0)?;
   let short: i32 = row.get(8)?;
+  let user_id: i32 = row.get(5)?;
   // Due to how I wrote the mapper function,
   // I have to use the "selector" All for articles
   // or the content is ignored.
   let article_type: ArticleSelector = 
     if short == 0 { ArticleSelector::All }
     else { ArticleSelector::Short };
-  // Get the tags:
+  // Get the tags, username, and comment count:
   map_article(
     row, 
     tags_for_article(pool, article_id)
       .map_err(|_| rusqlite::Error::InvalidQuery)?, 
-    &article_type
+    &article_type,
+    username_for_id(pool, user_id)
+      .map_err(|_| rusqlite::Error::InvalidQuery)?,
+    comment_count(pool, article_id)
+      .map_err(|_| rusqlite::Error::InvalidQuery)?
   )
 }
 
@@ -312,6 +319,29 @@ pub fn tags_for_article(
   )
 }
 
+pub fn username_for_id(
+  pool: &Pool, 
+  user_id: i32
+) -> Result<String> {
+  let conn = pool.clone().get()?;
+  // The old API was substituting "Anonymous" to possibly invalid/unknown
+  // user IDs during database row processing, doing the same here.
+  let mut stmt = conn.prepare("SELECT name FROM users WHERE id = ?")?;
+  stmt.query_row(
+    params![user_id],
+    |row| -> Result<String, rusqlite::Error> {
+      Ok(row.get(0)?)
+    }
+  )
+    .optional()
+    .context(format!("Fetch usename for user_id {}", user_id))?
+    // Need to recreate a Result after we unwrapped the Option:
+    .map_or(
+      Ok(ANONYMOUS_USERNAME.to_string()),
+      |username| Ok(username)
+    )
+}
+
 // Trying to upgrade from the horrible mess I had in the Java app
 // for article retrieval.
 // The same function has to be able to retrieve ALL articles too.
@@ -399,6 +429,13 @@ pub fn articles_from_to(
       let article_id = row.get(0)?;
       // We always get the tags, even though I never use them on "shorts",
       // I might do someday.
+      
+      
+      
+      // TODO CAN I USE map_full_article here?
+
+
+
       // My "error handling" is subpar, mapping Eyre error into one of the
       // parameter-less member of rusqlite::Error.
       map_article(

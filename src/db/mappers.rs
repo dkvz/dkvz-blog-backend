@@ -21,7 +21,9 @@ pub fn map_tag(row: &Row) -> Result<Tag, Error> {
 pub fn map_article(
   row: &Row, 
   tags: Vec<Tag>, 
-  article_type: &ArticleSelector
+  article_type: &ArticleSelector,
+  author: String,
+  comments_count: i64
 ) -> Result<Article, Error> {
   // Field order:
   /*
@@ -57,7 +59,9 @@ pub fn map_article(
       published: row.get(7)?,
       content,
       short: row.get(8)?,
-      tags
+      tags,
+      author,
+      comments_count
     }
   )
 }
@@ -80,7 +84,10 @@ pub fn map_comment(row: &Row) -> Result<Comment, Error> {
   )
 }
 
-pub fn map_search_result(row: &Row) -> Result<Article, Error> {
+pub fn map_search_result(
+  row: &Row, 
+  author: String
+) -> Result<Article, Error> {
   Ok(
     Article {
       id: row.get(0)?,
@@ -93,7 +100,9 @@ pub fn map_search_result(row: &Row) -> Result<Article, Error> {
       content: None,
       published: 1,
       thumb_image: String::from(""),
-      tags: Vec::new()
+      tags: Vec::new(),
+      comments_count: 0,
+      author
     }
   )
 }
