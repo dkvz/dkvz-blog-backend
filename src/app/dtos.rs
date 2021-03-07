@@ -1,4 +1,6 @@
+use serde::{Deserialize, Serialize};
 use crate::db::entities::*;
+use crate::utils::text_utils;
 
 // I'm going to use the From trait to convert
 // entites to DTOs and test that.
@@ -8,6 +10,35 @@ use crate::db::entities::*;
 // The TagDto is actually exactly Tag. Can I 
 // just re-export the entity?
 pub use crate::db::entities::Tag as TagDto;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArticleDto {
+  pub id: i32,
+  pub date: String,
+  pub summary: String,
+  pub thumb_image: String,
+  pub author: String,
+  pub comments_count: i64,
+  pub title: String,
+  #[serde(rename = "articleURL")]
+  pub article_url: Option<String>,
+  pub content: String,
+  pub tags: Vec<TagDto>
+}
+
+/*impl From<Article> for ArticleDto {
+  fn from(article: Article) -> Self {
+    Self {
+      id: article.id,
+      date: text_utils::timestamp_to_date_string(article.date),
+      summary: article.summary,
+      thumb_image: article.thumb_image,
+      
+
+    }
+  }
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -41,5 +72,20 @@ mod tests {
     let converted: Vec<TagDto> = sut.into();
     assert_eq!(27, converted[1].id);
   }
+
+  /*
+  let article = ArticleDto {
+      article_url: Some("some_url".to_string()),
+      id: 12,
+      author: "Franck".to_string(),
+      comments_count: 0,
+      title: "Some title".to_string(),
+      content: "Some content".to_string(),
+      date: "01/02/2021".to_string(),
+      summary: "Some summary".to_string(),
+      thumb_image: "some_image.png".to_string(),
+      tags: Vec::new()
+    };
+  */
 
 }

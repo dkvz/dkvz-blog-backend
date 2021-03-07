@@ -6,7 +6,9 @@ use actix_web::{
 };
 use std::convert::From;
 use crate::db::{
-  all_tags
+  all_tags,
+  article_by_id,
+  article_by_url
 };
 use super::dtos::*;
 use super::error::Error;
@@ -36,7 +38,14 @@ pub async fn tags(
   }
 }
 
-pub async fn article(path: web::Path<(String,)>) -> HttpResponse {
+// Path variables have to be in a tuple.
+pub async fn article(
+  path: web::Path<(String,)>
+) -> HttpResponse {
   let article_url = path.into_inner().0;
-  HttpResponse::Ok().body(format!("Requested article_url: {}", article_url))
+  // Check if we got an article ID:
+  match article_url.parse::<i32>() {
+    Ok(article_id) => HttpResponse::Ok().body(format!("Found article ID: {}", article_id)),
+    Err(_) => HttpResponse::Ok().body(format!("Requested article_url: {}", article_url))
+  }
 }
