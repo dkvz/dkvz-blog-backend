@@ -118,7 +118,8 @@ Reusable mappers and query functions
 
 fn full_article_mapper(
   pool: &Pool,
-  row: &Row
+  row: &Row,
+  article_type: Option<&ArticleSelector>
 ) -> Result<Article, rusqlite::Error> {
   let article_id = row.get(0)?;
   let short: i32 = row.get(8)?;
@@ -126,15 +127,20 @@ fn full_article_mapper(
   // Due to how I wrote the mapper function,
   // I have to use the "selector" All for articles
   // or the content is ignored.
-  let article_type: ArticleSelector = 
-    if short == 0 { ArticleSelector::All }
-    else { ArticleSelector::Short };
+  // At some point I allowed forcing around this 
+  // behavior by providing a value into the
+  // article_type Option.
+  let article_selector: &ArticleSelector = match article_type {
+    Some(article_type) => article_type,
+    None => if short == 0 { &ArticleSelector::All }
+      else { &ArticleSelector::Short }
+  };
   // Get the tags, username, and comment count:
   map_article(
     row, 
     tags_for_article(pool, article_id)
       .map_err(|_| rusqlite::Error::InvalidQuery)?, 
-    &article_type,
+    &article_selector,
     username_for_id(pool, user_id)
       .map_err(|_| rusqlite::Error::InvalidQuery)?,
     comment_count(pool, article_id)
@@ -426,24 +432,7 @@ pub fn articles_from_to(
     query.as_str(), 
     params, 
     |row| {
-      let article_id = row.get(0)?;
-      // We always get the tags, even though I never use them on "shorts",
-      // I might do someday.
-      
-      
-      
-      // TODO CAN I USE map_full_article here?
-
-
-
-      // My "error handling" is subpar, mapping Eyre error into one of the
-      // parameter-less member of rusqlite::Error.
-      map_article(
-        row, 
-        tags_for_article(pool, article_id)
-          .map_err(|_| rusqlite::Error::InvalidQuery)?, 
-        &article_selector
-      )
+      full_article_mapper(pool, row, Some(&article_selector))
     }
   )
   
@@ -459,7 +448,7 @@ pub fn article_by_id(
     summary, published, short, content FROM articles WHERE id = ?",
     params![id],
     |row| {
-      full_article_mapper(&pool, &row)
+      full_article_mapper(&pool, &row, None)
     }
   )
 }
@@ -475,7 +464,7 @@ pub fn article_by_url(
     WHERE article_url = ?",
     params![url],
     |row| {
-      full_article_mapper(&pool, &row)
+      full_article_mapper(&pool, &row, None)
     }
   )
 }
@@ -794,9 +783,10 @@ pub fn search_published_articles(
   // As other things are in here.
   let query = "SELECT articles_ft.id, articles_ft.title, \
     articles.article_url, articles.short, articles.date, articles.user_id, \
-    snippet(articles_ft, 2, '<b>', '</b>', ' [...] ', 50) AS snippet FROM \
-    articles_ft, articles WHERE articles_ft MATCH ? \
-    and articles.id = articles_ft.id and articles.published = 1 \
+    snippet(articles_ft, 2, '<b>', '</b>', ' [...] ', 50) AS snippet, users.name \
+    FROM articles_ft, articles, users WHERE articles_ft MATCH ? \
+    AND articles.id = articles_ft.id AND articles.published = 1 \
+    AND articles.user_id = users.id \
     ORDER BY rank LIMIT 15";
   select_many(
     pool,

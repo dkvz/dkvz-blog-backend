@@ -85,8 +85,7 @@ pub fn map_comment(row: &Row) -> Result<Comment, Error> {
 }
 
 pub fn map_search_result(
-  row: &Row, 
-  author: String
+  row: &Row
 ) -> Result<Article, Error> {
   Ok(
     Article {
@@ -102,7 +101,7 @@ pub fn map_search_result(
       thumb_image: String::from(""),
       tags: Vec::new(),
       comments_count: 0,
-      author
+      author: row.get(7)?
     }
   )
 }
