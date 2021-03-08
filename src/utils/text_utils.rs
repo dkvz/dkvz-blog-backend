@@ -1,5 +1,11 @@
 use chrono::{Local, TimeZone};
 
+// Very specific date format the old API is doing: dd/MM/yyyy HH:mm:ssZ
+// chrono formatting reference:
+// https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html
+// TODO: The DateTime stuff should probably be in its own utils module.
+const DATE_FORMAT: &'static str = "%d/%m/%Y %k:%M:%S%:z";
+
 // Stole this from StackOverflow, of course
 // https://stackoverflow.com/questions/53570839/quick-function-to-convert-a-strings-first-letter-to-uppercase
 pub fn first_letter_to_upper(s1: String) -> String {
@@ -10,12 +16,9 @@ pub fn first_letter_to_upper(s1: String) -> String {
   }
 }
 
-// Very specific date format the old API is doing: dd/MM/yyyy HH:mm:ssZ
-// chrono formatting reference:
-// https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html
 pub fn timestamp_to_date_string(timestamp: i64) -> String {
   let d = Local.timestamp(timestamp, 0);
-  d.format("%d/%m/%Y %k:%M:%S%:z").to_string()
+  d.format(DATE_FORMAT).to_string()
 }
 
 #[cfg(test)]
