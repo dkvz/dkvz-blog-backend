@@ -23,7 +23,7 @@ use pseudonymizer::WordlistPseudoyimizer;
 pub struct BaseArticleStat {
   pub article_id: i32,
   pub client_ua: String,
-  pub client_ip: IpAddr
+  pub client_ip: Option<IpAddr>
 }
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl StatsService {
     // Supposed to be the buffer size for messages, producers will
     // block the thread if the buffer is full. Will still error if
     // receiving end is disconnected, which is good.
-    let (tx, rx) = mpsc::sync_channel::<StatsMessage>(3);
+    let (tx, rx) = mpsc::sync_channel::<StatsMessage>(30);
     let connection = pool.clone().get()?;
     info!("Starting stats thread...");
     let thread_handle = thread::spawn(move || loop {
@@ -63,7 +63,36 @@ impl StatsService {
               break;
             },
             StatsMessage::InsertArticleStats(base_article_stat) => {
-              let client_ip = base_article_stat.client_ip.to_string();
+              // I had to add this mess when I realized the API of Actix could
+              // give me no client IP address at all.
+              let (client_ip, geo_info, pseudo_ip): (String, Option<GeoInfo>, String) =
+                match base_article_stat.client_ip {
+                  None => (String::new(), None, String::new()),
+                  Some(ip) => {
+                    let ip_str = ip.to_string();
+                    let geo_info = match ip_locator.geo_info(&ip_str) {
+                      Ok(info) => Some(info),
+                      Err(e) => {
+                        error!("Error from StatsService for IP Location \
+                    - {}", e);
+                        None
+                      }
+                    };
+                    (
+                      extract_first_bytes(&ip_str), 
+                      geo_info,
+                      pseudonymize(&mut pseudonymizer, &ip_str)
+                    )
+                  }
+                };
+
+              let geo_info: GeoInfo = geo_info
+                .unwrap_or(GeoInfo {
+                  country: String::new(),
+                  region: String::new(),
+                  city: String::new()
+                });
+              /*let client_ip = base_article_stat.client_ip.to_string();
               // Get the geoip info:
               let geo_info = match ip_locator.geo_info(&client_ip) {
                 Ok(info) => info,
@@ -76,14 +105,14 @@ impl StatsService {
                     city: String::new()
                   }
                 }
-              };
+              };*/
               let article_stat = ArticleStat {
                 id: -1,
                 article_id: base_article_stat.article_id,
                 pseudo_ua: pseudonymize(&mut pseudonymizer, &base_article_stat.client_ua),
-                pseudo_ip: pseudonymize(&mut pseudonymizer, &client_ip),
+                pseudo_ip,
                 client_ua: base_article_stat.client_ua,
-                client_ip: extract_first_bytes(&client_ip),
+                client_ip,
                 date: None,
                 country: geo_info.country,
                 region: geo_info.region,

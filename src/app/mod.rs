@@ -13,6 +13,7 @@ use crate::stats::{StatsService};
 mod handlers;
 mod dtos;
 mod error;
+mod helpers;
 
 // Declare app state struct:
 pub struct AppState {
