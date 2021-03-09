@@ -17,7 +17,7 @@ pub struct ArticleDto {
   pub id: i32,
   pub date: String,
   pub summary: String,
-  pub thumb_image: String,
+  pub thumb_image: Option<String>,
   pub author: String,
   pub comments_count: i64,
   pub title: String,
@@ -27,18 +27,22 @@ pub struct ArticleDto {
   pub tags: Vec<TagDto>
 }
 
-/*impl From<Article> for ArticleDto {
+impl From<Article> for ArticleDto {
   fn from(article: Article) -> Self {
     Self {
       id: article.id,
       date: text_utils::timestamp_to_date_string(article.date),
       summary: article.summary,
       thumb_image: article.thumb_image,
-      
-
+      author: article.author,
+      comments_count: article.comments_count,
+      title: article.title,
+      article_url: article.article_url,
+      content: article.content.unwrap_or(String::new()),
+      tags: article.tags
     }
   }
-}*/
+}
 
 #[cfg(test)]
 mod tests {

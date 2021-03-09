@@ -12,7 +12,7 @@ pub struct Article {
   pub id: i32,
   pub title: String,
   pub article_url: Option<String>,
-  pub thumb_image: String,
+  pub thumb_image: Option<String>,
   pub date: i64,
   pub user_id: i32,
   pub summary: String,

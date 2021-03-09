@@ -98,7 +98,7 @@ pub fn map_search_result(
       summary: row.get(6)?,
       content: None,
       published: 1,
-      thumb_image: String::from(""),
+      thumb_image: None,
       tags: Vec::new(),
       comments_count: 0,
       author: row.get(7)?

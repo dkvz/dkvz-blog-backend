@@ -247,6 +247,7 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] What happens if you request a negative article ID?
+- [ ] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [ ] Do shorts get inserted with content NULL or empty string?
