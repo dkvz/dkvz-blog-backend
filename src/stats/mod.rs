@@ -4,7 +4,7 @@
  * systems together.
  */
 
-use std::sync::mpsc::{self, SyncSender};
+use std::sync::mpsc::{self, SyncSender, TrySendError};
 use std::thread::{self, JoinHandle};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
@@ -26,6 +26,7 @@ pub struct BaseArticleStat {
   pub client_ip: IpAddr
 }
 
+#[derive(Debug)]
 enum StatsMessage {
   Close,
   InsertArticleStats(BaseArticleStat)
@@ -119,10 +120,29 @@ impl StatsService {
     // I thought of having a separate struct that serves
     // as a remote for the StatsServce and that could just
     // derive Clone, and hopefuly that would work.
+    // I'm using try_send because send blocks when the 
+    // buffer of the sync_channel is full and that would be
+    // terrible. I just need to make sure the buffer is large
+    // enough for the inserts to follow.
     let tx = self.tx.clone();
     debug!("Sending stats to stats thread: {:?}", article_stats);
-    tx.send(StatsMessage::InsertArticleStats(article_stats))
-      .context("Send article stats to stats thread")
+    /*tx.send(StatsMessage::InsertArticleStats(article_stats))
+      .context("Send article stats to stats thread")*/
+    match tx.try_send(StatsMessage::InsertArticleStats(article_stats)) {
+      Ok(_) => Ok(()),
+      Err(ts_error) => match ts_error {
+        TrySendError::Full(msg) => {
+          error!("Stats thread buffer is full, could not insert: {:?}", msg);
+          // I chose to have buffer full not actually raise an error with the
+          // "insert_article_stats" method.
+          Ok(())
+        },
+        TrySendError::Disconnected(msg) => {
+          error!("Stats thread is dead, could not insert: {:?}", msg);
+          Err(eyre!("Stats thread appears to have died"))
+        }
+      }
+    }
   }
 
 }
