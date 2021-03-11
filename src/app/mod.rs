@@ -3,7 +3,6 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use log::{debug, error, info};
-use std::net::{IpAddr, Ipv4Addr};
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.

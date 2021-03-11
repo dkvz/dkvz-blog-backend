@@ -57,7 +57,10 @@ pub async fn article<'a>(
     Some(a) => {
       // Save the visit in the stats DB:
       let user_agent = helpers::header_value(&req);
-      Ok(HttpResponse::Ok().body(String::from(user_agent)))
+      /*let conn_info = req.connection_info();
+      let ip = conn_info.realip_remote_addr().unwrap_or("NO IP");*/
+      let ip = helpers::real_ip_addr(&req);
+      Ok(HttpResponse::Ok().body(format!("Found IP address: {:?}", ip)))
 
       
 
