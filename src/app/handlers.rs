@@ -8,11 +8,26 @@ use actix_web::{
 use std::convert::From;
 use crate::db::entities::*;
 use crate::db;
-use crate::stats::BaseArticleStat;
+use crate::stats::{BaseArticleStat, StatsService};
+use log::{error, info};
 use super::dtos::*;
 use super::error::Error;
 use super::AppState;
 use super::helpers;
+
+// This is where you'd choose to panic or not
+// when the stats thread is dead for some reason.
+// Not a handler, so should probably be moved to 
+// helpers.
+fn insert_stats(
+  article_stat: BaseArticleStat, 
+  stats_service: &StatsService
+) {
+  if let Err(e) = 
+    stats_service.insert_article_stats(article_stat) {
+      error!("Could not save stats, Stats thread is dead - {}", e);
+    }
+}
 
 pub async fn index() -> HttpResponse {
   HttpResponse::Ok().body("Nothing here")
@@ -56,15 +71,16 @@ pub async fn article<'a>(
   match article {
     Some(a) => {
       // Save the visit in the stats DB:
-      let user_agent = helpers::header_value(&req);
-      /*let conn_info = req.connection_info();
-      let ip = conn_info.realip_remote_addr().unwrap_or("NO IP");*/
-      let ip = helpers::real_ip_addr(&req);
-      Ok(HttpResponse::Ok().body(format!("Found IP address: {:?}", ip)))
-
+      insert_stats(
+        BaseArticleStat {
+          article_id: a.id,
+          client_ua: helpers::header_value(&req),
+          client_ip: helpers::real_ip_addr(&req)
+        },
+        &app_state.stats_service
+      );
       
-
-      //Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
+      Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
     },
     None => Err(Error::NotFound("Article does not exist".to_string()))
   }

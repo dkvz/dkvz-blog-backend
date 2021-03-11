@@ -147,7 +147,7 @@ impl StatsService {
     // sender for every single insert, it should be clone
     // once per thread (Actix worker threads in my case).
     // I thought of having a separate struct that serves
-    // as a remote for the StatsServce and that could just
+    // as a remote for the StatsService and that could just
     // derive Clone, and hopefuly that would work.
     // I'm using try_send because send blocks when the 
     // buffer of the sync_channel is full and that would be
