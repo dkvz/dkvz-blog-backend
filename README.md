@@ -72,7 +72,7 @@ We can remove articleURL completely for shorts. I think.
 
 At the moment tags is always empty for shorts but I'm leaving it there just in case.
 
-## /articles-starting-from/{articleId} - GET
+## /articles-starting-from/{start} - GET
 Accepts a few extra query string params:
 * max - Max amount of articles to get per request, defaults to 30.
 * tags - Comma separated list of tag names (URL encoded by the client), defaults to empty string.
@@ -81,6 +81,13 @@ Accepts a few extra query string params:
 Returns a list of articles starting from the given article ID, which is used here as a very simple "offset".
 
 **Completely ignores "short" and non-published articles**.
+
+Responds with a list of posts with no "content" field when compared to the /article endpoint.
+
+Responds with a 404 when requested starting point (referred to as "start") is past the article count for that request (takes tags into account). The endpoint actually queries for the article count internally before responding.
+
+# /shorts-starting-from/{start} - GET
+Same as the previous endpoint but fetches shorts. Result list also has the "content" field in this case.
 
 ## /comments - POST
 Expects a URL encoded standard form submission format with fields:
