@@ -435,7 +435,61 @@ pub fn articles_from_to(
       full_article_mapper(pool, row, Some(&article_selector))
     }
   )
-  
+}
+
+pub fn article_count(
+  pool: &Pool,
+  article_selector: ArticleSelector,
+  tags: Option<Vec<&str>>
+) -> Result<i64> {
+  let mut from = vec!["articles"];
+  let mut q_where = vec!["articles.published = 1"];
+  // Yes the following lines are a huge copy paste from the function
+  // above.
+  match article_selector {
+    ArticleSelector::Article => q_where.push("articles.short = 0"),
+    ArticleSelector::Short => q_where.push("articles.short = 1"),
+    _ => ()
+  }
+  // Have to declare this here as it has to live as long as the
+  // q_where vector does.
+  // I could just use a copy and fix this but uh... Yeah.
+  let placeholders: String;
+  if let Some(tag_list) = &tags {
+    if tag_list.len() > 0 {
+      // Append actually drains ("move" is more accurate) the 
+      // provided vector, so it needs a mutable one.
+      from.append(&mut vec!["article_tags", "tags"]);
+      q_where.push("(tags.id = article_tags.tag_id AND \
+        article_tags.article_id = articles.id)");
+      placeholders = generate_where_placeholders("tags.name", tag_list.len());
+      q_where.push(
+        placeholders.as_str()
+      );
+    }
+  }
+
+  // haven't thought of something more "optimal" than
+  // providing an empty vector.
+  let params = match tags {
+    Some(ts) => ts,
+    None => Vec::new()
+  };
+
+  let query = Query::new(
+    QueryType::Select { 
+      from: &from,
+      fields: &["count(*)"]
+    }
+  )
+    .where_and(&q_where)
+    .to_string();
+
+  select_count(
+    &pool, 
+    &query, 
+    params
+  )
 }
 
 pub fn article_by_id(
