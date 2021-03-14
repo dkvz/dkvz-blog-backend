@@ -132,9 +132,12 @@ pub async fn articles_starting_from(
     // Convert the i64 to usize:
     .try_into()
     // Handle the case where it can't be converted - Should never happen.
-    .map_err(|_| Error::InternalServerError(
-      String::from("Article count cannot be converted to usize - Should never happen")
-    ))?;
+    .map_err(|_| {
+      error!("Article count from db::article_count could not be converted to usize");
+      Error::InternalServerError(
+        String::from("Article count cannot be converted to usize - Should never happen")
+      )
+    })?;
   // If start is >= count, respond with 404.
   if start >= count {
     Err(Error::NotFound(String::from("No articles found")))
