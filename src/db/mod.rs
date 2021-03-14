@@ -361,7 +361,7 @@ pub fn articles_from_to(
   article_selector: ArticleSelector,
   start: usize,
   count: usize,
-  tags: Option<Vec<&str>>,
+  tags: &Option<Vec<&str>>,
   order: Order
 ) -> Result<Vec<Article>> {
   let mut from = vec!["articles"];
@@ -422,8 +422,8 @@ pub fn articles_from_to(
 
   // haven't thought of something more "optimal" than
   // providing an empty vector.
-  let params = match tags {
-    Some(ts) => ts,
+  let params: Vec<&str> = match tags {
+    Some(ts) => ts.clone(),
     None => Vec::new()
   };
 
@@ -440,7 +440,7 @@ pub fn articles_from_to(
 pub fn article_count(
   pool: &Pool,
   article_selector: ArticleSelector,
-  tags: Option<Vec<&str>>
+  tags: &Option<Vec<&str>>
 ) -> Result<i64> {
   let mut from = vec!["articles"];
   let mut q_where = vec!["articles.published = 1"];
@@ -471,8 +471,8 @@ pub fn article_count(
 
   // haven't thought of something more "optimal" than
   // providing an empty vector.
-  let params = match tags {
-    Some(ts) => ts,
+  let params: Vec<&str> = match tags {
+    Some(ts) => ts.clone(),
     None => Vec::new()
   };
 

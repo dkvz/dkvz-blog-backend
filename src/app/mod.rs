@@ -65,22 +65,8 @@ pub async fn run() -> Result<()> {
 
 // Route configuration:
 fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
-  cfg.route("/", web::get().to(
-    /*|app_state: web::Data<AppState>| 
-      {
-        match app_state.stats_service.insert_article_stats(
-          BaseArticleStat { 
-            article_id: 120,
-            client_ip: IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
-            client_ua: "Firefox 28".to_string()
-          }
-        ) {
-          Ok(_) => HttpResponse::Ok().body("Worked. I think."),
-          Err(e) => HttpResponse::Ok().body(format!("Error: {}", e))
-        }
-      }*/
-    handlers::index
-  ))
+  cfg.route("/", web::get().to(handlers::index))
   .route("/tags", web::get().to(handlers::tags))
-  .route("/article/{articleUrl}", web::get().to(handlers::article));
+  .route("/article/{articleUrl}", web::get().to(handlers::article))
+  .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from));
 }

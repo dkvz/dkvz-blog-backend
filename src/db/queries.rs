@@ -12,6 +12,7 @@
 use std::fmt;
 
 // Bunch of enums for query building:
+#[derive(Debug)]
 pub enum Order {
   Asc,
   Desc

@@ -5,15 +5,30 @@ use actix_web::{
   HttpRequest, 
   Result
 };
-use std::convert::From;
+use std::convert::{From, TryInto};
 use crate::db::entities::*;
 use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};
+use serde::{Deserialize, Serialize};
 use log::{error, info};
 use super::dtos::*;
 use super::error::Error;
 use super::AppState;
 use super::helpers;
+
+// Few constants I don't know where to put. They 
+// don't really qualify for the config file:
+const MAX_ARTICLES: usize = 30;
+
+/* --- Request body or query objects --- */
+// These have to be public.
+#[derive(Serialize, Deserialize)]
+pub struct ArticlesQuery {
+  pub max: Option<usize>,
+  pub tags: Option<String>,
+  pub order: Option<String>
+}
+/* --- End request body or query objects --- */
 
 // This is where you'd choose to panic or not
 // when the stats thread is dead for some reason.
@@ -54,7 +69,7 @@ pub async fn tags(
 }
 
 // Path variables have to be in a tuple.
-pub async fn article<'a>(
+pub async fn article(
   app_state: web::Data<AppState>,
   path: web::Path<(String,)>,
   req: HttpRequest
@@ -83,5 +98,59 @@ pub async fn article<'a>(
       Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
     },
     None => Err(Error::NotFound("Article does not exist".to_string()))
+  }
+}
+
+pub async fn articles_starting_from(
+  app_state: web::Data<AppState>,
+  path: web::Path<(usize,)>,
+  query: web::Query<ArticlesQuery>
+) -> Result<HttpResponse, Error> {
+  let start = path.into_inner().0;
+  let max = query.max.unwrap_or(MAX_ARTICLES);
+  let tags: Option<Vec<&str>> = query.tags.as_ref()
+    .map(
+      |tags_str| tags_str.split(",")
+        .map(|t| t.trim())
+        .filter(|t| !t.is_empty())
+        .collect()
+    )
+    .map(|tags_vec: Vec<&str>| if tags_vec.is_empty() { None } else { Some(tags_vec) })
+    .unwrap_or(None);
+  let order = match &query.order {
+    Some(order) => if order.to_lowercase() == "asc" { db::Order::Asc }
+      else { db::Order::Desc },
+    None => db::Order::Desc
+  };
+  
+  let count: usize = db::article_count(
+    &app_state.pool, 
+    db::ArticleSelector::Article, 
+    &tags
+  )
+    .map_err(|e| Error::DatabaseError(e.to_string()))?
+    // Convert the i64 to usize:
+    .try_into()
+    // Handle the case where it can't be converted - Should never happen.
+    .map_err(|_| Error::InternalServerError(
+      String::from("Article count cannot be converted to usize - Should never happen")
+    ))?;
+  // If start is >= count, respond with 404.
+  if start >= count {
+    Err(Error::NotFound(String::from("No articles found")))
+  } else {
+    let articles = db::articles_from_to(
+      &app_state.pool, 
+      db::ArticleSelector::Article, 
+      start, 
+      max, 
+      &tags, 
+      order
+    ).map_err(|e| Error::DatabaseError(e.to_string()))?;
+
+    // Might be another way to convert the whole Vec, but I don't know
+    // about it.
+    let article_dtos: Vec<ArticleDto> = articles.into_iter().map(|a| a.into()).collect();
+    Ok(HttpResponse::Ok().json(article_dtos))
   }
 }
