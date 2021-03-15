@@ -15,10 +15,10 @@ async fn main() -> Result<()> {
     env::set_var("RUST_LOG", "info,actix_web=info");
   }
   env_logger::init();
-  // Also set a default BIND_ADDRESS when absent:
-  if env::var("BIND_ADDRESS").ok().is_none() {
+  // Defautl BIND_ADDRESS is not set in the config module.
+  /*if env::var("BIND_ADDRESS").ok().is_none() {
     env::set_var("BIND_ADDRESS", "127.0.0.1:8080");
-  }
+  }*/
 
   app::run().await
 }

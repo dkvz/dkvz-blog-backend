@@ -16,6 +16,13 @@ impl Config {
 
   pub fn from_env() -> Result<Config> {
     let mut c = config::Config::new();
+    // RUST_LOG is already set in main.rs if it
+    // was absent.
+    // Let's set other default values. You have 
+    // to use lowercase when compared to what's 
+    // in the .env file.
+    c.set_default("bind_address", "127.0.0.1:8080")?;
+
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 
     // color_eyre to work here:
