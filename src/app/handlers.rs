@@ -101,10 +101,11 @@ pub async fn article(
   }
 }
 
-pub async fn articles_starting_from(
-  app_state: web::Data<AppState>,
+fn articles_or_shorts_starting_from(
+  pool: &db::Pool,
   path: web::Path<(usize,)>,
-  query: web::Query<ArticlesQuery>
+  query: web::Query<ArticlesQuery>,
+  article_selector: db::ArticleSelector
 ) -> Result<HttpResponse, Error> {
   let start = path.into_inner().0;
   let max = query.max.unwrap_or(MAX_ARTICLES);
@@ -124,8 +125,8 @@ pub async fn articles_starting_from(
   };
   
   let count: usize = db::article_count(
-    &app_state.pool, 
-    db::ArticleSelector::Article, 
+    pool, 
+    &article_selector, 
     &tags
   )
     .map_err(|e| Error::DatabaseError(e.to_string()))?
@@ -143,8 +144,8 @@ pub async fn articles_starting_from(
     Err(Error::NotFound(String::from("No articles found")))
   } else {
     let articles = db::articles_from_to(
-      &app_state.pool, 
-      db::ArticleSelector::Article, 
+      pool, 
+      &article_selector, 
       start, 
       max, 
       &tags, 
@@ -153,7 +154,34 @@ pub async fn articles_starting_from(
 
     // Might be another way to convert the whole Vec, but I don't know
     // about it.
-    let article_dtos: Vec<ArticleDto> = articles.into_iter().map(|a| a.into()).collect();
+    let article_dtos: Vec<ArticleDto> = 
+      articles.into_iter().map(|a| a.into()).collect();
     Ok(HttpResponse::Ok().json(article_dtos))
   }
+}
+
+pub async fn articles_starting_from(
+  app_state: web::Data<AppState>,
+  path: web::Path<(usize,)>,
+  query: web::Query<ArticlesQuery>
+) -> Result<HttpResponse, Error> {
+  articles_or_shorts_starting_from(
+    &app_state.pool, 
+    path, 
+    query, 
+    db::ArticleSelector::Article
+  )
+}
+
+pub async fn shorts_starting_from(
+  app_state: web::Data<AppState>,
+  path: web::Path<(usize,)>,
+  query: web::Query<ArticlesQuery>
+) -> Result<HttpResponse, Error> {
+  articles_or_shorts_starting_from(
+    &app_state.pool, 
+    path, 
+    query, 
+    db::ArticleSelector::Short
+  )
 }

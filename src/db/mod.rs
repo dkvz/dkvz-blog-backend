@@ -358,7 +358,7 @@ pub fn username_for_id(
 // Hardcoded to only be able to get published articles.
 pub fn articles_from_to(
   pool: &Pool,
-  article_selector: ArticleSelector,
+  article_selector: &ArticleSelector,
   start: usize,
   count: usize,
   tags: &Option<Vec<&str>>,
@@ -439,7 +439,7 @@ pub fn articles_from_to(
 
 pub fn article_count(
   pool: &Pool,
-  article_selector: ArticleSelector,
+  article_selector: &ArticleSelector,
   tags: &Option<Vec<&str>>
 ) -> Result<i64> {
   let mut from = vec!["articles"];

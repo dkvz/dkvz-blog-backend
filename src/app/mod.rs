@@ -68,5 +68,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
   cfg.route("/", web::get().to(handlers::index))
   .route("/tags", web::get().to(handlers::tags))
   .route("/article/{articleUrl}", web::get().to(handlers::article))
-  .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from));
+  .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
+  .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from));
 }
