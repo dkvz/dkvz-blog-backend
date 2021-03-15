@@ -256,7 +256,8 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [ ] What happens if you request a negative article ID?
 - [ ] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [ ] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
-- [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem.
+- [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type
+	text/plain; charset=utf-8".
 - [ ] Does encoding actually work with the JSON endpoints?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
