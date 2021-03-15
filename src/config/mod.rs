@@ -9,7 +9,8 @@ pub struct Config {
   pub stats_db_path: String,
   pub iploc_path: String,
   pub wordlist_path: String,
-  pub bind_address: String
+  pub bind_address: String,
+  pub message_queue_size: usize
 }
 
 impl Config {
@@ -22,6 +23,9 @@ impl Config {
     // to use lowercase when compared to what's 
     // in the .env file.
     c.set_default("bind_address", "127.0.0.1:8080")?;
+    // Used to set the queue size for sync_sender
+    // (the Stats thread uses it):
+    c.set_default("message_queue_size", 30)?;
 
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 

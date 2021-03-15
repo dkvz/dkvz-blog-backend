@@ -42,7 +42,8 @@ impl StatsService {
   pub fn open(
     pool: &Pool,
     wordlist_path: &str,
-    iploc_path: &str
+    iploc_path: &str,
+    message_queue_size: usize
   ) -> Result<StatsService> 
   {
     let mut pseudonymizer = WordlistPseudoyimizer::open(wordlist_path)?;
@@ -51,7 +52,7 @@ impl StatsService {
     // Supposed to be the buffer size for messages, producers will
     // block the thread if the buffer is full. Will still error if
     // receiving end is disconnected, which is good.
-    let (tx, rx) = mpsc::sync_channel::<StatsMessage>(30);
+    let (tx, rx) = mpsc::sync_channel::<StatsMessage>(message_queue_size);
     let connection = pool.clone().get()?;
     info!("Starting stats thread...");
     let thread_handle = thread::spawn(move || loop {

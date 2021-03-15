@@ -249,16 +249,16 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
 - [x] Make some generic way to convert to DTOs in request handlers, I probably need a trait -> From seems to work on vectors so From is all I need.
-- [ ] A custom 404 message for invalid URLs would be nice.
+- [ ] A custom 404 message for invalid URLs would be nice - Also custom BadRequest or whatever is sent when you provide invalid path params.
 - [ ] Try to see a database error on purpose, not sure if it even works.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] What happens if you request a negative article ID?
-- [ ] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
-- [ ] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
+- [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
+- [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
 - [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type
 	text/plain; charset=utf-8".
-- [ ] Does encoding actually work with the JSON endpoints?
+- [x] Does encoding actually work with the JSON endpoints?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [ ] Do shorts get inserted with content NULL or empty string?

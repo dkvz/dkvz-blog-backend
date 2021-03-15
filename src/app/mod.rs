@@ -40,7 +40,8 @@ pub async fn run() -> Result<()> {
   let stats_service = StatsService::open(
     &pool_stats, 
     &config.wordlist_path, 
-    &config.iploc_path
+    &config.iploc_path,
+    config.message_queue_size
   )?;
 
   let app_state = web::Data::new(
