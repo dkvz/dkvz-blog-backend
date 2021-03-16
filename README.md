@@ -292,7 +292,8 @@ It's explained here: https://docs.rs/actix-web/3.3.2/actix_web/struct.App.html#m
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
 - [x] Make some generic way to convert to DTOs in request handlers, I probably need a trait -> From seems to work on vectors so From is all I need.
-- [ ] A custom 404 message for invalid URLs would be nice - Also custom BadRequest or whatever is sent when you provide invalid path params.
+- [x] A custom 404 message for invalid URLs would be nice
+- [ ] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [ ] Try to see a database error on purpose, not sure if it even works.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
@@ -300,8 +301,7 @@ It's explained here: https://docs.rs/actix-web/3.3.2/actix_web/struct.App.html#m
 - [ ] I need da CORS.
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
-- [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type:
-	text/plain; charset=utf-8".
+- [x] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type: text/plain; charset=utf-8".
 - [x] Does encoding actually work with the JSON endpoints?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.

@@ -5,6 +5,10 @@ use actix_web::{
 //use std::convert::From;
 use derive_more::Display;
 
+// I don't really have an elegant way to set the
+// content type everywhere...
+const ERR_CONTENT_TYPE: &str = "text/plain; charset=utf-8";
+
 // Not sure if it's a good idea to call it "Error" 
 // but uh... Yeah I don't know.
 // I could use 
@@ -33,10 +37,18 @@ impl ResponseError for Error {
   fn error_response(&self) -> HttpResponse {
     match self {
       Error::InternalServerError(_) | Error::DatabaseError(_) => 
-        HttpResponse::InternalServerError().body(self.to_string()),
-      Error::Forbidden(_) => HttpResponse::Forbidden().body(self.to_string()),
-      Error::NotFound(_) => HttpResponse::NotFound().body(self.to_string()),
-      Error::BadRequest(_) => HttpResponse::BadRequest().body(self.to_string())
+        HttpResponse::InternalServerError()
+          .content_type(ERR_CONTENT_TYPE)
+          .body(self.to_string()),
+      Error::Forbidden(_) => HttpResponse::Forbidden()
+        .content_type(ERR_CONTENT_TYPE)
+        .body(self.to_string()),
+      Error::NotFound(_) => HttpResponse::NotFound()
+        .content_type(ERR_CONTENT_TYPE)
+        .body(self.to_string()),
+      Error::BadRequest(_) => HttpResponse::BadRequest()
+        .content_type(ERR_CONTENT_TYPE)
+        .body(self.to_string())
     }
   }
 }
