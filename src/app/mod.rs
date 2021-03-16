@@ -56,6 +56,9 @@ pub async fn run() -> Result<()> {
       .app_data(app_state.clone())
       .wrap(middleware::Logger::default())
       .configure(base_endpoints_config)
+      .default_service(
+        web::route().to(handlers::not_found)
+      )
   })
   .bind(&config.bind_address)?
   .run()
@@ -67,8 +70,8 @@ pub async fn run() -> Result<()> {
 // Route configuration:
 fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
   cfg.route("/", web::get().to(handlers::index))
-  .route("/tags", web::get().to(handlers::tags))
-  .route("/article/{articleUrl}", web::get().to(handlers::article))
-  .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
-  .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from));
+    .route("/tags", web::get().to(handlers::tags))
+    .route("/article/{articleUrl}", web::get().to(handlers::article))
+    .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
+    .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from));
 }

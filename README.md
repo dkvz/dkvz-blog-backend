@@ -244,6 +244,49 @@ std::env::set_var("RUST_LOG", "info,actix_web=info");
 ## CORS
 I think there's an example in the official "examples" repo, otherwise this middleware sounds promising: https://github.com/actix/examples/tree/master/web-cors
 
+## Custom errors
+I wanted to have some text with the default 404 responses that are sent when no route handler matches the request (I think there's also another error when path or query matching failed) and at first I tried the ErrorHandlers middleware with the following wrap call:
+
+```
+.wrap(
+  ErrorHandlers::new()
+      .handler(http::StatusCode::NOT_FOUND, render_404)
+)
+```
+And this handler function:
+```rs
+fn render_404<B>(mut res: dev::ServiceResponse<B>) -> actix_web::Result<ErrorHandlerResponse<B>> {
+  /* OK so that works:
+  let new_res: dev::ServiceResponse<B> = res.map_body(|_, _| {
+      body::ResponseBody::Other(body::Body::Message(Box::new("404 LOL")))
+  });
+  Ok(ErrorHandlerResponse::Response(new_res))
+  */
+  // But it doesn't add the content type header, which 
+  // was present before with the default error implementation.
+  // Alright so this was way more complicated than I thought 
+  // but there aren't many examples of using this middleware
+  // online.
+  let mut resp = res.map_body::<_, B>(|_, _| {
+    body::ResponseBody::Other(body::Body::Message(Box::new("404 LOL")))
+  });
+  resp.headers_mut()
+    .insert(
+      http::header::CONTENT_TYPE,
+      http::HeaderValue::from_static("text/plain; charset=utf-8"),
+    );
+  Ok(ErrorHandlerResponse::Response(resp))
+}
+```
+
+And it does work but it intercepts every single 404 responses and replaces them, including the one I already create myself as custom errors.
+
+I would need to inject some kind of way to recognize my own errors from the default Actix ones in the response, not impossible but painful.
+
+Another lead would be to use a ''default_service'' which calls a handler when no route match a request, which is kinda like where you'd expect to send a 404.
+
+It's explained here: https://docs.rs/actix-web/3.3.2/actix_web/struct.App.html#method.default_service
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
@@ -257,7 +300,7 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [ ] I need da CORS.
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
-- [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type
+- [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type:
 	text/plain; charset=utf-8".
 - [x] Does encoding actually work with the JSON endpoints?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.

@@ -48,6 +48,11 @@ pub async fn index() -> HttpResponse {
   HttpResponse::Ok().body("Nothing here")
 }
 
+// Default response when no route matched the request:
+pub async fn not_found() -> Result<HttpResponse, Error> {
+  Err(Error::NotFound(String::from("Endpoint doesn't exist")))
+}
+
 // I'm using the Result from actix_web for this.
 // You don't have to use a Result, building the
 // right HttpResponse directly works fine too.
