@@ -254,6 +254,7 @@ I think there's an example in the official "examples" repo, otherwise this middl
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] What happens if you request a negative article ID?
+- [ ] I need da CORS.
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
 - [ ] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type
