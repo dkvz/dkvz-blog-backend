@@ -295,6 +295,8 @@ It looks like it's super complicated to do. I could use the first method describ
 
 I'll just leave these errors as is, looks like Actix isn't as flushed out as I thought.
 
+After some more digging, I found this: https://docs.rs/actix-web/3.3.2/actix_web/web/struct.PathConfig.html
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
