@@ -56,13 +56,14 @@ pub async fn run() -> Result<()> {
       .app_data(app_state.clone())
       .app_data(web::PathConfig::default().error_handler(|_, _| {
         // No idea how this works but it does:
-        actix_web::error::ErrorBadRequest("Invalid path and/or query arguments")
+        actix_web::error::ErrorBadRequest("Invalid path arguments")
+      }))
+      .app_data(web::QueryConfig::default().error_handler(|_, _| {
+        actix_web::error::ErrorBadRequest("Invalid query string arguments")
       }))
       .wrap(middleware::Logger::default())
       .configure(base_endpoints_config)
-      .default_service(
-        web::route().to(handlers::not_found)
-      )
+      .default_service(web::route().to(handlers::not_found))
   })
   .bind(&config.bind_address)?
   .run()
