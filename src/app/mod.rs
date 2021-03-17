@@ -54,6 +54,10 @@ pub async fn run() -> Result<()> {
   HttpServer::new(move|| {
     App::new()
       .app_data(app_state.clone())
+      .app_data(web::PathConfig::default().error_handler(|_, _| {
+        // No idea how this works but it does:
+        actix_web::error::ErrorBadRequest("Invalid path and/or query arguments")
+      }))
       .wrap(middleware::Logger::default())
       .configure(base_endpoints_config)
       .default_service(
