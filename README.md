@@ -287,6 +287,14 @@ Another lead would be to use a ''default_service'' which calls a handler when no
 
 It's explained here: https://docs.rs/actix-web/3.3.2/actix_web/struct.App.html#method.default_service
 
+### Customizing JSON errors
+I think this only applies to requests with JSON bodies, but there's some app_data() that can be injected and is explained in the JSON section of this page: https://actix.rs/docs/extractors
+
+### Customizing path and query extractor errors
+It looks like it's super complicated to do. I could use the first method described on top of the section with the middleware... Or implement the whole extraction logic inside of the function. But I couldn't get that to work for the query params.
+
+I'll just leave these errors as is, looks like Actix isn't as flushed out as I thought.
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
