@@ -1,6 +1,5 @@
 use html2text::from_read;
 //use super::entities::{Article};
-use chrono::prelude::*;
 
 /**
  * Generate a certain amount of query placeholders
@@ -26,10 +25,6 @@ pub fn stripped_article_content(content: &Option<String>) -> String {
     None => String::new(),
     Some(content) => strip_html(content)
   }
-}
-
-pub fn current_timestamp() -> i64 {
-  Local::now().timestamp()
 }
 
 #[cfg(test)]

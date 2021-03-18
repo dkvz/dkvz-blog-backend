@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::db::entities::*;
-use crate::utils::text_utils;
+use crate::utils::time_utils;
 
 // I'm going to use the From trait to convert
 // entites to DTOs and test that.
@@ -32,7 +32,7 @@ impl From<Article> for ArticleDto {
   fn from(article: Article) -> Self {
     Self {
       id: article.id,
-      date: text_utils::timestamp_to_date_string(article.date),
+      date: time_utils::timestamp_to_date_string(article.date),
       summary: article.summary,
       thumb_image: article.thumb_image,
       author: article.author,
@@ -41,6 +41,28 @@ impl From<Article> for ArticleDto {
       article_url: article.article_url,
       content: article.content,
       tags: article.tags
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentDto {
+  pub id: i32,
+  pub article_id: i32,
+  pub author: String,
+  pub comment: String,
+  pub date: String
+}
+
+impl From<Comment> for CommentDto {
+  fn from(comment: Comment) -> Self {
+    Self {
+      id: comment.id,
+      article_id: comment.article_id,
+      author: comment.author,
+      comment: comment.comment,
+      date: time_utils::timestamp_to_date_string(comment.date)
     }
   }
 }

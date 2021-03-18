@@ -20,8 +20,7 @@ use queries::{Query, QueryType};
 use helpers::{
   generate_where_placeholders, 
   stripped_article_content,
-  generate_field_equal_qmark,
-  current_timestamp
+  generate_field_equal_qmark
 };
 use mappers::{
   map_tag, 
@@ -30,6 +29,7 @@ use mappers::{
   map_comment,
   map_search_result
 };
+use crate::utils::time_utils::current_timestamp;
 
 /**
  * I'll do all the DB stuff in a non-async way first.

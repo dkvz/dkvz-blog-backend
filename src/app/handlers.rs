@@ -9,6 +9,7 @@ use std::convert::{From, TryInto};
 use crate::db::entities::*;
 use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};
+use crate::utils::time_utils;
 use serde::{Deserialize, Serialize};
 use log::{error, info};
 use super::dtos::*;
@@ -19,6 +20,10 @@ use super::helpers;
 // Few constants I don't know where to put. They 
 // don't really qualify for the config file:
 const MAX_ARTICLES: usize = 30;
+const MAX_COMMENT_LENGTH: usize = 2000;
+const MAX_AUTHOR_LENGTH: usize = 70;
+	// Max length of article content in RSS descriptions:
+const MAX_RSS_LENGTH: usize = 2500;
 
 /* --- Request body or query or form objects --- */
 // These have to be public.
@@ -201,7 +206,8 @@ pub async fn shorts_starting_from(
 
 pub async fn post_comment(
   app_state: web::Data<AppState>,
-  comment_form: web::Form<CommentForm>
+  mut comment_form: web::Form<CommentForm>,
+  req: HttpRequest
 ) -> Result<HttpResponse, Error> {
   // Check if we have either article_id or articleurl.
   // article_id has precedence if both are present.
@@ -218,12 +224,40 @@ pub async fn post_comment(
       }      
     }
   };
-
-  // Not that if we provide an article_id, we don't actually check
-  // if it exists or not. We just update anyway.
+  if article_id <= 0 {
+    // Return a BadRequest immediately.
+    return Err(Error::BadRequest(
+      String::from("Invalid article URL, ID, or no ID provided")
+    ));
+  }
 
   // Limit length of body and author, and check if trimmed author 
   // is not empty.
+  comment_form.comment.truncate(MAX_COMMENT_LENGTH);
+  comment_form.author.truncate(MAX_AUTHOR_LENGTH);
+  let author = comment_form.author.trim().to_string();
+  if author.is_empty() || comment_form.comment.is_empty() {
+    return Err(Error::BadRequest(
+      String::from("Author or message body cannot be empty")
+    ));
+  }
+  
+  // Note that if we provide an article_id that's >= 0, we don't 
+  // actually check if it exists or not. We just update anyway.
+  let mut comment = Comment {
+    article_id,
+    id: -1,
+    author,
+    comment: comment_form.comment.clone(),
+    date: time_utils::current_timestamp(),
+    client_ip: helpers::real_ip_addr(&req)
+      .map(|ip| ip.to_string())
+  };
 
-  Err(Error::BadRequest(String::from("Invalid comment")))
+  db::insert_comment(&app_state.pool, &mut comment)
+    .map_err(|e| 
+      Error::DatabaseError(format!("Failed to insert comment - {}", e))
+    )?;
+
+  Ok(HttpResponse::Ok().json(CommentDto::from(comment)))
 }
