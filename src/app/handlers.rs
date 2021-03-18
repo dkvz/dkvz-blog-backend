@@ -20,7 +20,7 @@ use super::helpers;
 // don't really qualify for the config file:
 const MAX_ARTICLES: usize = 30;
 
-/* --- Request body or query objects --- */
+/* --- Request body or query or form objects --- */
 // These have to be public.
 #[derive(Serialize, Deserialize)]
 pub struct ArticlesQuery {
@@ -28,7 +28,15 @@ pub struct ArticlesQuery {
   pub tags: Option<String>,
   pub order: Option<String>
 }
-/* --- End request body or query objects --- */
+
+#[derive(Deserialize)]
+pub struct CommentForm {
+  pub comment: String,
+  pub author: String,
+  pub article_id: Option<i32>,
+  pub articleurl: Option<String>
+}
+/* --- End request body or query or form objects --- */
 
 // This is where you'd choose to panic or not
 // when the stats thread is dead for some reason.
@@ -189,4 +197,33 @@ pub async fn shorts_starting_from(
     query, 
     db::ArticleSelector::Short
   )
+}
+
+pub async fn post_comment(
+  app_state: web::Data<AppState>,
+  comment_form: web::Form<CommentForm>
+) -> Result<HttpResponse, Error> {
+  // Check if we have either article_id or articleurl.
+  // article_id has precedence if both are present.
+  // Did we use to check if the article exists?
+  let article_id = match comment_form.article_id {
+    Some(article_id) => article_id,
+    None => {
+      // Do we have an articleurl?
+      match &comment_form.articleurl {
+        Some(url) => db::article_id_by_url(&app_state.pool, &url)
+          .map_err(|e| Error::DatabaseError(e.to_string()))?
+          .unwrap_or(-1),
+        None => -1
+      }      
+    }
+  };
+
+  // Not that if we provide an article_id, we don't actually check
+  // if it exists or not. We just update anyway.
+
+  // Limit length of body and author, and check if trimmed author 
+  // is not empty.
+
+  Err(Error::BadRequest(String::from("Invalid comment")))
 }

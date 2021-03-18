@@ -492,6 +492,23 @@ pub fn article_count(
   )
 }
 
+// I use this to check for article existence
+// because fetching the whole article + tags 
+// etc is more costly.
+pub fn article_id_by_url(
+  pool: &Pool,
+  url: &str
+) -> Result<Option<i32>> {
+  select_one(
+    pool,
+    "SELECT id FROM articles WHERE article_url = ?",
+    params![url],
+    |row| {
+      row.get(0)
+    }
+  )
+}
+
 pub fn article_by_id(
   pool: &Pool,
   id: i32

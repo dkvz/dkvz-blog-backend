@@ -126,9 +126,11 @@ Altough having that exact format or not doesn't matter.
 When import works, we get a list such as the following:
 ```json
 [
-  "status": "success",
-  "message": "Article inserted",
-  "id": 22
+  {
+    "status": "success",
+    "message": "Article inserted",
+    "id": 22
+  }
 ]
 ```
 Could technically be a mix of "success" and "error" as status.
@@ -309,6 +311,8 @@ We need both.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
+- [ ] Can we use web::FormConfig to limit the size of form POST requests?
+- [ ] I'm going to have to implement my crazy rate limiter for the post comment endpoint.
 - [ ] Try to see a database error on purpose, not sure if it even works.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
