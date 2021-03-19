@@ -13,6 +13,7 @@ mod handlers;
 mod dtos;
 mod error;
 mod helpers;
+mod rate_limiter;
 
 // Declare app state struct:
 pub struct AppState {
