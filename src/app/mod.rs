@@ -29,6 +29,7 @@ pub struct AppState {
 pub async fn run() -> Result<()> {
   let config = Config::from_env()
     .expect("Configuration (environment or .env file) is missing");
+  debug!("Current config: {:?}", config);
   let manager = SqliteConnectionManager::file(&config.db_path);
   let pool = Pool::new(manager)
     .expect("Database connection failed");

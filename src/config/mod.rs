@@ -10,7 +10,11 @@ pub struct Config {
   pub iploc_path: String,
   pub wordlist_path: String,
   pub bind_address: String,
-  pub message_queue_size: usize
+  pub message_queue_size: usize,
+  // Rate limiter settings:
+  pub rl_max_requests: u32,
+  pub rl_max_requests_time: u32,
+  pub rl_block_duration: u32
 }
 
 impl Config {
@@ -26,6 +30,11 @@ impl Config {
     // Used to set the queue size for sync_sender
     // (the Stats thread uses it):
     c.set_default("message_queue_size", 30)?;
+    // Settings for the basic rate limiter I'm 
+    // using:
+    c.set_default("rl_max_requests", 150)?;
+    c.set_default("rl_max_requests_time", 60)?;
+    c.set_default("rl_block_duration", 60)?;
 
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 
