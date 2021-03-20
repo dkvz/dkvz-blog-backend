@@ -18,7 +18,9 @@ pub struct BasicRateLimiter {
   last_update: i64,
   is_limited: bool,
   max_requests: u32,
+  // In seconds
   max_requests_time: u32,
+  // In seconds
   block_duration: u32
 }
 
@@ -54,7 +56,7 @@ impl BasicRateLimiter {
   }
 
   // I'm trying to finely separate what is mutable and what isn't.
-  pub fn update(mut self) {
+  pub fn update(&mut self) {
     // If we're locked, check if lock has expired:
     if self.is_expired() {
       // Reset:
@@ -72,4 +74,29 @@ impl BasicRateLimiter {
     }
   }
 
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn basic_rate_limiter_initial_state() {
+    let sut = BasicRateLimiter::new(2, 60, 60);
+    assert_eq!(sut.is_expired(), false);
+    assert_eq!(sut.is_locked(), false);
+  }
+
+  #[test]
+  fn basic_rate_limiter_can_unlock() {
+    // Block for 0 seconds:
+    let mut sut = BasicRateLimiter::new(2, u32::MAX, 0);
+    for _ in 0..2 {
+      sut.update();
+    }
+    assert_eq!(sut.is_locked(), true);
+    sut.update();
+    // Should be unlocked now:
+    assert_eq!(sut.is_locked(), false);
+  }
 }
