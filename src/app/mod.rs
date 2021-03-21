@@ -3,6 +3,8 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use log::{debug, error, info};
+use rate_limiter::BasicRateLimiter;
+use std::sync::RwLock;
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.
@@ -18,7 +20,8 @@ mod rate_limiter;
 // Declare app state struct:
 pub struct AppState {
   pub pool: Pool,
-  pub stats_service: StatsService
+  pub stats_service: StatsService,
+  pub rate_limiter: RwLock<BasicRateLimiter>
 }
 
 // Function to start the server.
@@ -49,7 +52,14 @@ pub async fn run() -> Result<()> {
   let app_state = web::Data::new(
     AppState {
       pool,
-      stats_service
+      stats_service,
+      rate_limiter: RwLock::new(
+        BasicRateLimiter::new(
+          config.rl_max_requests, 
+          config.rl_max_requests_time, 
+          config.rl_block_duration
+        )
+      )
     }
   );
   
