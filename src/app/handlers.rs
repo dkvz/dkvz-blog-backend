@@ -13,7 +13,7 @@ use crate::utils::time_utils;
 use serde::{Deserialize, Serialize};
 use log::{error, info};
 use super::dtos::*;
-use super::error::Error;
+use super::error::{Error, map_db_error};
 use super::AppState;
 use super::helpers;
 
@@ -99,7 +99,7 @@ pub async fn article(
     Ok(article_id) => db::article_by_id(&app_state.pool, article_id),
     // Fetch article by URL:
     Err(_) => db::article_by_url(&app_state.pool, &article_url),
-  }.map_err(|e| Error::DatabaseError(e.to_string()))?;
+  }.map_err(map_db_error)?;
   // Send a 404 if there are no articles:
   match article {
     Some(a) => {
@@ -147,7 +147,7 @@ fn articles_or_shorts_starting_from(
     &article_selector, 
     &tags
   )
-    .map_err(|e| Error::DatabaseError(e.to_string()))?
+    .map_err(map_db_error)?
     // Convert the i64 to usize:
     .try_into()
     // Handle the case where it can't be converted - Should never happen.
@@ -168,7 +168,7 @@ fn articles_or_shorts_starting_from(
       max, 
       &tags, 
       order
-    ).map_err(|e| Error::DatabaseError(e.to_string()))?;
+    ).map_err(map_db_error)?;
 
     // Might be another way to convert the whole Vec, but I don't know
     // about it.
@@ -218,7 +218,7 @@ pub async fn post_comment(
       // Do we have an articleurl?
       match &comment_form.articleurl {
         Some(url) => db::article_id_by_url(&app_state.pool, &url)
-          .map_err(|e| Error::DatabaseError(e.to_string()))?
+          .map_err(map_db_error)?
           .unwrap_or(-1),
         None => -1
       }      
@@ -255,9 +255,10 @@ pub async fn post_comment(
   };
 
   db::insert_comment(&app_state.pool, &mut comment)
-    .map_err(|e| 
+    .map_err(|e| {
+      error!("Could not insert a comment - {}", e);
       Error::DatabaseError(format!("Failed to insert comment - {}", e))
-    )?;
+    })?;
 
   Ok(HttpResponse::Ok().json(CommentDto::from(comment)))
 }

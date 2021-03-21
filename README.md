@@ -314,6 +314,7 @@ We need both.
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
 - [ ] It would make sense for the rate limiter to be a "guard".
 - [ ] Try to see a database error on purpose, not sure if it even works.
+- [ ] DB errors should be their own custom error type so that I could very easily have a From trait for app::error::Error to convert them into that.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] What happens if you request a negative article ID?
@@ -328,7 +329,6 @@ We need both.
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
 - [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
-- [ ] I'm still debating whether SQL errors should cause full program crash when it'll be running as an Actix server.
 - [ ] To re-test: article insertion, article update, rebuilding fulltext index entirely.
 - [ ] Dates could be options in entities, I could just unwrap_or to a function that gets the current date in insert functions.
 - [ ] Test all the comment DB functions.

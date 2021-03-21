@@ -53,6 +53,13 @@ impl ResponseError for Error {
   }
 }
 
-// Could declare a bunch of From traits here except I
-// don't have other custom errors yet. I could use one
-// for data access errors instead of Report from eyre.
+// Helper to map database errors (could be replaced with
+// a From trait but then I'd need custom database errors)
+// This is also where I could decide to panic on DB errors.
+// TODO: I should have a custom error type for the DB 
+// module and a From trait to convert it into an 
+// InternalServerError from this module, would make the 
+// code shorter in handlers.rs.
+pub fn map_db_error<E: ToString>(err: E) -> Error {
+  Error::DatabaseError(err.to_string())
+}
