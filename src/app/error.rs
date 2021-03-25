@@ -26,8 +26,10 @@ pub enum Error {
   Forbidden(String),
   #[display(fmt = "Not Found: {}", _0)]
   NotFound(String),
-  #[display(fmt = "Bad Request (check request params)")]
-  BadRequest(String)
+  #[display(fmt = "Bad Request - {}", _0)]
+  BadRequest(String),
+  #[display(fmt = "Too many requests - Try again later")]
+  TooManyRequests
 }
 
 // I'm using plain text for error responses because it's
@@ -47,6 +49,9 @@ impl ResponseError for Error {
         .content_type(ERR_CONTENT_TYPE)
         .body(self.to_string()),
       Error::BadRequest(_) => HttpResponse::BadRequest()
+        .content_type(ERR_CONTENT_TYPE)
+        .body(self.to_string()),
+      Error::TooManyRequests => HttpResponse::TooManyRequests()
         .content_type(ERR_CONTENT_TYPE)
         .body(self.to_string())
     }

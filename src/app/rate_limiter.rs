@@ -56,7 +56,8 @@ impl BasicRateLimiter {
   }
 
   // I'm trying to finely separate what is mutable and what isn't.
-  pub fn update(&mut self) {
+  // Returns true if we're locked, false otherwise.
+  pub fn update(&mut self) -> bool {
     // If we're locked, check if lock has expired:
     if self.is_expired() {
       // Reset:
@@ -72,6 +73,7 @@ impl BasicRateLimiter {
         self.last_update = current_timestamp();
       }
     }
+    self.is_limited
   }
 
 }

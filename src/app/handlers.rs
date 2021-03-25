@@ -35,6 +35,7 @@ pub struct ArticlesQuery {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommentForm {
   pub comment: String,
   pub author: String,
@@ -241,6 +242,12 @@ pub async fn post_comment(
       String::from("Author or message body cannot be empty")
     ));
   }
+
+  // This is where I decide to check with my really basic 
+  // homemade rate limiter:
+  if app_state.check_rate_limit() {
+    return Err(Error::TooManyRequests);
+  } 
   
   // Note that if we provide an article_id that's >= 0, we don't 
   // actually check if it exists or not. We just update anyway.
