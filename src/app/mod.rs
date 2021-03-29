@@ -129,5 +129,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/article/{articleUrl}", web::get().to(handlers::article))
     .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
     .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from))
-    .route("/comments", web::post().to(handlers::post_comment));
+    .route("/comments", web::post().to(handlers::post_comment))
+    .route("/last-comment", web::get().to(handlers::last_comment));
 }
