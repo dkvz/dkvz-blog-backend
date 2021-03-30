@@ -14,7 +14,8 @@ pub struct Config {
   // Rate limiter settings:
   pub rl_max_requests: u32,
   pub rl_max_requests_time: u32,
-  pub rl_block_duration: u32
+  pub rl_block_duration: u32,
+  pub import_path: String
 }
 
 impl Config {
@@ -35,6 +36,8 @@ impl Config {
     c.set_default("rl_max_requests", 150)?;
     c.set_default("rl_max_requests_time", 60)?;
     c.set_default("rl_block_duration", 60)?;
+    // Default import path:
+    c.set_default("import_path", "./import/")?;
 
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 

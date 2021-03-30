@@ -6,6 +6,7 @@ use actix_web::{
   Result
 };
 use std::convert::{From, TryInto};
+use std::sync::atomic::Ordering;
 use crate::db::entities::*;
 use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};
@@ -280,4 +281,14 @@ pub async fn last_comment(
     Some(comment) => Ok(HttpResponse::Ok().json(CommentDto::from(comment))),
     None => Err(Error::NotFound("No comment found".to_string()))
   }
+}
+
+// We're using a lock present in app_state to make sure only one 
+// import takes place at a given time.
+// I think it works. lol.
+pub async fn import_article(
+  app_state: web::Data<AppState>
+) -> Result<HttpResponse, Error> {
+
+  Err(Error::NotFound("Pants".to_string()))
 }
