@@ -275,8 +275,7 @@ pub async fn last_comment(
 ) -> Result<HttpResponse, Error> {
   let comm: Option<Comment> = db::last_comment(
     &app_state.pool
-  )
-    .map_err(map_db_error)?;
+  ).map_err(map_db_error)?;
   match comm {
     Some(comment) => Ok(HttpResponse::Ok().json(CommentDto::from(comment))),
     None => Err(Error::NotFound("No comment found".to_string()))
