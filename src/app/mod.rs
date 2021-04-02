@@ -5,7 +5,6 @@ use eyre::{WrapErr, eyre};
 use log::{debug, error, info};
 use rate_limiter::BasicRateLimiter;
 use std::sync::RwLock;
-use std::sync::atomic::AtomicBool;
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.
@@ -17,13 +16,13 @@ mod dtos;
 mod error;
 mod helpers;
 mod rate_limiter;
+mod article_import;
 
 // Declare app state struct:
 pub struct AppState {
   pub pool: Pool,
   pub stats_service: StatsService,
-  pub rate_limiter: RwLock<BasicRateLimiter>,
-  pub is_import_locked: AtomicBool
+  pub rate_limiter: RwLock<BasicRateLimiter>
 }
 
 // This shouldn't be that weird I'm sorry.
@@ -99,8 +98,7 @@ pub async fn run() -> Result<()> {
           config.rl_max_requests_time, 
           config.rl_block_duration
         )
-      ),
-      is_import_locked: AtomicBool::new(false)
+      )
     }
   );
   
