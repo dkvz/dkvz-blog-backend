@@ -1,9 +1,9 @@
-use std::fs::{read_dir, DirEntry};
+use tokio::fs::{read_dir, DirEntry};
 use std::io;
-use std::ffi::OsStr;
+use std::time::SystemTime;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
-use lazy_static::lazy_static;
+use std::cmp::Ordering;
 
 // On the Java app this is a service.
 // I could also make this happen in a struct
@@ -13,10 +13,7 @@ use lazy_static::lazy_static;
 
 // OK let's do that I guess.
 
-lazy_static! {
-  static ref JSON_OS_STR: &'static OsStr = 
-    OsStr::new("json");
-}
+const IMPORT_EXT: &'static str = "json";
 
 // A struct can't own a "Path" directly, you
 // have to use references with lifetimes and
@@ -52,14 +49,65 @@ impl ImportService {
     }
   }
 
-  
+  // At some point I discovered I could just use tokio
+  // async/await version of std::fs.
+  async fn list_json_earliest_first(
+    &self
+  ) -> Result<Vec<DirEntry>, io::Error> {
+    let mut files = read_dir(&self.import_path).await?;
+    // I had a cool way to filter JSON using 
+    // standard fs and a chain of high order functions
+    // buttokio fs requires calling an async "next_entry" 
+    // function a whole bunch of times.
+    // In short, async/await doesn't like closures that
+    // much.
+    
+    // Let's create a list of the files and their modified 
+    // timestamp as a u64.
+    let mut import_files: Vec<(DirEntry, u64)> =  Vec::new();
+    while let Some(file) = files.next_entry().await? {
+      let is_import_ext: bool = file.path()
+        .extension()
+        .map(
+          |ext| 
+          ext.to_str().unwrap_or("").to_lowercase() == IMPORT_EXT
+        )
+        .unwrap_or(false);
+      // Add to the list of import files if has the right
+      // extension and is a file:
+      if is_import_ext && file.path().is_file() {
+        let modified = modified_time(&file).await;
+        import_files.push((file, modified));
+      }
+    }
+    // We can't use await easily in the sort closure, which
+    // is why I made the weird Vec of tuples with the modified
+    // date already in it.
+    import_files.sort_by(
+      |a, b| 
+        a.1
+        .partial_cmp(&b.1)
+        .unwrap_or(Ordering::Equal)
+    );
+    // I could just return the Vec of tuples (or maybe an 
+    // iterator) and spare a few CPU cycles but I couldn't
+    // bother.
+    Ok(import_files.into_iter().map(|f| f.0).collect())
+  }
+
 }
 
-fn list_json_earliest_first(
-  path: &str
-) -> Result<Vec<DirEntry>, io::Error> {
-  let files = read_dir(path)?;
-  let mut json_files: Vec<DirEntry> = Vec::new();
-  
-  Err(io::Error::new(io::ErrorKind::NotFound, "NOT IMPL"))
+// Ignores the chain of errors when reading
+// file modified date, just returns "0" if
+// something went wrong.
+async fn modified_time(file: &DirEntry) -> u64 {
+  file.metadata()
+    .await
+    .and_then(|f| f.modified())
+    .map_or(0, |f| {
+      match f.duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(t) => t.as_secs(),
+        Err(_) => u64::MAX
+      }
+    })
 }
