@@ -72,7 +72,12 @@ impl From<Comment> for CommentDto {
 pub struct ImportedArticleDto {
   pub id: Option<i32>,
   pub title: Option<String>,
+  #[serde(rename = "articleURL")]
   pub article_url: Option<String>,
+  // I historically allow two different 
+  // key names for article_url:
+  #[serde(rename = "articleUrl")]
+  pub article_url_bis: Option<String>,
   pub thumb_image: Option<String>,
   // The date is a string in update requests:
   pub date: Option<String>,

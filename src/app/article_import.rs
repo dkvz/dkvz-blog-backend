@@ -1,4 +1,4 @@
-use tokio::fs::{read_dir, DirEntry, File};
+use tokio::fs::{read_dir, DirEntry, File, read_to_string};
 use tokio::io;
 //use std::io;
 use std::fs::Metadata;
@@ -149,9 +149,9 @@ async fn modified_time(file: &Metadata) -> u64 {
 async fn parse_article<P: AsRef<Path>>(
   path: P
 ) -> Result<(), ImportError> {
-  let file = File::open(path)
+  /*let file = File::open(path)
     .await
-    .map_err(|_| ImportError::IOError)?;
+    .map_err(|_| ImportError::IOError)?;*/
   // Tokio's BufReader can't be used with the 
   // standard serde, so I decided to load the whole
   // thing in memory, provided file size is smaller
@@ -159,10 +159,16 @@ async fn parse_article<P: AsRef<Path>>(
   // Which should be taken are of by the thing that
   // lists all JSON files.
   //let reader = BufReader::new(file);
-
+  let contents = read_to_string(path)
+    .await
+    .map_err(|_| ImportError::IOError)?;
   // Attempt to parse the JSON. We need a DTO that 
   // is close to what ArticleUpdate is but should 
   // also allow deleting articles.
-  
+  let imported: ImportedArticleDto = 
+    serde_json::from_str(&contents)
+    .map_err(|_| ImportError::ParseError)?;
+  // Check that we got all the mandatory fields:
+
   Ok(())
 }
