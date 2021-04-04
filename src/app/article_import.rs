@@ -4,6 +4,8 @@ use std::time::SystemTime;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::cmp::Ordering;
+use derive_more::Display;
+use serde_json;
 
 // On the Java app this is a service.
 // I could also make this happen in a struct
@@ -14,6 +16,20 @@ use std::cmp::Ordering;
 // OK let's do that I guess.
 
 const IMPORT_EXT: &'static str = "json";
+
+// I thought it'd be a good time to start using
+// custom error types more, even though this is 
+// mostly an internal thing.
+#[derive(Debug, Display)]
+enum ImportError {
+  #[display(fmt = "IO error")]
+  IOError,
+  #[display(fmt = "Parse error")]
+  ParseError
+}
+// Standard way to implement the Error trait is
+// to not actually implement any function at all.
+impl std::error::Error for ImportError {}
 
 // A struct can't own a "Path" directly, you
 // have to use references with lifetimes and
@@ -110,4 +126,8 @@ async fn modified_time(file: &DirEntry) -> u64 {
         Err(_) => u64::MAX
       }
     })
+}
+
+fn parse_article() {
+  
 }
