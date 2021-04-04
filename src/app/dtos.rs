@@ -67,6 +67,25 @@ impl From<Comment> for CommentDto {
   }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedArticleDto {
+  pub id: Option<i32>,
+  pub title: Option<String>,
+  pub article_url: Option<String>,
+  pub thumb_image: Option<String>,
+  // The date is a string in update requests:
+  pub date: Option<String>,
+  pub user_id: Option<i32>,
+  pub summary: Option<String>,
+  pub content: Option<String>,
+  pub published: Option<String>,
+  pub tags: Option<Vec<Tag>>,
+  // Extra field to allow deletion when set 
+  // to "1" or "delete":
+  pub action: Option<String>
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

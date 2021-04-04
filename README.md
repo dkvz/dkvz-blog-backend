@@ -139,6 +139,32 @@ Message explains if article or short was inserted (displays if it was an article
 
 Specifically, we had "IO Error" and "JSON parsing error".
 
+JSON format for the article files is similar to the regular article format except everything is optional and there are a few extra possible fields:
+* "action": if set to 1 or the string "delete" and there is an article ID provided, will delete that article.
+* "short": Pretty sure this is absent from the regular API responses. Defines if short or article, default is short I think.
+
+Here's an example:
+```json
+{
+  "id":35,
+  "articleURL":"some_url",
+  "title":"Great title",
+  "summary":"Salut\nEt oui",
+  "content":"Contenu de l'article",
+  "published":false,
+  "thumbImage":"img.png",
+  "userId": 2,
+  "date": "2018-07-25T21:35:04.887Z",
+  "tags": [
+    {"id":"21"},
+    {"id":"44"}
+  ],
+  "short": false
+}
+```
+
+Published being absent used to mean it got set to false forcibly. This *may* change with the new API in that I may not update published if it's absent.
+
 # /articles/search - POST
 I'm using a weird rate limiter on that endpoint which basically blocks (with Forbidden HTTP error) ALL searches when a certain threshold is reached.
 

@@ -1,11 +1,15 @@
-use tokio::fs::{read_dir, DirEntry};
-use std::io;
+use tokio::fs::{read_dir, DirEntry, File};
+use tokio::io;
+//use std::io;
+use std::fs::Metadata;
 use std::time::SystemTime;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::sync::atomic::AtomicBool;
 use std::cmp::Ordering;
 use derive_more::Display;
 use serde_json;
+use crate::db::entities::ArticleUpdate;
+use super::dtos::ImportedArticleDto;
 
 // On the Java app this is a service.
 // I could also make this happen in a struct
@@ -16,6 +20,9 @@ use serde_json;
 // OK let's do that I guess.
 
 const IMPORT_EXT: &'static str = "json";
+// 30 MB size limit for import files just in
+// case:
+const MAX_FILE_SIZE: u64 = 31457280;
 
 // I thought it'd be a good time to start using
 // custom error types more, even though this is 
@@ -81,7 +88,9 @@ impl ImportService {
     // Let's create a list of the files and their modified 
     // timestamp as a u64.
     let mut import_files: Vec<(DirEntry, u64)> =  Vec::new();
-    while let Some(file) = files.next_entry().await? {
+    // I'm ignoring IO errors from here, files that give 
+    // out weird vibes are just ignore silently.
+    while let Ok(Some(file)) = files.next_entry().await {
       let is_import_ext: bool = file.path()
         .extension()
         .map(
@@ -90,10 +99,19 @@ impl ImportService {
         )
         .unwrap_or(false);
       // Add to the list of import files if has the right
-      // extension and is a file:
-      if is_import_ext && file.path().is_file() {
-        let modified = modified_time(&file).await;
-        import_files.push((file, modified));
+      // extension and is a file. We ignore the file if we
+      // can't process its metadata and if it's larger than
+      // a certain size.
+      if let Ok(metadata) = file.metadata().await {
+        // Big ifs are ugly in Rust. I'm so sorry.
+        if is_import_ext && 
+          file.path().is_file() && 
+          metadata.len() < MAX_FILE_SIZE &&
+          !metadata.permissions().readonly() 
+          {
+            let modified = modified_time(&metadata).await;
+            import_files.push((file, modified));
+          }
       }
     }
     // We can't use await easily in the sort closure, which
@@ -116,10 +134,8 @@ impl ImportService {
 // Ignores the chain of errors when reading
 // file modified date, just returns "0" if
 // something went wrong.
-async fn modified_time(file: &DirEntry) -> u64 {
-  file.metadata()
-    .await
-    .and_then(|f| f.modified())
+async fn modified_time(file: &Metadata) -> u64 {
+    file.modified()
     .map_or(0, |f| {
       match f.duration_since(SystemTime::UNIX_EPOCH) {
         Ok(t) => t.as_secs(),
@@ -128,6 +144,25 @@ async fn modified_time(file: &DirEntry) -> u64 {
     })
 }
 
-fn parse_article() {
+// Was gonna use &DirEntry as the argument type but
+// I saw this fancy construct somewhere:
+async fn parse_article<P: AsRef<Path>>(
+  path: P
+) -> Result<(), ImportError> {
+  let file = File::open(path)
+    .await
+    .map_err(|_| ImportError::IOError)?;
+  // Tokio's BufReader can't be used with the 
+  // standard serde, so I decided to load the whole
+  // thing in memory, provided file size is smaller
+  // than a certain threshold.
+  // Which should be taken are of by the thing that
+  // lists all JSON files.
+  //let reader = BufReader::new(file);
+
+  // Attempt to parse the JSON. We need a DTO that 
+  // is close to what ArticleUpdate is but should 
+  // also allow deleting articles.
   
+  Ok(())
 }
