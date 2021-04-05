@@ -6,7 +6,9 @@ use std::time::SystemTime;
 use std::path::{PathBuf, Path};
 use std::sync::atomic::AtomicBool;
 use std::cmp::Ordering;
+use std::convert::From;
 use derive_more::Display;
+use log::{error, info};
 use serde_json;
 use crate::db::entities::ArticleUpdate;
 use super::dtos::ImportedArticleDto;
@@ -32,11 +34,18 @@ enum ImportError {
   #[display(fmt = "IO error")]
   IOError,
   #[display(fmt = "Parse error")]
-  ParseError
+  ParseError(String)
 }
 // Standard way to implement the Error trait is
 // to not actually implement any function at all.
 impl std::error::Error for ImportError {}
+
+impl From<serde_json::error::Error> for ImportError {
+  fn from(error: serde_json::error::Error) -> Self {
+    error!("JSON parsing error when importing article: {}", error);
+    ImportError::ParseError(error.to_string())
+  }
+}
 
 // A struct can't own a "Path" directly, you
 // have to use references with lifetimes and
@@ -148,7 +157,7 @@ async fn modified_time(file: &Metadata) -> u64 {
 // I saw this fancy construct somewhere:
 async fn parse_article<P: AsRef<Path>>(
   path: P
-) -> Result<(), ImportError> {
+) -> Result<ImportedArticleDto, ImportError> {
   /*let file = File::open(path)
     .await
     .map_err(|_| ImportError::IOError)?;*/
@@ -166,9 +175,27 @@ async fn parse_article<P: AsRef<Path>>(
   // is close to what ArticleUpdate is but should 
   // also allow deleting articles.
   let imported: ImportedArticleDto = 
-    serde_json::from_str(&contents)
-    .map_err(|_| ImportError::ParseError)?;
-  // Check that we got all the mandatory fields:
-
-  Ok(())
+    serde_json::from_str(&contents)?;
+    //.map_err(|_| ImportError::ParseError)?;
+  Ok(imported)
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[tokio::test]
+  async fn article_import_valid() {
+    let parsed_article = 
+      parse_article("./resources/fixtures/import_tests/valid.json")
+      .await
+      .unwrap();
+    assert_eq!(32, parsed_article.id.unwrap());
+    assert_eq!(
+      7, 
+      parsed_article.tags.unwrap()[0].id
+    );
+  }
+
+}
+

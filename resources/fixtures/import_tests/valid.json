@@ -1,0 +1,16 @@
+{
+  "id":32,
+  "articleURL":"some_url",
+  "title":"Great title",
+  "summary":"Summary for article",
+  "content":"Content for article",
+  "published":false,
+  "thumbImage":"img.png",
+  "userId": 1,
+  "date": "2018-07-25T21:35:04.887Z",
+  "tags": [
+    {"id":7},
+    {"id":8}
+  ],
+  "short": false
+}

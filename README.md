@@ -140,10 +140,12 @@ Message explains if article or short was inserted (displays if it was an article
 Specifically, we had "IO Error" and "JSON parsing error".
 
 JSON format for the article files is similar to the regular article format except everything is optional and there are a few extra possible fields:
-* "action": if set to 1 or the string "delete" and there is an article ID provided, will delete that article.
+* "action": Will delete that article if set to 1 (and an "id" is present). Otherwise the action is decided by the presence of "id".
 * "short": Pretty sure this is absent from the regular API responses. Defines if short or article, default is short I think.
 
-Here's an example:
+I used to allow loose typing of the JSON and converting strings in various places, I don't anymore because it requires me creating custom deserializing routines and I couldn't bother for an enpoint only I'm using.
+
+Here's an example import file:
 ```json
 {
   "id":35,
@@ -156,8 +158,8 @@ Here's an example:
   "userId": 2,
   "date": "2018-07-25T21:35:04.887Z",
   "tags": [
-    {"id":"21"},
-    {"id":"44"}
+    {"id":21},
+    {"id":44}
   ],
   "short": false
 }

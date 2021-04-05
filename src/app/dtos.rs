@@ -67,6 +67,11 @@ impl From<Comment> for CommentDto {
   }
 }
 
+// I actually have to be strict with what
+// types I allow in the JSON or I'd have
+// to create custom deserializing functions
+// as shown here:
+// https://stackoverflow.com/questions/37870428/convert-two-types-into-a-single-type-with-serde
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportedArticleDto {
@@ -84,11 +89,22 @@ pub struct ImportedArticleDto {
   pub user_id: Option<i32>,
   pub summary: Option<String>,
   pub content: Option<String>,
-  pub published: Option<String>,
-  pub tags: Option<Vec<Tag>>,
+  pub published: Option<bool>,
+  pub tags: Option<Vec<ImportedArticleTagDto>>,
+  pub short: Option<bool>,
   // Extra field to allow deletion when set 
   // to "1" or "delete":
-  pub action: Option<String>
+  pub action: Option<u32>
+}
+
+// I need this for the tag deserialization
+// to work with the article import process:
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedArticleTagDto {
+  pub id: i32,
+  pub name: Option<String>,
+  pub main_tag: Option<i32>
 }
 
 #[cfg(test)]
