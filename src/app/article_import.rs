@@ -180,6 +180,7 @@ async fn parse_article<P: AsRef<Path>>(
   Ok(imported)
 }
 
+// There's an annotation required for async tests.
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -191,10 +192,21 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(32, parsed_article.id.unwrap());
+    assert_eq!("some_url", parsed_article.article_url.unwrap());
     assert_eq!(
       7, 
       parsed_article.tags.unwrap()[0].id
     );
+  }
+
+  #[tokio::test]
+  async fn article_import_delete() {
+    let parsed_article = 
+      parse_article("./resources/fixtures/import_tests/delete.json")
+      .await
+      .unwrap();
+    assert_eq!(42, parsed_article.id.unwrap());
+    assert_eq!(1, parsed_article.action.unwrap());
   }
 
 }
