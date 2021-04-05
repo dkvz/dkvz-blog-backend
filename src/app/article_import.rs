@@ -1,17 +1,22 @@
-use tokio::fs::{read_dir, DirEntry, File, read_to_string};
+use tokio::fs::{read_dir, DirEntry, read_to_string};
 use tokio::io;
 //use std::io;
 use std::fs::Metadata;
 use std::time::SystemTime;
 use std::path::{PathBuf, Path};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{self, AtomicBool};
 use std::cmp::Ordering;
 use std::convert::From;
 use derive_more::Display;
-use log::{error, info};
+use log::{error, info, warn};
 use serde_json;
+use crate::db::Pool;
 use crate::db::entities::ArticleUpdate;
-use super::dtos::ImportedArticleDto;
+use super::dtos::{
+  ImportedArticleDto, 
+  JsonStatus,
+  JsonStatusType
+};
 
 // On the Java app this is a service.
 // I could also make this happen in a struct
@@ -44,6 +49,14 @@ impl From<serde_json::error::Error> for ImportError {
   fn from(error: serde_json::error::Error) -> Self {
     error!("JSON parsing error when importing article: {}", error);
     ImportError::ParseError(error.to_string())
+  }
+}
+
+// I'm using JsonStatus as an error type for one
+// of the main import functions.
+impl From<ImportError> for JsonStatus {
+  fn from(e: ImportError) -> Self {
+    JsonStatus::new(JsonStatusType::Error, &e.to_string())
   }
 }
 
@@ -81,9 +94,110 @@ impl ImportService {
     }
   }
 
+  // Main method for the service.
+  // I guess the pool could be owned by the struct, I
+  // can probably clone it.
+  pub async fn import_articles(
+    &self,
+    pool: &Pool
+  ) -> Result<Vec<JsonStatus>, JsonStatus> {
+    // Have to check if an import is already in progress.
+    // Lock for import otherwise.
+    if self.check_lock_set_if_unlocked() {
+      warn!("An import was attempted while the import service is locked");
+      return Err(
+        JsonStatus::new(
+          JsonStatusType::Error, 
+          "An import is already in progress"
+        )
+      );
+    }
+
+    // List all the files in the import directory.
+    // The only possible IOError means the directory
+    // could not be read for some reason, which is 
+    // fatal.
+    let files = self.list_files_earliest_first()
+      .await
+      .map_err(|e| {
+        self.unlock();
+        error!("Error reading import directory: {}", e);
+        JsonStatus::new(
+          JsonStatusType::Error, 
+          "Could not list files in import directory"
+        )
+      })?;
+
+    // Now would have been a good time to use map()
+    // except await isn't allowed in there. So it's
+    // time for a good old for.
+    let mut statuses: Vec<JsonStatus> = Vec::new();
+    for file in files {
+      match parse_article(file.path()).await {
+        Ok(article) => {
+          // Check what we're doing and if we have
+          // everything required to do it.
+          // - action = 1 and id is present => Delete
+          // - no action but id present => Update
+          // - no action, no id => Insert
+          // When inserting and "short" is absent, 
+          // default to make it true.
+
+          // Attempt to save to DB:
+
+          // Add the success result:
+
+        },
+        Err(e) => {
+          warn!(
+            "Article parsing failed while importing for {:?} - {:?}", 
+            file.path(),
+            e
+          );
+          // Add the status to the list:
+          statuses.push(e.into());
+        }
+      }
+    }
+
+    // At the end, unlock import:
+    self.unlock();
+    
+    Ok(statuses)
+  }
+
+  // Returns false if the import wasn't locked, but it's
+  // now locked.
+  // Returns true if it was already locked.
+  fn check_lock_set_if_unlocked(&self) -> bool {
+    // There's a thing on AtomicBool to only update the bool
+    // if it was equal to a given value, then returns a result
+    // Ok if the value was updated (previous value in it) and
+    // Err if nothing was changed, current value is returned
+    // in the Err.
+    //self.is_import_locked.load(atomic::Ordering::SeqCst)
+    match self.is_import_locked.compare_exchange(
+      false, 
+      true, 
+      atomic::Ordering::SeqCst, 
+      atomic::Ordering::Acquire
+    ) {
+      Ok(_) => false,
+      Err(_) => true
+    }
+  }
+
+  fn lock(&self) {
+    self.is_import_locked.store(true, atomic::Ordering::SeqCst);
+  }
+
+  fn unlock(&self) {
+    self.is_import_locked.store(false, atomic::Ordering::SeqCst);
+  }
+
   // At some point I discovered I could just use tokio
   // async/await version of std::fs.
-  async fn list_json_earliest_first(
+  async fn list_files_earliest_first(
     &self
   ) -> Result<Vec<DirEntry>, io::Error> {
     let mut files = read_dir(&self.import_path).await?;
@@ -180,7 +294,7 @@ async fn parse_article<P: AsRef<Path>>(
   Ok(imported)
 }
 
-// There's an annotation required for async tests.
+// There's a specific annotation required for async tests.
 #[cfg(test)]
 mod tests {
   use super::*;

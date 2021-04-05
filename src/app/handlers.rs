@@ -6,7 +6,6 @@ use actix_web::{
   Result
 };
 use std::convert::{From, TryInto};
-use std::sync::atomic::Ordering;
 use crate::db::entities::*;
 use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};

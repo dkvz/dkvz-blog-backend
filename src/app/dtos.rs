@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use derive_more::Display;
 use crate::db::entities::*;
 use crate::utils::time_utils;
 
@@ -105,6 +106,46 @@ pub struct ImportedArticleTagDto {
   pub id: i32,
   pub name: Option<String>,
   pub main_tag: Option<i32>
+}
+
+// I use this in some responses. Should probably use it
+// for all of them but uh... Yeah.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct JsonStatus {
+  pub status: String,
+  pub message: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub id: Option<i32>
+}
+
+#[derive(Debug, Display)]
+pub enum JsonStatusType {
+  #[display(fmt = "success")]
+  Success,
+  #[display(fmt = "error")]
+  Error
+}
+
+impl JsonStatus {
+  pub fn new(status: JsonStatusType, message: &str) -> Self {
+    Self {
+      status: status.to_string(),
+      message: String::from(message),
+      id: None
+    }
+  }
+
+  pub fn new_with_id(
+    status: JsonStatusType, 
+    message: &str, 
+    id: i32
+  ) -> Self {
+    Self {
+      status: status.to_string(),
+      message: String::from(message),
+      id: Some(id)
+    }
+  }
 }
 
 #[cfg(test)]

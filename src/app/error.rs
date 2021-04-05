@@ -2,6 +2,7 @@ use actix_web::{
   error::ResponseError,
   HttpResponse
 };
+use serde::{Deserialize, Serialize};
 //use std::convert::From;
 use derive_more::Display;
 
