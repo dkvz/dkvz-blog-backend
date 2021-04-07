@@ -167,6 +167,8 @@ Here's an example import file:
 
 Published being absent used to mean it got set to false forcibly. This *may* change with the new API in that I may not update published if it's absent.
 
+The endpoint slightly changed in that it's now only deleting the files that were successfully processed from the import directory (it used to delete everything that could be parsed AFAIK).
+
 # /articles/search - POST
 I'm using a weird rate limiter on that endpoint which basically blocks (with Forbidden HTTP error) ALL searches when a certain threshold is reached.
 
@@ -339,6 +341,7 @@ We need both.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
+- [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
 - [ ] It would make sense for the rate limiter to be a "guard".
 - [ ] Try to see a database error on purpose, not sure if it even works.

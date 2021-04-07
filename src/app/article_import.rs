@@ -1,5 +1,7 @@
 use tokio::fs::{read_dir, DirEntry, read_to_string};
 use tokio::io;
+use eyre::Report;
+use color_eyre;
 //use std::io;
 use std::fs::Metadata;
 use std::time::SystemTime;
@@ -10,7 +12,7 @@ use std::convert::From;
 use derive_more::Display;
 use log::{error, info, warn};
 use serde_json;
-use crate::db::Pool;
+use crate::db::{self, Pool};
 use crate::db::entities::ArticleUpdate;
 use super::dtos::{
   ImportedArticleDto, 
@@ -57,6 +59,14 @@ impl From<serde_json::error::Error> for ImportError {
 impl From<ImportError> for JsonStatus {
   fn from(e: ImportError) -> Self {
     JsonStatus::new(JsonStatusType::Error, &e.to_string())
+  }
+}
+
+// My database errors use eyre, so uh... Yeah.
+impl From<Report<color_eyre::Handler>> for JsonStatus {
+  fn from(r: Report<color_eyre::Handler>) -> Self {
+    error!("Encountered DB error while importing articles: {}", r);
+    JsonStatus::new(JsonStatusType::Error, format!("Database error: {}", r))
   }
 }
 
@@ -112,7 +122,15 @@ impl ImportService {
         )
       );
     }
+    let result = self.import_articles_no_lock(pool).await;
+    self.unlock();
+    result
+  }
 
+  async fn import_articles_no_lock(
+    &self,
+    pool: &Pool
+  ) -> Result<Vec<JsonStatus>, JsonStatus> {
     // List all the files in the import directory.
     // The only possible IOError means the directory
     // could not be read for some reason, which is 
@@ -120,7 +138,6 @@ impl ImportService {
     let files = self.list_files_earliest_first()
       .await
       .map_err(|e| {
-        self.unlock();
         error!("Error reading import directory: {}", e);
         JsonStatus::new(
           JsonStatusType::Error, 
@@ -132,7 +149,7 @@ impl ImportService {
     // except await isn't allowed in there. So it's
     // time for a good old for.
     let mut statuses: Vec<JsonStatus> = Vec::new();
-    for file in files {
+    'outer: for file in files {
       match parse_article(file.path()).await {
         Ok(article) => {
           // Check what we're doing and if we have
@@ -142,8 +159,98 @@ impl ImportService {
           // - no action, no id => Insert
           // When inserting and "short" is absent, 
           // default to make it true.
+          // Check if the article exist if we got 
+          // an id first:
+          if let Some(id) = article.id {
+            if !db::article_exists(pool, id)? {
+              statuses.push(JsonStatus::new_with_id(
+                JsonStatusType::Error, 
+                "Article ID doesn't exist", 
+                id
+              ));
+              continue;
+            }
+          }
+          match (article.id, article.action) {
+            (Some(id), Some(1)) => {
+              // Deleting.
+              db::delete_article(pool, id)?;
+              statuses.push(JsonStatus::new_with_id(
+                JsonStatusType::Success, 
+                "Article deleted", 
+                id
+              ));
+            },
+            _ => {
+              // Inserting or updating.
+              // If tags are present, do they all exist?
+              if let Some(tags) = article.tags {
+                for tag in tags {
+                  if !db::tag_exists(pool, tag.id)? {
+                    statuses.push(JsonStatus::new(
+                      JsonStatusType::Error, 
+                      format!("Tag with ID {} does not exist", tag.id)
+                    ));
+                    continue 'outer;
+                  }
+                }
+              }
+              // If user ID is present, does it exist?
+              // We could cache that stuff.
+              if let Some(user_id) = article.user_id {
+                if !db::user_exists(pool, user_id)? {
+                  statuses.push(JsonStatus::new(
+                    JsonStatusType::Error, 
+                    format!("User with ID {} does not exist", user_id)
+                  ));
+                  continue 'outer;
+                }
+              }
+              // When article_url is present, check that it doesn't
+              // exist already (it could be that it's the current 
+              // article when updating).
+              // Note that I'm currently allowing inserting an 
+              // article (thus not a short) with no article URL, even
+              // though that shouldn't be allowed.
+              if let Some(article_url) = article.article_url {
+                let valid_url = 
+                  match (db::article_id_by_url(pool, &article_url)?, article.id) {
+                    (Some(id_for_url), Some(id)) => id_for_url == id,
+                    (Some(_), None) => false,
+                    _ => true
+                  };
+                if !valid_url {
+                  statuses.push(JsonStatus::new(
+                    JsonStatusType::Error, 
+                    format!("Article URL {} already exists", article_url)
+                  ));
+                  continue 'outer;
+                }
+              }
+              // We need to know the short status:
+              let is_short = article.short.unwrap_or(false);
+              // Check if updating or inserting:
+              match (article.id, article.user_id) {
+                (Some(id), _) => {
+                  
+                },
+                (None, Some(user_id)) => {
+
+                },
+                _ => {
+                  // Missing user_id for insertion:
+                  statuses.push(JsonStatus::new(
+                    JsonStatusType::Error, 
+                    "Field userId is required when inserting articles"
+                  ));
+                }
+              }
+            }
+          }
 
           // Attempt to save to DB:
+
+          // Delete the file:
 
           // Add the success result:
 
@@ -159,9 +266,6 @@ impl ImportService {
         }
       }
     }
-
-    // At the end, unlock import:
-    self.unlock();
     
     Ok(statuses)
   }

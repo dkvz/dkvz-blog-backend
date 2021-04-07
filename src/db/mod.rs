@@ -148,6 +148,21 @@ fn full_article_mapper(
   )
 }
 
+// Check if something exists by ID. I chose
+// to use "count".
+fn entry_exists(
+  pool: &Pool,
+  query: &str,
+  id: i32
+) -> Result<bool> {
+  let count = select_count(
+    pool, 
+    query, 
+    params![id]
+  )?;
+  Ok(count == 1)
+}
+
 // Trying to reuse connections here.
 fn insert_article_tag(
   connection: &Connection,
@@ -537,6 +552,39 @@ pub fn article_by_url(
     |row| {
       full_article_mapper(&pool, &row, None)
     }
+  )
+}
+
+pub fn article_exists(
+  pool: &Pool,
+  id: i32
+) -> Result<bool> {
+  entry_exists(
+    pool,
+    "SELECT count(*) FROM articles WHERE id = ? LIMIT 1",
+    id
+  )
+}
+
+pub fn tag_exists(
+  pool: &Pool,
+  id: i32
+) -> Result<bool> {
+  entry_exists(
+    pool,
+    "SELECT count(*) FROM tags WHERE id = ? LIMIT 1", 
+    id
+  )
+}
+
+pub fn user_exists(
+  pool: &Pool,
+  id: i32
+) -> Result<bool> {
+  entry_exists(
+    pool,
+    "SELECT count(*) FROM users WHERE id = ? LIMIT 1", 
+    id
   )
 }
 
