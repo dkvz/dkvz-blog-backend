@@ -1,4 +1,9 @@
-use tokio::fs::{read_dir, DirEntry, read_to_string};
+use tokio::fs::{
+  read_dir, 
+  DirEntry, 
+  read_to_string, 
+  remove_file
+};
 use tokio::io;
 use eyre::Report;
 use color_eyre;
@@ -280,7 +285,22 @@ impl ImportService {
               }
             }
           }
-
+          if let Err(delete_err) = remove_file(file.path()).await {
+            // Couldn't delete the file for some reason, let's add 
+            // a weird message to the statuses:
+            error!(
+              "Could not remove a file after article import: {}", 
+              delete_err
+            );
+            statuses.push(JsonStatus::new(
+              JsonStatusType::Error,
+              &format!(
+                "Could not delete file {:?} - \
+                It could get imported multiple times!",
+                file.path()
+              )
+            ));
+          }
         },
         Err(e) => {
           warn!(
