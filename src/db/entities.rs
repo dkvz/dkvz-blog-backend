@@ -33,12 +33,13 @@ pub struct ArticleUpdate {
   pub title: Option<String>,
   pub article_url: Option<String>,
   pub thumb_image: Option<String>,
-  // The date is a string in update requests:
-  pub date: Option<String>,
+  // I chosed to not be able to update the date
+  // because it's EASY.
+  //pub date: Option<String>,
   pub user_id: Option<i32>,
   pub summary: Option<String>,
   pub content: Option<String>,
-  pub published: Option<String>,
+  pub published: Option<i32>,
   pub tags: Option<Vec<Tag>>
 }
 

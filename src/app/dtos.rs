@@ -85,8 +85,9 @@ pub struct ImportedArticleDto {
   #[serde(rename = "articleUrl")]
   pub article_url_bis: Option<String>,
   pub thumb_image: Option<String>,
-  // The date is a string in update requests:
-  pub date: Option<String>,
+  // The date is ignored by the import service.
+  // I didn't know.
+  //pub date: Option<String>,
   pub user_id: Option<i32>,
   pub summary: Option<String>,
   pub content: Option<String>,
@@ -98,28 +99,55 @@ pub struct ImportedArticleDto {
   pub action: Option<u32>
 }
 
+// Empty strings and useless comment count are required
+// because these objects are also used for displaying
+// the actual representation of the article.
 impl From<ImportedArticleDto> for Article {
   fn from(dto: ImportedArticleDto) -> Self {
     // We completely ignore the ID if any.
-    // Parse the weird date string:
-
     Self {
       id: -1,
       title: dto.title.unwrap_or(String::new()),
       article_url: dto.article_url,
       thumb_image: dto.thumb_image,
-      date: 0,
+      date: time_utils::current_timestamp(),
       user_id: dto.user_id.unwrap_or(1),
       summary: dto.summary.unwrap_or(String::new()),
       content: dto.content,
       published: utils::option_bool_to_i32(dto.published),
       short: utils::option_bool_to_i32(dto.short),
-      //tags: dto.tags.unwrap_or(Vec::new()),
-      tags: Vec::new(),
+      tags: dto.tags.map(
+        |v| v.into_iter().map(|a| Tag::from(a)).collect()
+      ).unwrap_or(Vec::new()),
       // The field is ignored, should probably be an
       // option but I couldn't be bother to refactor.
       author: String::new(),
       comments_count: 0
+    }
+  }
+}
+
+impl From<ImportedArticleDto> for ArticleUpdate {
+  fn from(dto: ImportedArticleDto) -> Self {
+    Self {
+      // Kinda stupid but I don't want to crash the 
+      // program in here:
+      id: dto.id.unwrap_or(0),
+      title: dto.title,
+      article_url: dto.article_url,
+      thumb_image: dto.thumb_image,
+      user_id: dto.user_id,
+      summary: dto.summary,
+      content: dto.content,
+      published: dto.published.map(
+        |p| match p {
+          true => 1,
+          false => 0
+        }
+      ),
+      tags: dto.tags.map(
+        |v| v.into_iter().map(|a| Tag::from(a)).collect()
+      )
     }
   }
 }
@@ -132,6 +160,20 @@ pub struct ImportedArticleTagDto {
   pub id: i32,
   pub name: Option<String>,
   pub main_tag: Option<i32>
+}
+
+// There's a lot of useless empty strings in these
+// entity conversions but that's the easiest way
+// I found to work with the same struct for input
+// and output.
+impl From<ImportedArticleTagDto> for Tag {
+  fn from(dto: ImportedArticleTagDto) -> Self {
+    Self {
+      id: dto.id,
+      name: dto.name.unwrap_or(String::new()),
+      main_tag: dto.main_tag.unwrap_or(1)
+    }
+  }
 }
 
 // I use this in some responses. Should probably use it

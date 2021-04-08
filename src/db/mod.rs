@@ -719,10 +719,6 @@ pub fn udpate_article(
     fields.push(generate_field_equal_qmark("thumb_image"));
     values.push(thumb_image);
   }
-  if let Some(date) = &article.date {
-    fields.push(generate_field_equal_qmark("date"));
-    values.push(date);
-  }
   if let Some(user_id) = &article.user_id {
     fields.push(generate_field_equal_qmark("user_id"));
     values.push(user_id);

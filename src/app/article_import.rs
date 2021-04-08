@@ -66,7 +66,7 @@ impl From<ImportError> for JsonStatus {
 impl From<Report<color_eyre::Handler>> for JsonStatus {
   fn from(r: Report<color_eyre::Handler>) -> Self {
     error!("Encountered DB error while importing articles: {}", r);
-    JsonStatus::new(JsonStatusType::Error, format!("Database error: {}", r))
+    JsonStatus::new(JsonStatusType::Error, &format!("Database error: {}", r))
   }
 }
 
@@ -192,7 +192,7 @@ impl ImportService {
                   if !db::tag_exists(pool, tag.id)? {
                     statuses.push(JsonStatus::new(
                       JsonStatusType::Error, 
-                      format!("Tag with ID {} does not exist", tag.id)
+                      &format!("Tag with ID {} does not exist", tag.id)
                     ));
                     continue 'outer;
                   }
@@ -204,7 +204,7 @@ impl ImportService {
                 if !db::user_exists(pool, user_id)? {
                   statuses.push(JsonStatus::new(
                     JsonStatusType::Error, 
-                    format!("User with ID {} does not exist", user_id)
+                    &format!("User with ID {} does not exist", user_id)
                   ));
                   continue 'outer;
                 }
@@ -225,19 +225,20 @@ impl ImportService {
                 if !valid_url {
                   statuses.push(JsonStatus::new(
                     JsonStatusType::Error, 
-                    format!("Article URL {} already exists", article_url)
+                    &format!("Article URL {} already exists", article_url)
                   ));
                   continue 'outer;
                 }
               }
-              // We need to know the short status:
-              let is_short = article.short.unwrap_or(false);
               // Check if updating or inserting:
               match (article.id, article.user_id) {
                 (Some(id), _) => {
-                  
+                  // Updating.
+
                 },
                 (None, Some(user_id)) => {
+                  // Inserting. Updating. Converting to the update object will
+                  // let us know if it's a short or not.
 
                 },
                 _ => {
