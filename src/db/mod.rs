@@ -753,6 +753,7 @@ pub fn udpate_article(
       }
     )
       .where_clause("article_id = ?")
+      .limit(1)
       .to_string();
     // We need the article id in values too:
     values.push(&article.id);

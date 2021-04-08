@@ -13,7 +13,7 @@ use derive_more::Display;
 use log::{error, info, warn};
 use serde_json;
 use crate::db::{self, Pool};
-use crate::db::entities::ArticleUpdate;
+use crate::db::entities::{ArticleUpdate, Article};
 use super::dtos::{
   ImportedArticleDto, 
   JsonStatus,
@@ -187,7 +187,7 @@ impl ImportService {
             _ => {
               // Inserting or updating.
               // If tags are present, do they all exist?
-              if let Some(tags) = article.tags {
+              if let Some(tags) = &article.tags {
                 for tag in tags {
                   if !db::tag_exists(pool, tag.id)? {
                     statuses.push(JsonStatus::new(
@@ -215,7 +215,7 @@ impl ImportService {
               // Note that I'm currently allowing inserting an 
               // article (thus not a short) with no article URL, even
               // though that shouldn't be allowed.
-              if let Some(article_url) = article.article_url {
+              if let Some(article_url) = &article.article_url {
                 let valid_url = 
                   match (db::article_id_by_url(pool, &article_url)?, article.id) {
                     (Some(id_for_url), Some(id)) => id_for_url == id,
@@ -230,16 +230,40 @@ impl ImportService {
                   continue 'outer;
                 }
               }
+              let mut delete_article = false;
               // Check if updating or inserting:
               match (article.id, article.user_id) {
-                (Some(id), _) => {
-                  // Updating.
-
+                (Some(_), _) => {
+                  // Updating, let's convert the ImportedArticle to the special
+                  // update entity:
+                  let update_entity: ArticleUpdate = article.clone().into();
+                  // The call returns the number of articles affected but I 
+                  // just don't care.
+                  db::udpate_article(pool, &update_entity)?;
+                  statuses.push(JsonStatus::new_with_id(
+                    JsonStatusType::Success,
+                    "Entity has been updated",
+                    update_entity.id
+                  ));
+                  delete_article = true;
                 },
-                (None, Some(user_id)) => {
+                (None, Some(_)) => {
                   // Inserting. Updating. Converting to the update object will
                   // let us know if it's a short or not.
-
+                  // We make it mut because the DB function will set the new ID
+                  // after insertion. It also returns it so this is kinda dumb.
+                  let mut article_to_insert: Article = article.clone().into();
+                  let new_id = db::insert_article(pool, &mut article_to_insert)?;
+                  statuses.push(JsonStatus::new_with_id(
+                    JsonStatusType::Success,
+                    &format!(
+                      "Inserted new {}", 
+                      if article_to_insert.short == 0 
+                        { "article" } else { "short" }
+                    ),
+                    new_id
+                  ));
+                  delete_article = true;
                 },
                 _ => {
                   // Missing user_id for insertion:
@@ -249,14 +273,13 @@ impl ImportService {
                   ));
                 }
               }
+              if delete_article {
+                // Delete the file. I guess there's an async function
+                // for that.
+
+              }
             }
           }
-
-          // Attempt to save to DB:
-
-          // Delete the file:
-
-          // Add the success result:
 
         },
         Err(e) => {

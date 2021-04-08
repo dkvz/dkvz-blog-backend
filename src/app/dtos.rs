@@ -73,7 +73,7 @@ impl From<Comment> for CommentDto {
 // to create custom deserializing functions
 // as shown here:
 // https://stackoverflow.com/questions/37870428/convert-two-types-into-a-single-type-with-serde
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportedArticleDto {
   pub id: Option<i32>,
@@ -154,7 +154,7 @@ impl From<ImportedArticleDto> for ArticleUpdate {
 
 // I need this for the tag deserialization
 // to work with the article import process:
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportedArticleTagDto {
   pub id: i32,
