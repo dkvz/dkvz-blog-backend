@@ -4,13 +4,14 @@ use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use log::{debug, error, info};
 use rate_limiter::BasicRateLimiter;
+use article_import::ImportService;
 use std::sync::RwLock;
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.
 use crate::config::Config;
 use crate::db::Pool;
-use crate::stats::{StatsService};
+use crate::stats::StatsService;
 mod handlers;
 mod dtos;
 mod error;
@@ -22,7 +23,8 @@ mod article_import;
 pub struct AppState {
   pub pool: Pool,
   pub stats_service: StatsService,
-  pub rate_limiter: RwLock<BasicRateLimiter>
+  pub rate_limiter: RwLock<BasicRateLimiter>,
+  pub import_service: ImportService
 }
 
 // This shouldn't be that weird I'm sorry.
@@ -88,10 +90,17 @@ pub async fn run() -> Result<()> {
     config.message_queue_size
   )?;
 
+
+  // Declare the import service, crash immediately 
+  // if import directory is not writable:
+  let import_service = ImportService::from(&config.import_path)
+    .expect("Fatal: import directory is not writable");
+
   let app_state = web::Data::new(
     AppState {
       pool,
       stats_service,
+      import_service,
       rate_limiter: RwLock::new(
         BasicRateLimiter::new(
           config.rl_max_requests, 
@@ -131,5 +140,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
     .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from))
     .route("/comments", web::post().to(handlers::post_comment))
-    .route("/last-comment", web::get().to(handlers::last_comment));
+    .route("/last-comment", web::get().to(handlers::last_comment))
+    .route("/import-articles", web::get().to(handlers::import_article));
 }

@@ -121,7 +121,7 @@ Sends that response when import is already in progress:
 ```
 Altough having that exact format or not doesn't matter.
 
-**This endpoint has to be publicly available**.
+**This endpoint has to be publicly available but technically doesn't need CORS**.
 
 When import works, we get a list such as the following:
 ```json

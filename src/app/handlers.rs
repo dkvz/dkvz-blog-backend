@@ -287,7 +287,11 @@ pub async fn last_comment(
 // I think it works. lol.
 pub async fn import_article(
   app_state: web::Data<AppState>
-) -> Result<HttpResponse, Error> {
-
-  Err(Error::NotFound("Pants".to_string()))
+) -> HttpResponse {
+  match app_state.import_service
+    .import_articles(&app_state.pool)
+    .await {
+      Ok(statuses) => HttpResponse::Ok().json(statuses),
+      Err(status) => HttpResponse::Forbidden().json(status)
+    }
 }
