@@ -149,6 +149,9 @@ impl ImportService {
     // except await isn't allowed in there. So it's
     // time for a good old for.
     let mut statuses: Vec<JsonStatus> = Vec::new();
+    // TODO: This whole loop should be in a tokio blocking
+    // task as DB functions are currently not using
+    // async await:
     'outer: for file in files {
       match parse_article(file.path()).await {
         Ok(article) => {

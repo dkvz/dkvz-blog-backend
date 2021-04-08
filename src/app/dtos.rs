@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use derive_more::Display;
 use crate::db::entities::*;
-use crate::utils::time_utils;
+use crate::utils::{self, time_utils};
 
 // I'm going to use the From trait to convert
 // entites to DTOs and test that.
@@ -96,6 +96,32 @@ pub struct ImportedArticleDto {
   // Extra field to allow deletion when set 
   // to "1" or "delete":
   pub action: Option<u32>
+}
+
+impl From<ImportedArticleDto> for Article {
+  fn from(dto: ImportedArticleDto) -> Self {
+    // We completely ignore the ID if any.
+    // Parse the weird date string:
+
+    Self {
+      id: -1,
+      title: dto.title.unwrap_or(String::new()),
+      article_url: dto.article_url,
+      thumb_image: dto.thumb_image,
+      date: 0,
+      user_id: dto.user_id.unwrap_or(1),
+      summary: dto.summary.unwrap_or(String::new()),
+      content: dto.content,
+      published: utils::option_bool_to_i32(dto.published),
+      short: utils::option_bool_to_i32(dto.short),
+      //tags: dto.tags.unwrap_or(Vec::new()),
+      tags: Vec::new(),
+      // The field is ignored, should probably be an
+      // option but I couldn't be bother to refactor.
+      author: String::new(),
+      comments_count: 0
+    }
+  }
 }
 
 // I need this for the tag deserialization

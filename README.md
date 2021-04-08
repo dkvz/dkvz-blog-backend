@@ -349,7 +349,7 @@ We need both.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] What happens if you request a negative article ID?
-- [ ] I need da CORS.
+- [ ] I need da CORS. 
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
 - [x] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type: text/plain; charset=utf-8".
@@ -368,3 +368,4 @@ We need both.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
 - [ ] I get the author name in full_article_mapper for every single article (old API does that too), I should add it to the actual query, possibly with a LEFT JOIN. I'm not sure that would even be faster though, especially with SQLite. Search function already includes fetching username in the query.
+- [ ] In article_import.rs, the whole loop in "files" that saves to DB should be a Tokio blocking task.
