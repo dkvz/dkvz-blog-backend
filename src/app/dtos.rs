@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use derive_more::Display;
 use crate::db::entities::*;
-use crate::utils::{self, time_utils};
+use crate::utils::{self, time_utils, serde_utils};
 
 // I'm going to use the From trait to convert
 // entites to DTOs and test that.
@@ -100,16 +100,22 @@ pub struct ImportedArticleDto {
 }
 
 // Empty strings and useless comment count are required
-// because these objects are also used for displaying
+// because these objects are  #[serde(deserialize_with = "serde_utils::empty_string_is_none")] also used for displaying
 // the actual representation of the article.
 impl From<ImportedArticleDto> for Article {
   fn from(dto: ImportedArticleDto) -> Self {
     // We completely ignore the ID if any.
+    // My authoring software is writing empty strings that
+    // should become NULL in database, hence this hack:
+    let article_url = serde_utils::empty_string_to_none(
+      if dto.article_url.is_some()
+        { dto.article_url } else { dto.article_url_bis }
+    );
     Self {
       id: -1,
       title: dto.title.unwrap_or(String::new()),
-      article_url: dto.article_url,
-      thumb_image: dto.thumb_image,
+      article_url,
+      thumb_image: serde_utils::empty_string_to_none(dto.thumb_image),
       date: time_utils::current_timestamp(),
       user_id: dto.user_id.unwrap_or(1),
       summary: dto.summary.unwrap_or(String::new()),
@@ -158,8 +164,7 @@ impl From<ImportedArticleDto> for ArticleUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct ImportedArticleTagDto {
   pub id: i32,
-  pub name: Option<String>,
-  pub main_tag: Option<i32>
+  pub name: Option<String>
 }
 
 // There's a lot of useless empty strings in these
@@ -171,7 +176,10 @@ impl From<ImportedArticleTagDto> for Tag {
     Self {
       id: dto.id,
       name: dto.name.unwrap_or(String::new()),
-      main_tag: dto.main_tag.unwrap_or(1)
+      // lol that main_tag thing, I don't 
+      // even remember what it was supposed
+      // to be.
+      main_tag: 1
     }
   }
 }

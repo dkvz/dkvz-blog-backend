@@ -341,6 +341,7 @@ We need both.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
+- [ ] To test for article import: all of the updating (incl. removing and adding tags) ; Combining multiple operations by putting multiple files at once.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
 - [ ] It would make sense for the rate limiter to be a "guard".
@@ -356,7 +357,6 @@ We need both.
 - [x] Does encoding actually work with the JSON endpoints?
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
-- [ ] Do shorts get inserted with content NULL or empty string?
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
 - [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
