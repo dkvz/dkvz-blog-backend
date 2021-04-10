@@ -253,8 +253,8 @@ impl ImportService {
                   delete_article = true;
                 },
                 (None, Some(_)) => {
-                  // Inserting. Updating. Converting to the update object will
-                  // let us know if it's a short or not.
+                  // Inserting. Converting to the entity will let us know if it's 
+                  // a short or not.
                   // We make it mut because the DB function will set the new ID
                   // after insertion. It also returns it so this is kinda dumb.
                   let mut article_to_insert: Article = article.clone().into();
