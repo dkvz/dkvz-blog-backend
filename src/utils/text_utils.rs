@@ -24,6 +24,7 @@ pub fn sanitize_search_terms(
   terms.iter()
     .take(max_search_terms)
     .map(|t| SEARCH_CLEANUP_REGEX.replace_all(t, "").to_string())
+    .filter(|t| !t.is_empty())
     .collect()
 }
 
@@ -61,6 +62,18 @@ mod tests {
     let processed = sanitize_search_terms(&sut, 3);
     assert_eq!(processed.len(), 3);
     assert_eq!(processed[2], "test3");
+  }
+
+  #[test]
+  fn sanitize_search_removes_empty_strings() {
+    let sut: Vec<String> = vec![
+      String::from("  $- "),
+      String::from(""),
+      String::from("  "),
+      String::from("\n"),
+    ];
+    let processed = sanitize_search_terms(&sut, 80);
+    assert_eq!(processed.len(), 0);
   }
 
 }

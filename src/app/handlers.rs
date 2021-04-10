@@ -317,7 +317,7 @@ pub async fn search_articles(
   // First, check rate limiting:
   if app_state.check_rate_limit() {
     return Err(Error::TooManyRequests);
-  } 
+  }
 
   Ok(HttpResponse::Ok().json(search_terms.into_inner()))
 }
