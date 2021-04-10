@@ -1,12 +1,6 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-lazy_static! {
-  static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(
-    r"[\[\]\s\$\^%\+-]"
-  ).unwrap();
-}
-
 // Stole this from StackOverflow, of course
 // https://stackoverflow.com/questions/53570839/quick-function-to-convert-a-strings-first-letter-to-uppercase
 pub fn first_letter_to_upper(s1: String) -> String {
@@ -21,6 +15,12 @@ pub fn sanitize_search_terms(
   terms: &Vec<String>, 
   max_search_terms: usize
 ) -> Vec<String> {
+  lazy_static! {
+    static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(
+      r"[\[\]\s\$\^%\+-]"
+    ).unwrap();
+  }
+
   terms.iter()
     .take(max_search_terms)
     .map(|t| SEARCH_CLEANUP_REGEX.replace_all(t, "").to_string())
