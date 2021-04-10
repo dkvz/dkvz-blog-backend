@@ -341,7 +341,7 @@ We need both.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
-- [ ] To test for article import:I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
+- [ ] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
 - [ ] It would make sense for the rate limiter to be a "guard".
