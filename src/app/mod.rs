@@ -18,6 +18,12 @@ mod error;
 mod helpers;
 mod rate_limiter;
 mod article_import;
+mod guards;
+
+// IP addresses allowed to make special calls (like the /rss one).
+// Should probably be in the config instead.
+pub const ALLOWED_IP_ADDRESSES: [&'static str; 2] = 
+  ["127.0.0.1", "::1"];
 
 // Declare app state struct:
 pub struct AppState {
@@ -135,6 +141,10 @@ pub async fn run() -> Result<()> {
 
 // Route configuration:
 fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
+  // Create the guard that cause protected endpoints to respond with a 404
+  // when the client IP address isn't allowed.
+  let ip_guard = guards::IPRestrictedGuard::new(&ALLOWED_IP_ADDRESSES);
+
   cfg.route("/", web::get().to(handlers::index))
     .route("/tags", web::get().to(handlers::tags))
     .route("/article/{articleUrl}", web::get().to(handlers::article))
@@ -143,5 +153,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/comments", web::post().to(handlers::post_comment))
     .route("/last-comment", web::get().to(handlers::last_comment))
     .route("/import-articles", web::get().to(handlers::import_article))
-    .route("/articles/search", web::post().to(handlers::search_articles));
+    .route("/articles/search", web::post().to(handlers::search_articles))
+    .route("/rss", web::get().guard(ip_guard).to(handlers::rss));
 }

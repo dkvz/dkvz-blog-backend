@@ -344,3 +344,9 @@ pub async fn search_articles(
     )
   }  
 }
+
+pub async fn rss(
+  app_state: web::Data<AppState>
+) -> HttpResponse {
+  HttpResponse::Ok().body("It worked.")
+}
