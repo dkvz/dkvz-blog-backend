@@ -27,7 +27,8 @@ pub struct AppState {
   pub import_service: ImportService
 }
 
-// This shouldn't be that weird I'm sorry.
+// This shouldn't be that weird I'm sorry. These functions
+// could be moved elsewhere to not be directly in AppState.
 impl AppState {
 
   pub fn check_rate_limit(&self) -> bool {
@@ -141,5 +142,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from))
     .route("/comments", web::post().to(handlers::post_comment))
     .route("/last-comment", web::get().to(handlers::last_comment))
-    .route("/import-articles", web::get().to(handlers::import_article));
+    .route("/import-articles", web::get().to(handlers::import_article))
+    .route("/articles/search", web::post().to(handlers::search_articles));
 }

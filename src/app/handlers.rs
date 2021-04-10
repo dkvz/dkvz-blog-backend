@@ -24,6 +24,8 @@ const MAX_COMMENT_LENGTH: usize = 2000;
 const MAX_AUTHOR_LENGTH: usize = 70;
 	// Max length of article content in RSS descriptions:
 const MAX_RSS_LENGTH: usize = 2500;
+// Max amount of search tersm to process:
+const MAX_SEARCH_TERMS: usize = 10;
 
 /* --- Request body or query or form objects --- */
 // These have to be public.
@@ -294,4 +296,28 @@ pub async fn import_article(
       Ok(statuses) => HttpResponse::Ok().json(statuses),
       Err(status) => HttpResponse::Forbidden().json(status)
     }
+}
+
+// The search endpoint shares the same rate limiter as the post
+// comment one. That same rate_limiter should be a guard or a
+// middleware too. It should be a toto item somwhere.
+pub async fn search_articles(
+  app_state: web::Data<AppState>,
+  search_terms: web::Json<Vec<String>>
+) -> Result<HttpResponse, Error> {
+  // Do we need to sanitize the terms?
+  // They're passed as prepared statement params, but we should
+  // probably still remove some special chars.
+  // I think we should remove spaces at the very least.
+  // Actually, anything considered a space character as for 
+  // regexes should be removed (e.g. line feeds should too).
+  // Weird invalid regex I was using for Java: [+*$%\\s]
+  // I should probably allow "*" but remove "^".
+
+  // First, check rate limiting:
+  if app_state.check_rate_limit() {
+    return Err(Error::TooManyRequests);
+  } 
+
+  Ok(HttpResponse::Ok().json(search_terms.into_inner()))
 }

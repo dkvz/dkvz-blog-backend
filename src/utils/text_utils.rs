@@ -1,3 +1,12 @@
+use lazy_static::lazy_static;
+use regex::Regex;
+
+lazy_static! {
+  static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(
+    r"[\[\]\s\$\^%\+-]"
+  ).unwrap();
+}
+
 // Stole this from StackOverflow, of course
 // https://stackoverflow.com/questions/53570839/quick-function-to-convert-a-strings-first-letter-to-uppercase
 pub fn first_letter_to_upper(s1: String) -> String {
@@ -6,6 +15,16 @@ pub fn first_letter_to_upper(s1: String) -> String {
     None => String::new(),
     Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
   }
+}
+
+pub fn sanitize_search_terms(
+  terms: &Vec<String>, 
+  max_search_terms: usize
+) -> Vec<String> {
+  terms.iter()
+    .take(max_search_terms)
+    .map(|t| SEARCH_CLEANUP_REGEX.replace_all(t, "").to_string())
+    .collect()
 }
 
 #[cfg(test)]
@@ -17,6 +36,31 @@ mod tests {
     let sut = String::from("hello world");
     let expected = String::from("Hello world");
     assert_eq!(first_letter_to_upper(sut), expected);
+  }
+
+  #[test]
+  fn sanitize_search_replaces_illegal_chars() {
+    let sut: Vec<String> = vec![
+      String::from(" p otato-[po ^w%+-er"),
+      String::from("\npotato$   --[power]")
+    ];
+    let processed = sanitize_search_terms(&sut, 10);
+    assert_eq!(processed[0], "potatopower");
+    assert_eq!(processed[1], "potatopower");
+  }
+
+  #[test]
+  fn sanitize_search_enforces_max_terms() {
+    let sut: Vec<String> = vec![
+      String::from("test1"),
+      String::from("test2"),
+      String::from("test3"),
+      String::from("test4"),
+      String::from("test5"),
+    ];
+    let processed = sanitize_search_terms(&sut, 3);
+    assert_eq!(processed.len(), 3);
+    assert_eq!(processed[2], "test3");
   }
 
 }
