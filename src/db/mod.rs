@@ -11,6 +11,7 @@ mod mappers;
 mod helpers;
 mod queries;
 use eyre::{WrapErr, eyre};
+use log::{info};
 use std::convert::TryFrom;
 use color_eyre::Result;
 use entities::*;
@@ -736,41 +737,48 @@ pub fn udpate_article(
     values.push(published);
   }
   // Check that there's at least one field OR that tags are present.
+  // If not, we return Ok(0) immediately.
   let got_tags: bool = match &article.tags {
     Some(_) => true,
     None => false
   };
-  if fields.len() == 0 && !got_tags {
-    // Return immediately, chose to return no error:
-    Ok(0)
-  } else {
-    // update the article ; Need to transform the Vec of Strings to 
-    // an array of &str too.
-    let query = Query::new(
-      QueryType::Update { 
-        table: "articles", 
-        fields: &fields.iter().map(|s| s as &str).collect::<Vec<&str>>()
+  let got_fields = fields.len() > 0;
+  match (got_fields, got_tags) {
+    (false, false) => Ok(0), // Return immediately, no error
+    _ => {
+      let conn = pool.clone().get()?;
+      let mut result = 0;
+      if got_fields {
+        // update the article ; Need to transform the Vec of Strings to 
+        // an array of &str too.
+        let query = Query::new(
+          QueryType::Update { 
+            table: "articles", 
+            fields: &fields.iter().map(|s| s as &str).collect::<Vec<&str>>()
+          }
+        )
+          .where_clause("id = ?")
+          // SQLite doesn't allow limit in update and delete statements.
+          //.limit(1)
+          .to_string();
+        // We need the article id in values too:
+        values.push(&article.id);
+        let mut stmt = conn.prepare(&query)?;
+        result = stmt.execute(values)?;
+        // Update the fulltext data:
+        update_article_fulltext(&conn, &article)?;
       }
-    )
-      .where_clause("article_id = ?")
-      .limit(1)
-      .to_string();
-    // We need the article id in values too:
-    values.push(&article.id);
-    let conn = pool.clone().get()?;
-    let mut stmt = conn.prepare(&query)?;
-    let result = stmt.execute(values)?;
-    // Update the fulltext data:
-    update_article_fulltext(&conn, &article)?;
-    if let Some(tags) = &article.tags {
-      // Delete all tags and re-add them all.
-      // This is easier than checking what's there or not.
-      delete_all_tags_for_article(&conn, article.id)?;
-      for tag in tags.iter() {
-        insert_article_tag(&conn, tag.id, article.id)?;
+      if let Some(tags) = &article.tags {
+        // Delete all tags and re-add them all.
+        // This is easier than checking what's there or not.
+        delete_all_tags_for_article(&conn, article.id)?;
+        for tag in tags.iter() {
+          insert_article_tag(&conn, tag.id, article.id)?;
+          result += 1;
+        }
       }
+      Ok(result)
     }
-    Ok(result)
   }
 }
 
