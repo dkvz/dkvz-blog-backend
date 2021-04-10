@@ -84,7 +84,15 @@ pub struct ImportedArticleDto {
   // key names for article_url:
   #[serde(rename = "articleUrl")]
   pub article_url_bis: Option<String>,
-  pub thumb_image: Option<String>,
+  // thumb_image is a special case for which we allow
+  // nullifying the field in DB if the update JSON
+  // had the field set to null. We use a double Option
+  // and a special deserializer.
+  #[serde(
+    default, 
+    deserialize_with = "serde_utils::deserialize_null_value"
+  )]
+  pub thumb_image: Option<Option<String>>,
   // The date is ignored by the import service.
   // I didn't know.
   //pub date: Option<String>,
@@ -115,7 +123,10 @@ impl From<ImportedArticleDto> for Article {
       id: -1,
       title: dto.title.unwrap_or(String::new()),
       article_url,
-      thumb_image: serde_utils::empty_string_to_none(dto.thumb_image),
+      //thumb_image: serde_utils::empty_string_to_none(dto.thumb_image),
+      thumb_image: dto.thumb_image.and_then(
+        |t| serde_utils::empty_string_to_none(t)
+      ),
       date: time_utils::current_timestamp(),
       user_id: dto.user_id.unwrap_or(1),
       summary: dto.summary.unwrap_or(String::new()),
@@ -255,6 +266,26 @@ mod tests {
     let sut: Vec<Tag> = vec![t1, t2];
     let converted: Vec<TagDto> = sut.into();
     assert_eq!(27, converted[1].id);
+  }
+
+  #[test]
+  fn empty_string_is_none_for_article_thumb_image() {
+    let sut = ImportedArticleDto {
+      action: None,
+      article_url: None,
+      article_url_bis: None,
+      content: None,
+      id: None,
+      published: None,
+      short: None,
+      summary: None,
+      tags: None,
+      title: None,
+      user_id: None,
+      thumb_image: Some(Some("".to_string()))
+    };
+    let article: Article = sut.into();
+    assert_eq!(article.thumb_image, None);
   }
 
   /*

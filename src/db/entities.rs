@@ -32,7 +32,9 @@ pub struct ArticleUpdate {
   pub id: i32,
   pub title: Option<String>,
   pub article_url: Option<String>,
-  pub thumb_image: Option<String>,
+  // We need to be able to signal we want to
+  // set thumb_image to null.
+  pub thumb_image: Option<Option<String>>,
   // I chosed to not be able to update the date
   // because it's EASY.
   //pub date: Option<String>,

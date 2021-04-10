@@ -169,6 +169,9 @@ Published being absent used to mean it got set to false forcibly. This *may* cha
 
 The endpoint slightly changed in that it's now only deleting the files that were successfully processed from the import directory (it used to delete everything that could be parsed AFAIK).
 
+I do not allow removing article_url with an update (AKA setting it to null) but there are no errors if you attempt to do it. It's just ignored.
+TODO: Would be nice to have an error for that behavior but I can't bother for now.
+
 # /articles/search - POST
 I'm using a weird rate limiter on that endpoint which basically blocks (with Forbidden HTTP error) ALL searches when a certain threshold is reached.
 
@@ -341,7 +344,7 @@ We need both.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
-- [ ] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
+- [x] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
 - [ ] It would make sense for the rate limiter to be a "guard".
@@ -349,7 +352,7 @@ We need both.
 - [ ] DB errors should be their own custom error type so that I could very easily have a From trait for app::error::Error to convert them into that.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
-- [ ] What happens if you request a negative article ID?
+- [x] What happens if you request a negative article ID? -> 404.
 - [ ] I need da CORS. 
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
@@ -361,9 +364,8 @@ We need both.
 - [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
 - [ ] To re-test: article insertion, article update, rebuilding fulltext index entirely.
-- [ ] Dates could be options in entities, I could just unwrap_or to a function that gets the current date in insert functions.
 - [ ] Test all the comment DB functions.
-- [ ] I need a specific "entity" for search results. Or not? The weird empty thumb image and empty tags vector are making me feel bad.
+- [ ] I need a specific "entity" for search results. Or not? Maybe not, you can choose to not serialize a field when it's None.
 - [x] Create a limited length fixture instead of the full wordlist.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".

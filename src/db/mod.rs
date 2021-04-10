@@ -716,9 +716,15 @@ pub fn udpate_article(
     fields.push(generate_field_equal_qmark("article_url"));
     values.push(article_url);
   }
+  // thumb_image is special because it's possible to set
+  // it to null to really also set it to null in the 
+  // database. We use a double Option for it.
   if let Some(thumb_image) = &article.thumb_image {
     fields.push(generate_field_equal_qmark("thumb_image"));
-    values.push(thumb_image);
+    match thumb_image {
+      Some(image) => values.push(image),
+      None => values.push(thumb_image) 
+    }
   }
   if let Some(user_id) = &article.user_id {
     fields.push(generate_field_equal_qmark("user_id"));
