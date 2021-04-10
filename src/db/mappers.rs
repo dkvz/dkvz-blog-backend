@@ -91,7 +91,8 @@ pub fn map_search_result(
     Article {
       id: row.get(0)?,
       title: row.get(1)?,
-      article_url: Some(row.get(2)?),
+      //article_url: Some(row.get(2)?),
+      article_url: row.get(2)?,
       short: row.get(3)?,
       date: row.get(4)?,
       user_id: row.get(5)?,

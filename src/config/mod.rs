@@ -33,7 +33,7 @@ impl Config {
     c.set_default("message_queue_size", 30)?;
     // Settings for the basic rate limiter I'm 
     // using:
-    c.set_default("rl_max_requests", 150)?;
+    c.set_default("rl_max_requests", 120)?;
     c.set_default("rl_max_requests_time", 60)?;
     c.set_default("rl_block_duration", 60)?;
     // Default import path:

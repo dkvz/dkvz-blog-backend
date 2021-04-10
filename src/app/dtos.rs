@@ -195,6 +195,43 @@ impl From<ImportedArticleTagDto> for Tag {
   }
 }
 
+// Format I'm using for the search requests. The
+// include thingy is kinda useless but it's historical.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchBody {
+  pub include: Vec<String>
+}
+
+// The object that respresents search results:
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchResult {
+  pub snippet: String,
+  pub id: i32,
+  pub title: String,
+  #[serde(rename = "articleURL")]
+  pub article_url: String,
+  pub date: String
+}
+
+impl From<Article> for SearchResult {
+  fn from(article: Article) -> Self {
+    // The "snippet" is mapped into the summary
+    // by the DB function.
+    // Use the ID as article URL if it's a short:
+    let article_url = match article.short {
+      1 => article.id.to_string(),
+      _ => article.article_url.unwrap_or(article.id.to_string())
+    };
+    Self {
+      snippet: article.summary,
+      id: article.id,
+      title: article.title,
+      article_url,
+      date: time_utils::timestamp_to_date_string(article.date)
+    }
+  }
+}
+
 // I use this in some responses. Should probably use it
 // for all of them but uh... Yeah.
 #[derive(Debug, Deserialize, Serialize)]

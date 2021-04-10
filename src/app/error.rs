@@ -2,6 +2,7 @@ use actix_web::{
   error::ResponseError,
   HttpResponse
 };
+use log::error;
 use serde::{Deserialize, Serialize};
 //use std::convert::From;
 use derive_more::Display;
@@ -66,6 +67,7 @@ impl ResponseError for Error {
 // module and a From trait to convert it into an 
 // InternalServerError from this module, would make the 
 // code shorter in handlers.rs.
-pub fn map_db_error<E: ToString>(err: E) -> Error {
+pub fn map_db_error<E: ToString + std::fmt::Debug>(err: E) -> Error {
+  error!("Database error occured {:?}", err);
   Error::DatabaseError(err.to_string())
 }

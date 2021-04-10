@@ -905,9 +905,9 @@ pub fn comments_from_to(
 // Uses SQLite fulltext search.
 // WARNING: The API endpoint or whatever is using the DB 
 // lib will have to clean the search terms up itself first.
-pub fn search_published_articles(
+pub fn search_published_articles<T: AsRef<str>>(
   pool: &Pool,
-  terms: &[&str]
+  terms: &[T]
 ) -> Result<Vec<Article>> {
   // Copy pasted the query from the old backend. It's probably suboptimal.
   // As other things are in here.
@@ -921,7 +921,13 @@ pub fn search_published_articles(
   select_many(
     pool,
     query,
-    params![terms.join(" ")],
+    params![
+      terms
+        .iter()
+        .map(AsRef::as_ref)
+        .collect::<Vec<&str>>()
+        .join(" ")
+    ],
     map_search_result
   )
 }

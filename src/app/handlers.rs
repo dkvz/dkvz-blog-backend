@@ -9,7 +9,7 @@ use std::convert::{From, TryInto};
 use crate::db::entities::*;
 use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};
-use crate::utils::time_utils;
+use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
 use log::{error, info};
 use super::dtos::*;
@@ -303,7 +303,7 @@ pub async fn import_article(
 // middleware too. It should be a toto item somwhere.
 pub async fn search_articles(
   app_state: web::Data<AppState>,
-  search_terms: web::Json<Vec<String>>
+  search_body: web::Json<SearchBody>
 ) -> Result<HttpResponse, Error> {
   // Do we need to sanitize the terms?
   // They're passed as prepared statement params, but we should
@@ -319,5 +319,28 @@ pub async fn search_articles(
     return Err(Error::TooManyRequests);
   }
 
-  Ok(HttpResponse::Ok().json(search_terms.into_inner()))
+  let sanitized = text_utils::sanitize_search_terms(
+    &search_body.include, 
+    MAX_SEARCH_TERMS
+  );
+  // Test that we still got search terms after sanitization!
+  if sanitized.is_empty() {
+    // It's not actually an error, just return nothing:
+    Ok(HttpResponse::Ok().json(Vec::<String>::new()))
+  } else {
+    let articles = db::search_published_articles(
+      &app_state.pool, 
+      &sanitized[..]
+    ).map_err(map_db_error)?;
+    // There is a max number of results per query fixed
+    // in the DB function (supposedly at 15).
+    Ok(
+      HttpResponse::Ok().json(
+       articles
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<SearchResult>>()
+      )
+    )
+  }  
 }
