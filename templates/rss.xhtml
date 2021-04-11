@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title>{{title}}</title>
+    <link>{{root}}</link>
+    <description>{{description}}</description>
+    <generator>{{root}}</generator>
+    <language>fr-FR</language>
+    <lastBuildDate>{{build_date}}</lastBuildDate>
+    <atom:link href="{{rss_full_url}}" rel="self" type="application/rss+xml"/>
+
+    <ul>
+    {{#each items}}
+    <li>{{this.title}}</li>
+    {{/each}}
+    </ul>
+
+  </channel>
+</rss>

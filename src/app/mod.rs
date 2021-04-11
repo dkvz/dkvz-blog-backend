@@ -3,6 +3,7 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
 use log::{debug, error, info};
+use handlebars::Handlebars;
 use rate_limiter::BasicRateLimiter;
 use article_import::ImportService;
 use std::sync::RwLock;
@@ -98,11 +99,19 @@ pub async fn run() -> Result<()> {
     config.message_queue_size
   )?;
 
-
   // Declare the import service, crash immediately 
   // if import directory is not writable:
   let import_service = ImportService::from(&config.import_path)
     .expect("Fatal: import directory is not writable");
+
+  // Delcare the template system, currently using 
+  // handlebars:
+  let mut handlebars = Handlebars::new();
+  handlebars
+    .register_templates_directory(".xhtml", &config.template_dir)
+    .expect("Fatal: templates directory might be missing or \
+      not accessible");
+  let handlebars_ref = web::Data::new(handlebars);
 
   // Got to save the bind_address for later because
   // we'll be destroying "config" by moving it into
@@ -128,6 +137,7 @@ pub async fn run() -> Result<()> {
   HttpServer::new(move|| {
     App::new()
       .app_data(app_state.clone())
+      .app_data(handlebars_ref.clone())
       .app_data(web::PathConfig::default().error_handler(|_, _| {
         // No idea how this works but it does:
         actix_web::error::ErrorBadRequest("Invalid path arguments")

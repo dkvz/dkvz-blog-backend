@@ -12,6 +12,8 @@ use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
 use log::{error, info};
+use serde_json::json;
+use handlebars::Handlebars;
 use super::dtos::*;
 use super::error::{Error, map_db_error};
 use super::AppState;
@@ -350,22 +352,33 @@ pub async fn search_articles(
 // or lock anything during requests for the RSS file.
 // A cronjob is doing it once or twice a day on my server.
 pub async fn rss(
-  app_state: web::Data<AppState>
+  app_state: web::Data<AppState>,
+  hb: web::Data<Handlebars<'_>>
 ) -> HttpResponse {
+  let data = json!({
+    "title": app_state.site_info.title,
+    "root": app_state.site_info.root,
+    "description": text_utils::escape_html(&app_state.site_info.description),
+    "build_date": "01/01/1970",
+    "rss_full_url": app_state.site_info.rss_full_url,
+    "items" : [
+      {
+        "title": "Test"
+      },
+      {
+        "title": "Another one"
+      }
+    ]
+  });
+
+  let body = hb.render("rss", &data).unwrap();
 
   // TODO I need something to transform relative URLs to 
   // absolute ones.
   // Also need to limit the size of article content and 
   // have an ellipsis + a link to the full thing at the end.
 
-  // TODO Don't forget to set the right content type!
-
-  // It would've been cool to stream the body, as the 
-  // XML builder lib can write to something that 
-  // implements the Write trait. However, Actix's way
-  // of streaming bodies is different... Because of
-  // async await I think. So we can't use Write.
-
   HttpResponse::Ok()
-    .body("hai")
+    .content_type("text-xml")
+    .body(body)
 }

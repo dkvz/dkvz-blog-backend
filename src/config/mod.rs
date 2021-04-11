@@ -17,6 +17,7 @@ pub struct Config {
   pub rl_max_requests_time: u32,
   pub rl_block_duration: u32,
   pub import_path: String,
+  pub template_dir: String,
   // Used to generate the RSS fields
   // and server-side-render articles:
   pub site_title: String,
@@ -76,6 +77,8 @@ impl Config {
     c.set_default("rl_block_duration", 60)?;
     // Default import path:
     c.set_default("import_path", "./import/")?;
+    // Default template directory:
+    c.set_default("template_dir", "./templates")?;
     // Default website URLs and OpenGraph etc.
     // config:
     c.set_default("site_title", "Blog des gens compliqués")?;
