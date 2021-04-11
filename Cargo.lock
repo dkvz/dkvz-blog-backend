@@ -656,6 +656,7 @@ dependencies = [
  "serde 1.0.118",
  "serde_json",
  "sha-1",
+ "simple-xml-builder",
  "tokio",
 ]
 
@@ -1948,6 +1949,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16f1d0fef1604ba8f7a073c7e701f213e056707210e9020af4528e0101ce11a6"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "simple-xml-builder"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a12a6dd16f84338edb4d53f8fb94a8acadc596ce866b5edc94b0b270b1c0c4"
+dependencies = [
+ "indexmap",
 ]
 
 [[package]]

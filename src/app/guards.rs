@@ -1,5 +1,5 @@
 use actix_web::{dev::RequestHead, guard::Guard};
-use log::warn;
+use log::{warn, error};
 
 // A guard will just cause the router to not match the
 // route and thus probably show a 404. What I'd need 
@@ -30,7 +30,11 @@ impl<T: AsRef<str>> Guard for IPRestrictedGuard<T> {
           false
         }
       },
-      None => false
+      None => {
+        error!("IPRestrictedGuard encountered a client with\
+         no IP address");
+        false
+      }
     }
   }
 }

@@ -15,7 +15,15 @@ pub struct Config {
   pub rl_max_requests: u32,
   pub rl_max_requests_time: u32,
   pub rl_block_duration: u32,
-  pub import_path: String
+  pub import_path: String,
+  // Used to generate the RSS fields
+  // and server-side-render articles:
+  pub site_title: String,
+  pub site_root: String,
+  pub site_rss_full_url: String,
+  pub site_articles_root: String,
+  pub site_shorts_root: String,
+  pub site_description: String
 }
 
 impl Config {
@@ -38,6 +46,14 @@ impl Config {
     c.set_default("rl_block_duration", 60)?;
     // Default import path:
     c.set_default("import_path", "./import/")?;
+    // Default website URLs and OpenGraph etc.
+    // config:
+    c.set_default("site_title", "Blog des gens compliqués")?;
+    c.set_default("site_root", "https://dkvz.eu")?;
+    c.set_default("site_rss_full_url", "https://dkvz.eu/rss.xml")?;
+    c.set_default("site_articles_root", "articles")?;
+    c.set_default("site_shorts_root", "breves")?;
+    c.set_default("site_description", "Blog bizarre d'un humble consultant en progress bars.")?;
 
     c.merge(config::Environment::default())?;
     // The error has to be given a context for 
