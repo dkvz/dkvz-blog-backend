@@ -372,3 +372,4 @@ We need both.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
 - [ ] I get the author name in full_article_mapper for every single article (old API does that too), I should add it to the actual query, possibly with a LEFT JOIN. I'm not sure that would even be faster though, especially with SQLite. Search function already includes fetching username in the query.
 - [ ] In article_import.rs, the whole loop in "files" that saves to DB should be a Tokio blocking task.
+- [ ] I learned so much about Rust working on this that I could probably review all the earlier parts of the code and make most of it better.

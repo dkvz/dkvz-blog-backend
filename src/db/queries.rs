@@ -10,11 +10,14 @@
 // None of this code is doing any escaping on its own.
 
 use std::fmt;
+use derive_more::Display;
 
 // Bunch of enums for query building:
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum Order {
+  #[display(fmt = "ASC")]
   Asc,
+  #[display(fmt = "DESC")]
   Desc
 }
 
@@ -147,12 +150,8 @@ impl<'a> Query<'a> {
     // We don't check if the query type actually
     // allows using ORDER BY.
     if let Some(order) = &self.q_order {
-      result.push_str(&format!("ORDER BY {} ", order.field));
       result.push_str(
-        match order.order {
-          Order::Asc => "ASC ",
-          Order::Desc => "DESC "
-        }
+        &format!("ORDER BY {} {} ", order.field, order.order)
       );
     }
     if let Some(lim) = &self.limit {
