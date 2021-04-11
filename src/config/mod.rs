@@ -2,6 +2,7 @@
 use eyre::WrapErr;
 use color_eyre::Result;
 use serde::Deserialize;
+use std::convert::From;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -24,6 +25,35 @@ pub struct Config {
   pub site_articles_root: String,
   pub site_shorts_root: String,
   pub site_description: String
+}
+
+// Looks redundant but I thought having another 
+// struct would be better than moving all of this
+// info around the app_state, especially since 
+// there could be sensible info in the config.
+pub struct SiteInfo {
+  pub title: String,
+  pub root: String,
+  pub rss_full_url: String,
+  pub articles_root: String,
+  pub shorts_root: String,
+  pub description: String
+}
+
+// I'm using From so that transforming into 
+// SiteInfo supposedely drops all of the other
+// into since a "move" is obligatory here.
+impl From<Config> for SiteInfo {
+  fn from(config: Config) -> Self {
+    Self {
+      title: config.site_title,
+      root: config.site_root,
+      rss_full_url: config.site_rss_full_url,
+      articles_root: config.site_articles_root,
+      shorts_root: config.site_shorts_root,
+      description: config.site_description
+    }
+  }
 }
 
 impl Config {

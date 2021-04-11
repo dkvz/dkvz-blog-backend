@@ -9,7 +9,7 @@ use std::sync::RwLock;
 // I think we have to add crate here because
 // of the other crate named "config" that we
 // use as a dependency.
-use crate::config::Config;
+use crate::config::{Config, SiteInfo};
 use crate::db::Pool;
 use crate::stats::StatsService;
 mod handlers;
@@ -30,7 +30,8 @@ pub struct AppState {
   pub pool: Pool,
   pub stats_service: StatsService,
   pub rate_limiter: RwLock<BasicRateLimiter>,
-  pub import_service: ImportService
+  pub import_service: ImportService,
+  pub site_info: SiteInfo
 }
 
 // This shouldn't be that weird I'm sorry. These functions
@@ -103,6 +104,11 @@ pub async fn run() -> Result<()> {
   let import_service = ImportService::from(&config.import_path)
     .expect("Fatal: import directory is not writable");
 
+  // Got to save the bind_address for later because
+  // we'll be destroying "config" by moving it into
+  // app_state as another struct called SiteInfo.
+  let bind_address = config.bind_address.clone();
+
   let app_state = web::Data::new(
     AppState {
       pool,
@@ -114,7 +120,8 @@ pub async fn run() -> Result<()> {
           config.rl_max_requests_time, 
           config.rl_block_duration
         )
-      )
+      ),
+      site_info: config.into()
     }
   );
   
@@ -132,7 +139,7 @@ pub async fn run() -> Result<()> {
       .configure(base_endpoints_config)
       .default_service(web::route().to(handlers::not_found))
   })
-  .bind(&config.bind_address)?
+  .bind(bind_address)?
   .run()
   .await
   .context("Start Actix web server")
