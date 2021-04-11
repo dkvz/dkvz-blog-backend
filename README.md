@@ -336,6 +336,14 @@ And the equivalent for query params: https://docs.rs/actix-web/3.3.2/actix_web/w
 
 We need both.
 
+## Template engine
+I thought of creating my own thingy but couldn't be bothered in the end, let's explore some template examples, starting with one using the handlebars library:
+https://github.com/actix/examples/tree/master/template_engines/handlebars
+
+But it's using JSON as the template data, which is weird... Seems to be the best template lib after I checked out the other ones though.
+
+
+
 # TODO
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.

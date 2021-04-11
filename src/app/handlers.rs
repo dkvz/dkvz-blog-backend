@@ -12,7 +12,6 @@ use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
 use log::{error, info};
-use simple_xml_builder::XMLElement;
 use super::dtos::*;
 use super::error::{Error, map_db_error};
 use super::AppState;
@@ -353,24 +352,11 @@ pub async fn search_articles(
 pub async fn rss(
   app_state: web::Data<AppState>
 ) -> HttpResponse {
-  // Starting with the root element:
-  let mut root = XMLElement::new("rss");
-  // I think it works with just version and none of these
-  // really weird namespaces, but I'm keeping it as it was
-  // on the Java app.
-  root.add_attribute("xmlns:atom", "http://www.w3.org/2005/Atom");
-  root.add_attribute("xmlns:media", "http://search.yahoo.com/mrss/");
-  root.add_attribute("version", "2.0");
-  let mut channel = XMLElement::new("channel");
-
 
   // TODO I need something to transform relative URLs to 
   // absolute ones.
   // Also need to limit the size of article content and 
   // have an ellipsis + a link to the full thing at the end.
-
-
-  root.add_child(channel);
 
   // TODO Don't forget to set the right content type!
 
@@ -380,5 +366,6 @@ pub async fn rss(
   // of streaming bodies is different... Because of
   // async await I think. So we can't use Write.
 
-  HttpResponse::Ok().body("It worked.")
+  HttpResponse::Ok()
+    .body("hai")
 }

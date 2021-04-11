@@ -29,4 +29,3 @@ regex = "1.4.3"
 lazy_static = "1.4.0"
 futures = { version = "0.3.*"}
 tokio = {version = "0.2.*", features = ["full"] }
-simple-xml-builder = "1.0.0"
