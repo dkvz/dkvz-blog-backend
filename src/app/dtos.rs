@@ -354,9 +354,11 @@ impl<'a> RssFeed<'a> {
     // Replace all the relative URLs with absolute ones.
     // I dabbled with making this return a Cow but I'm very
     // probably USING IT WRONG. Oh well.
-    let description = text_utils::relative_links_to_absolute(
-      &description, 
-      self.root
+    description = text_utils::escape_html(
+      text_utils::relative_links_to_absolute(
+        &description, 
+        self.root
+      )
     );
 
     self.items.push(
@@ -365,7 +367,7 @@ impl<'a> RssFeed<'a> {
         link,
         date: time_utils::current_datetime_rfc2822(),
         media,
-        description: description.to_string()
+        description
       }
     );
   }
