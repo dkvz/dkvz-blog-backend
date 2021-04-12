@@ -17,8 +17,9 @@ pub fn first_letter_to_upper(s1: String) -> String {
 // to replace in my case) so uh... Yeah let's do it ourselves.
 // This might copy the whole string twice, but I'm willing to
 // make the sacrifice at this point.
-pub fn escape_html(s: &str) -> String {
-  s.replace("<", "&lt;")
+pub fn escape_html<T: AsRef<str>>(s: T) -> String {
+  s.as_ref()
+    .replace("<", "&lt;")
     .replace(">", "&gt;")
 }
 
@@ -68,6 +69,28 @@ pub fn relative_links_to_absolute<'a>(
       format!("{}{}/{}\"", &caps[1], base_url, &caps[2])
     }
   )
+}
+
+// At some point I found out the truncate method on Strings
+// is actually very unsafe as it can make everything panic
+// if cutting an unfinished unicode character.
+// So we need the horror that unfolds down there.
+// Careful that "maxsize" is still in bytes here, check out
+// my test below.
+// Stole the code from here: 
+// https://gist.github.com/dginev/f6da5e94335d545e0a7b
+pub fn truncate_utf8(input : &mut String, maxsize: usize) {
+  let mut utf8_maxsize = input.len();
+  if utf8_maxsize >= maxsize {
+    { let mut char_iter = input.char_indices();
+    while utf8_maxsize >= maxsize {
+      utf8_maxsize = match char_iter.next_back() {
+        Some((index, _)) => index,
+        _ => 0
+      };
+    } } // Extra {} wrap to limit the immutable borrow of char_indices()
+    input.truncate(utf8_maxsize);
+  }
 }
 
 #[cfg(test)]
@@ -151,6 +174,16 @@ mod tests {
       awesome article</a>Some more text";
 
     assert_eq!(sut, relative_links_to_absolute(sut, "https://dkvz.eu"));
+  }
+
+  #[test]
+  fn truncate_utf8_simple() {
+    let mut sut = String::from("just a string éé that's a little too long");
+    truncate_utf8(&mut sut, 17);
+    assert_eq!(
+      "just a string é",
+      sut
+    );
   }
 
 }

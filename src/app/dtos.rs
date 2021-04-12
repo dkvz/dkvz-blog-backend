@@ -289,19 +289,85 @@ pub struct RssFeed<'a> {
   pub description: String,
   pub build_date: String,
   pub rss_full_url: &'a str,
-  pub items: Vec<RssFeedEntry>
+  pub items: Vec<RssFeedEntry>,
+  max_rss_length: usize
 }
 
 impl<'a> RssFeed<'a> {
-  pub fn new(site_info: &'a SiteInfo) -> Self {
+  pub fn new(site_info: &'a SiteInfo, max_rss_length: usize) -> Self {
     Self {
       title: &site_info.title,
       root: &site_info.root,
       description: text_utils::escape_html(&site_info.description),
       build_date: time_utils::current_datetime_rfc2822(),
       rss_full_url: &site_info.rss_full_url,
-      items: Vec::new()
+      items: Vec::new(),
+      max_rss_length
     }
+  }
+
+  // We want to move the Article in there, it shouldn't
+  // be used afterwards. Hoping to save some memory this
+  // way but I have no idea if it actually does.
+  pub fn add_item(&mut self, article: Article) {
+    // Create the link by checking if it's a short or not:
+    let link = match article.short {
+      1 => format!("{}/{}", self.root, article.id),
+      _ => format!(
+        "{}/{}", 
+        self.root, 
+        article.article_url.unwrap_or(article.id.to_string())
+      )
+    };
+    let media = article.thumb_image
+      .map(|url| {
+        // Check if we have to add a "/" or not:
+        match url.find('/') {
+          Some(0) => format!("{}{}", self.root, url),
+          _ => if url.find("://").is_none() {
+            format!("{}/{}", self.root, url)
+          } else {
+            // URL appears to not be relative.
+            url
+          }
+        }
+      });
+    // Check if description is smaller than the max allowed size
+    // for descriptions in the RSS feed:
+    let mut description = article.content.unwrap_or(article.summary);
+    // We could use truncate but it can panic if the truncate point
+    // is in between two or more bytes of the same char.
+    // This is due to Rust not using chars but bytes at the core.
+    // len() actually reports the byte size too, but I don't care, 
+    // I consider the resize once a certain byte size is reached:
+    if description.len() > self.max_rss_length {
+      description = description
+        .chars()
+        .take(self.max_rss_length)
+        .collect();
+      // Push the extra text with the full article link:
+      description.push_str(&format!(
+        "...<p><b><a href=\"{}\">Suite disponible sur le site</a></b></p>",
+        link
+      ));
+    }
+    // Replace all the relative URLs with absolute ones.
+    // I dabbled with making this return a Cow but I'm very
+    // probably USING IT WRONG. Oh well.
+    let description = text_utils::relative_links_to_absolute(
+      &description, 
+      self.root
+    );
+
+    self.items.push(
+      RssFeedEntry {
+        title: text_utils::escape_html(article.title),
+        link,
+        date: time_utils::current_datetime_rfc2822(),
+        media,
+        description: description.to_string()
+      }
+    );
   }
 }
 
@@ -365,7 +431,7 @@ mod tests {
     };
     let article: Article = sut.into();
     assert_eq!(article.thumb_image, None);
-  }
+  } 
 
   /*
   let article = ArticleDto {

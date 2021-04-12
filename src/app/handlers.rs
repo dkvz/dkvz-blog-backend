@@ -1,6 +1,5 @@
 use actix_web::{
   web, 
-  HttpServer, 
   HttpResponse, 
   HttpRequest, 
   Result
@@ -12,7 +11,6 @@ use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
 use log::{error, info};
-use serde_json::json;
 use handlebars::Handlebars;
 use super::dtos::*;
 use super::error::{Error, map_db_error};
@@ -24,7 +22,7 @@ use super::helpers;
 const MAX_ARTICLES: usize = 30;
 const MAX_COMMENT_LENGTH: usize = 2000;
 const MAX_AUTHOR_LENGTH: usize = 70;
-	// Max length of article content in RSS descriptions:
+// Max length of article content in RSS descriptions:
 const MAX_RSS_LENGTH: usize = 2500;
 // Max amount of search tersm to process:
 const MAX_SEARCH_TERMS: usize = 10;
@@ -238,8 +236,14 @@ pub async fn post_comment(
 
   // Limit length of body and author, and check if trimmed author 
   // is not empty.
-  comment_form.comment.truncate(MAX_COMMENT_LENGTH);
-  comment_form.author.truncate(MAX_AUTHOR_LENGTH);
+  // I was using truncate at first but it can panic when cutting
+  // a multibyte unicode char in half.
+  // I actually use a different technique in dtos::RssFeed::add_item.
+  //comment_form.comment.truncate(MAX_COMMENT_LENGTH);
+  //comment_form.author.truncate(MAX_AUTHOR_LENGTH);
+  text_utils::truncate_utf8(&mut comment_form.comment, MAX_COMMENT_LENGTH);
+  text_utils::truncate_utf8(&mut comment_form.author, MAX_AUTHOR_LENGTH);
+
   let author = comment_form.author.trim().to_string();
   if author.is_empty() || comment_form.comment.is_empty() {
     return Err(Error::BadRequest(
@@ -359,25 +363,28 @@ pub async fn rss(
   // the data to give to handlebars. But it can be anything
   // that implements Serialize from Serde. I created a struct
   // in the dtos module to serve as the full RSS data model.
-  let mut data = RssFeed::new(&app_state.site_info);
-  data.items.push(
-    RssFeedEntry {
-      title: String::from("Test title"),
-      link: String::from("test link"),
-      date: String::from("the data"),
-      media: None,
-      description: String::from("COOL")
-    }
-  );
+  let mut data = RssFeed::new(&app_state.site_info, MAX_RSS_LENGTH);
 
-  // TODO I got imports to cleanup above.
+  // Get all the articles one by one by first fetching all
+  // of their IDs. I'm doing this hoping the articles will
+  // get dropped at each iteration, freeing "some" memory.
+  // We ignore DB errors here and just output an empty RSS
+  // file if an error happened.
+  // I don't limit the amount of articles in the feed, this
+  // could eventually get too big.
+  if let Ok(ids) = db::all_published_article_and_shorts_ids(
+    &app_state.pool, 
+    db::Order::Desc
+  ) {
+    for id in ids {
+      // Fetch the article:
+      if let Ok(Some(article)) = db::article_by_id(&app_state.pool, id) {
+        data.add_item(article);
+      }
+    }
+  }
 
   let body = hb.render("rss", &data).unwrap();
-
-  // TODO I need something to transform relative URLs to 
-  // absolute ones.
-  // Also need to limit the size of article content and 
-  // have an ellipsis + a link to the full thing at the end.
 
   HttpResponse::Ok()
     .content_type("text-xml")
