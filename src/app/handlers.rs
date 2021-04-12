@@ -355,24 +355,22 @@ pub async fn rss(
   app_state: web::Data<AppState>,
   hb: web::Data<Handlebars<'_>>
 ) -> HttpResponse {
-  let data = json!({
-    "title": app_state.site_info.title,
-    "root": app_state.site_info.root,
-    "description": text_utils::escape_html(&app_state.site_info.description),
-    // Supposed to look like this according to Wikipedia:
-    // Sun, 06 Sep 2009 16:20:00 +0000
-    // Which I'm pretty sure is rfc2822.
-    "build_date": time_utils::current_datetime_rfc2822(),
-    "rss_full_url": app_state.site_info.rss_full_url,
-    "items" : [
-      {
-        "title": "Test"
-      },
-      {
-        "title": "Another one"
-      }
-    ]
-  });
+  // In the examples they use the json! macro to create
+  // the data to give to handlebars. But it can be anything
+  // that implements Serialize from Serde. I created a struct
+  // in the dtos module to serve as the full RSS data model.
+  let mut data = RssFeed::new(&app_state.site_info);
+  data.items.push(
+    RssFeedEntry {
+      title: String::from("Test title"),
+      link: String::from("test link"),
+      date: String::from("the data"),
+      media: None,
+      description: String::from("COOL")
+    }
+  );
+
+  // TODO I got imports to cleanup above.
 
   let body = hb.render("rss", &data).unwrap();
 

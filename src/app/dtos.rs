@@ -1,7 +1,13 @@
 use serde::{Deserialize, Serialize};
 use derive_more::Display;
 use crate::db::entities::*;
-use crate::utils::{self, time_utils, serde_utils};
+use crate::utils::{
+  self, 
+  time_utils, 
+  serde_utils,
+  text_utils
+};
+use crate::config::SiteInfo;
 
 // I'm going to use the From trait to convert
 // entites to DTOs and test that.
@@ -270,6 +276,42 @@ impl JsonStatus {
       id: Some(id)
     }
   }
+}
+
+// Following stuct is used by the template
+// engine to generate the RSS feed file.
+// Using &str in there just because I 
+// wanted to see if it'd work.
+#[derive(Serialize)]
+pub struct RssFeed<'a> {
+  pub title: &'a str,
+  pub root: &'a str,
+  pub description: String,
+  pub build_date: String,
+  pub rss_full_url: &'a str,
+  pub items: Vec<RssFeedEntry>
+}
+
+impl<'a> RssFeed<'a> {
+  pub fn new(site_info: &'a SiteInfo) -> Self {
+    Self {
+      title: &site_info.title,
+      root: &site_info.root,
+      description: text_utils::escape_html(&site_info.description),
+      build_date: time_utils::current_datetime_rfc2822(),
+      rss_full_url: &site_info.rss_full_url,
+      items: Vec::new()
+    }
+  }
+}
+
+#[derive(Serialize)]
+pub struct RssFeedEntry {
+  pub title: String,
+  pub link: String,
+  pub date: String,
+  pub media: Option<String>,
+  pub description: String
 }
 
 #[cfg(test)]
