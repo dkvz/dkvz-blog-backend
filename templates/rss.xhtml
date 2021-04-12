@@ -8,12 +8,17 @@
     <language>fr-FR</language>
     <lastBuildDate>{{build_date}}</lastBuildDate>
     <atom:link href="{{rss_full_url}}" rel="self" type="application/rss+xml"/>
-
-    <ul>
     {{#each items}}
-    <li>{{this.title}}</li>
+    <item>
+      <title>{{this.title}}</title>
+      <link>{{this.link}}</link>
+      <pubDate>{{this.date}}</pubDate>
+      <guid>{{this.link}}</guid>
+      {{#if this.media}}
+      <media:thumbnail url="{{this.media}}"/>
+      {{/if}}
+      <description>{{this.description}}</description>
+    </item>
     {{/each}}
-    </ul>
-
   </channel>
 </rss>

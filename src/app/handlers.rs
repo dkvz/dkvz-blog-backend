@@ -359,7 +359,10 @@ pub async fn rss(
     "title": app_state.site_info.title,
     "root": app_state.site_info.root,
     "description": text_utils::escape_html(&app_state.site_info.description),
-    "build_date": "01/01/1970",
+    // Supposed to look like this according to Wikipedia:
+    // Sun, 06 Sep 2009 16:20:00 +0000
+    // Which I'm pretty sure is rfc2822.
+    "build_date": time_utils::current_datetime_rfc2822(),
     "rss_full_url": app_state.site_info.rss_full_url,
     "items" : [
       {

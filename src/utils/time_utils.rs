@@ -15,6 +15,10 @@ pub fn current_timestamp() -> i64 {
   Local::now().timestamp()
 }
 
+pub fn current_datetime_rfc2822() -> String {
+  Local::now().to_rfc2822()
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
