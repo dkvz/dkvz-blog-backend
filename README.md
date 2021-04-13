@@ -363,7 +363,8 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] DB errors should be their own custom error type so that I could very easily have a From trait for app::error::Error to convert them into that.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
-- [ ] I think I can use some AsRef thingy instead of String or &str in many places like in app/error.rs (also in the constructors for dtos::JsonStatus for instance), to test
+- [ ] I think I can use some AsRef thingy instead of String or &str in many places like in app/error.rs in the enum and more (also in the constructors for dtos::JsonStatus for instance), to test
+- [ ] Triple check that comments have escaped HTML (for author and content).
 - [x] What happens if you request a negative article ID? -> 404.
 - [ ] I need da CORS. 
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?

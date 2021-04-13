@@ -358,7 +358,7 @@ pub async fn search_articles(
 pub async fn rss(
   app_state: web::Data<AppState>,
   hb: web::Data<Handlebars<'_>>
-) -> HttpResponse {
+) -> Result<HttpResponse, Error> {
   // In the examples they use the json! macro to create
   // the data to give to handlebars. But it can be anything
   // that implements Serialize from Serde. I created a struct
@@ -384,9 +384,15 @@ pub async fn rss(
     }
   }
 
-  let body = hb.render("rss", &data).unwrap();
+  let body = hb.render("rss", &data)
+    .map_err(|e| {
+      error!("A template engine error occued when rendering RSS: {}", e);
+      Error::InternalServerError("Template engine error".to_string())
+    })?;
 
-  HttpResponse::Ok()
+  Ok(
+    HttpResponse::Ok()
     .content_type("application/xml")
     .body(body)
+  )
 }
