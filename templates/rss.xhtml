@@ -17,7 +17,7 @@
       {{#if this.media}}
       <media:thumbnail url="{{this.media}}"/>
       {{/if}}
-      <description>{{this.description}}</description>
+      <description><![CDATA[{{{this.description}}}]]></description>
     </item>
     {{/each}}
   </channel>

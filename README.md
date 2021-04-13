@@ -385,3 +385,13 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] I should really learn to use Cow<str>, looks like they key to have incredibly memory efficient yet complex string operations.
 - [ ] In article_import.rs, the whole loop in "files" that saves to DB should be a Tokio blocking task.
 - [ ] I learned so much about Rust working on this that I could probably review all the earlier parts of the code and make most of it better.
+- [ ] Add an image to the RSS feed: 
+```xml
+<image>
+  <url>
+  https://...
+  </url>
+  <title>Blog des gens compliqués</title>
+  <link>https://dkvz.eu</link>
+</image>
+```

@@ -244,7 +244,7 @@ pub async fn post_comment(
   text_utils::truncate_utf8(&mut comment_form.comment, MAX_COMMENT_LENGTH);
   text_utils::truncate_utf8(&mut comment_form.author, MAX_AUTHOR_LENGTH);
 
-  let author = comment_form.author.trim().to_string();
+  let author = text_utils::escape_html(comment_form.author.trim());
   if author.is_empty() || comment_form.comment.is_empty() {
     return Err(Error::BadRequest(
       String::from("Author or message body cannot be empty")
@@ -263,7 +263,7 @@ pub async fn post_comment(
     article_id,
     id: -1,
     author,
-    comment: comment_form.comment.clone(),
+    comment: text_utils::escape_html(&comment_form.comment),
     date: time_utils::current_timestamp(),
     client_ip: helpers::real_ip_addr(&req)
       .map(|ip| ip.to_string())
@@ -387,6 +387,6 @@ pub async fn rss(
   let body = hb.render("rss", &data).unwrap();
 
   HttpResponse::Ok()
-    .content_type("text-xml")
+    .content_type("application/xml")
     .body(body)
 }

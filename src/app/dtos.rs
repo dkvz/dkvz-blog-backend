@@ -286,7 +286,7 @@ impl JsonStatus {
 pub struct RssFeed<'a> {
   pub title: &'a str,
   pub root: &'a str,
-  pub description: String,
+  pub description: &'a str,
   pub build_date: String,
   pub rss_full_url: &'a str,
   pub items: Vec<RssFeedEntry>,
@@ -298,7 +298,7 @@ impl<'a> RssFeed<'a> {
     Self {
       title: &site_info.title,
       root: &site_info.root,
-      description: text_utils::escape_html(&site_info.description),
+      description: &site_info.description,
       build_date: time_utils::current_datetime_rfc2822(),
       rss_full_url: &site_info.rss_full_url,
       items: Vec::new(),
@@ -352,22 +352,22 @@ impl<'a> RssFeed<'a> {
       ));
     }
     // Replace all the relative URLs with absolute ones.
-    // I dabbled with making this return a Cow but I'm very
-    // probably USING IT WRONG. Oh well.
-    description = text_utils::escape_html(
-      text_utils::relative_links_to_absolute(
-        &description, 
-        self.root
-      )
+    // We also used to escape HTML entities here, but not
+    // only handlebars can do it, but also I'm putting the
+    // content in a CDATA block and so it should absolutely
+    // not be escaped in any way.
+    let description = text_utils::relative_links_to_absolute(
+      &description, 
+      self.root
     );
 
     self.items.push(
       RssFeedEntry {
-        title: text_utils::escape_html(article.title),
+        title: article.title,
         link,
         date: time_utils::current_datetime_rfc2822(),
         media,
-        description
+        description: description.to_string()
       }
     );
   }
