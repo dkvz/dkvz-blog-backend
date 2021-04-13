@@ -17,6 +17,10 @@ use super::error::{Error, map_db_error};
 use super::AppState;
 use super::helpers;
 
+// Module with all the API handler functions.
+// Should probably be split into a directory 
+// with multiple files grouping handlers together.
+
 // Few constants I don't know where to put. They 
 // don't really qualify for the config file:
 const MAX_ARTICLES: usize = 30;

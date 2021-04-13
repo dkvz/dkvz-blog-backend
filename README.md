@@ -206,7 +206,9 @@ Outputs the full RSS feed as XML, all published articles in descending order.
 ## /gimme-sitemap - GET
 Returns the sitemap as "application/xml" MIME type. No CORS required.
 
-Gets all the articles and shorts. Used to post all the articles first then all the shorts.
+Used to be publicly available but I think I'm going to put it being the same guard as the /rss endpoint.
+
+Gets all the articles and shorts. Used to post all the articles first then all the shorts. We can probably request everything in descending order.
 
 Query string parameters:
 * articlesRoot - Defaults to "dkvz.eu/articles" - Absolute article URLs are created from it.
@@ -221,7 +223,7 @@ Rebuilds the fulltext index completely.
 ## /render-article/{articleUrl} - GET
 Renders a barebones version of the full article page in HTML for search engines. Doesn't need any CORS.
 
-Will require setting up templating of some sort. I might put an example in resources later on - Previous backend was using a Thymeleaf template, maybe we can reuse it?
+Will require a template, I leave it ultra barebones to make it faster, could add some minimal styles this time around.
 
 ## Database
 Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
