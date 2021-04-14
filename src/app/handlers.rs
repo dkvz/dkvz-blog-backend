@@ -24,6 +24,7 @@ use super::helpers;
 // Few constants I don't know where to put. They 
 // don't really qualify for the config file:
 const MAX_ARTICLES: usize = 30;
+const MAX_COMMENTS: usize = 30;
 const MAX_COMMENT_LENGTH: usize = 2000;
 const MAX_AUTHOR_LENGTH: usize = 70;
 // Max length of article content in RSS descriptions:
@@ -38,6 +39,12 @@ pub struct ArticlesQuery {
   pub max: Option<usize>,
   pub tags: Option<String>,
   pub order: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CommentsQuery {
+  pub max: Option<usize>,
+  pub start: Option<usize>
 }
 
 #[derive(Deserialize)]
@@ -399,4 +406,32 @@ pub async fn rss(
     .content_type("application/xml")
     .body(body)
   )
+}
+
+pub async fn comments_starting_from(
+  app_state: web::Data<AppState>,
+  path: web::Path<(String,)>,
+  query: web::Query<CommentsQuery>
+) -> Result<HttpResponse, Error> {
+  let article_url = path.into_inner().0;
+  let start = query.start.unwrap_or_default();
+  let max = query.max
+    .map(|m| if m > 50 { 50 } else { m })
+    .unwrap_or(MAX_COMMENTS);
+
+  // Check if we got an article ID or if we need
+  // to get it from the database:
+  let article_id = match article_url.parse::<i32>() {
+    Ok(article_id) => article_id,
+    Err(_) => {
+      // Try to find the ID in database:
+      match db::article_id_by_url(&app_state.pool, &article_url) {
+        Ok(Some(id)) => id,
+        // I just don't care about errors here.
+        _ => -1
+      }  
+    }
+  };
+
+  Err(Error::NotFound("Nothing here".to_string()))
 }

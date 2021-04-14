@@ -201,6 +201,36 @@ Only works for a set of allowed IP addresses or returns a forbidden exception.
 
 Outputs the full RSS feed as XML, all published articles in descending order.
 
+## /comments-starting-from/{articleUrl}
+Where {articleUrl} can also be an article ID.
+
+Query arguments:
+* start - Default 0, where to start looking for comments (made for infinite scrolling);
+* max - Default 30, max amount of comments to get per request. Can't be set higher than 50, becomes 50 if you try.
+
+Gets the comment count first for that article then checks if start is greater or equal to that, in which case you get a 404, meaning requesting start 0 for an article with no comments will yield a 404.
+
+Doesn't actually care if the provided article URL or ID matches anything, if comment count is 0, you get a 404.
+
+Format for response otherwise:
+```json
+[
+  {
+    "date": "17/12/2019 09:07:36+0100",
+    "author": "Someone",
+    "comment": "Comment content",
+    "id": "68"
+  },
+  {
+    "date": "18/12/2019 12:37:48+0100",
+    "author": "DkVZ",
+    "comment": "I agree",
+    "id": "69"
+  }
+]
+```
+Where "id" is the comment ID in database.
+
 ## /gimme-sitemap - GET
 Returns the sitemap as "application/xml" MIME type. No CORS required.
 
@@ -365,7 +395,8 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] I think I can use some AsRef thingy instead of String or &str in many places like in app/error.rs in the enum and more (also in the constructors for dtos::JsonStatus for instance), to test
 - [ ] Triple check that comments have escaped HTML (for author and content).
 - [x] What happens if you request a negative article ID? -> 404.
-- [ ] I need da CORS. 
+- [ ] I need da CORS.
+- [ ] There are some places where I could probably combine match statements into something like Ok(Some(variable)) and get a clearer flow (if let is kinda crap).
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
 - [x] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type: text/plain; charset=utf-8".
