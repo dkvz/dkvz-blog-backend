@@ -56,7 +56,8 @@ impl From<Article> for ArticleDto {
 #[serde(rename_all = "camelCase")]
 pub struct CommentDto {
   pub id: i32,
-  pub article_id: i32,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub article_id: Option<i32>,
   pub author: String,
   pub comment: String,
   pub date: String
@@ -66,11 +67,23 @@ impl From<Comment> for CommentDto {
   fn from(comment: Comment) -> Self {
     Self {
       id: comment.id,
-      article_id: comment.article_id,
+      article_id: Some(comment.article_id),
       author: comment.author,
       comment: comment.comment,
       date: time_utils::timestamp_to_date_string(comment.date)
     }
+  }
+}
+
+// At some point I decided it would be nice to save
+// some bytes when sending the list of comments for
+// an article and so I removed article_id. I don't
+// know why I bothered but that's the story of my 
+// life.
+impl CommentDto {
+  pub fn remove_article_id(mut self) -> Self {
+    self.article_id = None;
+    self
   }
 }
 

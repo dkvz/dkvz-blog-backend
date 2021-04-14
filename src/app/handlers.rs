@@ -433,5 +433,36 @@ pub async fn comments_starting_from(
     }
   };
 
-  Err(Error::NotFound("Nothing here".to_string()))
+  // Get the comment count for that article:
+  let count = db::comment_count(
+    &app_state.pool, 
+    article_id
+  )
+    .map_err(map_db_error)?
+    // Convert the i64 to usize:
+    .try_into()
+    // Handle the case where it can't be converted - Should never happen.
+    .map_err(|_| {
+      error!("Article count from db::article_count could not be converted to usize");
+      Error::InternalServerError(
+        String::from("Article count cannot be converted to usize - Should never happen")
+      )
+    })?;
+  // If start is >= count, respond with 404.
+  if start >= count {
+    Err(Error::NotFound(String::from("No comments found")))
+  } else {
+    let comments: Vec<CommentDto> = db::comments_from_to(
+      &app_state.pool, 
+      start, 
+      max, 
+      article_id
+    )
+      .map_err(map_db_error)?
+      .into_iter()
+      .map(|c| CommentDto::from(c).remove_article_id())
+      .collect();
+
+    Ok(HttpResponse::Ok().json(comments))
+  }
 }
