@@ -86,7 +86,7 @@ pub struct ImportService {
 
 impl ImportService {
 
-  pub fn from(
+  pub fn open(
     path: &str
   ) -> Result<Self, io::Error> {
     // We have to check if the directory is writable.

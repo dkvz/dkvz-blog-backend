@@ -101,7 +101,7 @@ pub async fn run() -> Result<()> {
 
   // Declare the import service, crash immediately 
   // if import directory is not writable:
-  let import_service = ImportService::from(&config.import_path)
+  let import_service = ImportService::open(&config.import_path)
     .expect("Fatal: import directory is not writable");
 
   // Delcare the template system, currently using 
