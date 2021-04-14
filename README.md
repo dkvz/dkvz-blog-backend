@@ -3,9 +3,7 @@ Thought it was time to ditch Java and try something more efficient for a small s
 
 I still don't know how to Rust very well.
 
-Database is probably missing until I decide to upload an empty one.
-
-Using **eyre** instead of **failure** for errors and stuff.
+There possible are a few hardcoded things in french related to my blog here and there (one of them in the RSS feed generation).
 
 # Endpoints
 I think I never really documented them. Now is probably a good time.
@@ -86,7 +84,7 @@ Responds with a list of posts with no "content" field when compared to the /arti
 
 Responds with a 404 when requested starting point (referred to as "start") is past the article count for that request (takes tags into account). The endpoint actually queries for the article count internally before responding.
 
-# /shorts-starting-from/{start} - GET
+## /shorts-starting-from/{start} - GET
 Same as the previous endpoint but fetches shorts. Result list also has the "content" field in this case.
 
 ## /comments - POST
@@ -355,8 +353,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
 - [x] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
-- [ ] Handlebars automatically escapes HTML entities, I have to tell it not to!
-- [ ] Is the order of articles correct in the RSS feed?
+- [ ] Forgot to code the endpoint to get comments for an article.
 - [ ] Not related to the backend itself but I really need to remove all those TODO HTML comments from the database content fields.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
@@ -378,7 +375,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
 - [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
-- [ ] To re-test: article insertion, article update, rebuilding fulltext index entirely.
+- [ ] To re-test: rebuilding fulltext index entirely.
 - [ ] Test all the comment DB functions.
 - [ ] I need a specific "entity" for search results. Or not? Maybe not, you can choose to not serialize a field when it's None.
 - [x] Create a limited length fixture instead of the full wordlist.

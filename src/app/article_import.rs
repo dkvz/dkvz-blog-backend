@@ -338,10 +338,6 @@ impl ImportService {
     }
   }
 
-  fn lock(&self) {
-    self.is_import_locked.store(true, atomic::Ordering::SeqCst);
-  }
-
   fn unlock(&self) {
     self.is_import_locked.store(false, atomic::Ordering::SeqCst);
   }
