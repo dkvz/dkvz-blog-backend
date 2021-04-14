@@ -466,3 +466,11 @@ pub async fn comments_starting_from(
     Ok(HttpResponse::Ok().json(comments))
   }
 }
+
+pub async fn sitemap(
+  app_state: web::Data<AppState>,
+  hb: web::Data<Handlebars<'_>>
+) -> Result<HttpResponse, Error> {
+
+  Err(Error::NotFound("Not implemented yet".to_string()))
+}

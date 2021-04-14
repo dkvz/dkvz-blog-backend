@@ -238,8 +238,7 @@ Used to be publicly available but I think I'm going to put it being the same gua
 
 Gets all the articles and shorts. Used to post all the articles first then all the shorts. We can probably request everything in descending order.
 
-Query string parameters:
-* articlesRoot - Defaults to "dkvz.eu/articles" - Absolute article URLs are created from it.
+Used to have a query param for the articles root (website root + /articles) but I have that in my config now and I wasn't even using it anyway. So that's gone now.
 
 ## /rebuild-indexes - GET
 Only works for a set of allowed IP addresses or returns a forbidden exception.

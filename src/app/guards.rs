@@ -5,6 +5,7 @@ use log::{warn, error};
 // route and thus probably show a 404. What I'd need 
 // would be a middleware and not a guard. But it does
 // the trick anyway.
+#[derive(Clone)]
 pub struct IPRestrictedGuard<T: 'static + AsRef<str>> {
   allowed_ip_addresses: &'static [T]
 }
