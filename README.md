@@ -243,9 +243,11 @@ Used to have a query param for the articles root (website root + /articles) but 
 ## /rebuild-indexes - GET
 Only works for a set of allowed IP addresses or returns a forbidden exception.
 
-Supposed to set a lock so that you can't run two of these at the same time.
+Supposed to set a lock so that you can't run two of these at the same time. Uses the same lock as the import service (rebuilding indexes is technically part of the import service).
 
-Rebuilds the fulltext index completely.
+Rebuilds the fulltext index completely (tears it down first).
+
+Responds with a JSON success status object with a single field "count" with the number of articles rebuilt.
 
 ## /render-article/{articleUrl} - GET
 Renders a barebones version of the full article page in HTML for search engines. Doesn't need any CORS.
