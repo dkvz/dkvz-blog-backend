@@ -987,7 +987,7 @@ pub fn insert_article_stat(
 // Created this to not have to load every single article ever
 // in memory when browsing all articles to create the RSS feed.
 // Yeah I don't know why I bother but that's me.
-pub fn all_published_article_and_shorts_ids(
+pub fn all_published_articles_and_shorts_ids(
   pool: &Pool,
   order: Order
 ) -> Result<Vec<i32>> {
@@ -1000,6 +1000,28 @@ pub fn all_published_article_and_shorts_ids(
     |r| {
       let id: i32 = r.get(0)?;
       Ok(id)
+    }
+  )
+}
+
+// Returns a Vec of either the article_url part or the id
+pub fn all_published_articles_and_shorts_urls(
+  pool: &Pool,
+) -> Result<Vec<String>> {
+  let query = format!("SELECT id, article_url \
+   FROM articles WHERE published = 1 ORDER BY id DESC");
+  select_many(
+    pool,
+    &query,
+    NO_PARAMS,
+    |r| {
+      let id: i32 = r.get(0)?;
+      let url: Option<String> = r.get(1)?;
+      let computed_url = match url {
+        Some(url) => url,
+        None => id.to_string()
+      };
+      Ok(computed_url)
     }
   )
 }

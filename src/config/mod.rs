@@ -82,6 +82,7 @@ impl Config {
     // Default website URLs and OpenGraph etc.
     // config:
     c.set_default("site_title", "Blog des gens compliqués")?;
+    // Should never have a trailing slash or THINGS WILL BREAK.
     c.set_default("site_root", "https://dkvz.eu")?;
     c.set_default("site_rss_full_url", "https://dkvz.eu/rss.xml")?;
     c.set_default("site_articles_root", "articles")?;

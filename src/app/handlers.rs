@@ -10,6 +10,7 @@ use crate::db;
 use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use log::{error, info};
 use handlebars::Handlebars;
 use super::dtos::*;
@@ -383,7 +384,7 @@ pub async fn rss(
   // file if an error happened.
   // I don't limit the amount of articles in the feed, this
   // could eventually get too big.
-  if let Ok(ids) = db::all_published_article_and_shorts_ids(
+  if let Ok(ids) = db::all_published_articles_and_shorts_ids(
     &app_state.pool, 
     db::Order::Desc
   ) {
@@ -460,6 +461,9 @@ pub async fn comments_starting_from(
     )
       .map_err(map_db_error)?
       .into_iter()
+      // I'm removing the article ID from the comments because uh...
+      // I don't need it and that spares like 50 bytes for the response. 
+      // I'm weird.
       .map(|c| CommentDto::from(c).remove_article_id())
       .collect();
 
@@ -471,6 +475,29 @@ pub async fn sitemap(
   app_state: web::Data<AppState>,
   hb: web::Data<Handlebars<'_>>
 ) -> Result<HttpResponse, Error> {
+  // This endpoint doesn't show an error on database
+  // errors, it just displays an empty sitemap.
+  let urls: Vec<String> = 
+    db::all_published_articles_and_shorts_urls(&app_state.pool)
+    .unwrap_or(Vec::new())
+    .into_iter()
+    .map(|u| format!("{}/{}", app_state.site_info.root, u))
+    .collect();
+  
+  // Let's try creating the template data with the json!
+  // macro this time around.
+  let data = json!({"items": urls});
 
-  Err(Error::NotFound("Not implemented yet".to_string()))
+  let body = hb.render("sitemap", &data)
+    .map_err(|e| {
+      error!("A template engine error occued when rendering \
+        sitemap: {}", e);
+      Error::InternalServerError("Template engine error".to_string())
+    })?;
+
+  Ok(
+    HttpResponse::Ok()
+    .content_type("application/xml")
+    .body(body)
+  )
 }
