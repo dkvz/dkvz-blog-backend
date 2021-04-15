@@ -120,16 +120,27 @@ impl ImportService {
     // Lock for import otherwise.
     if self.check_lock_set_if_unlocked() {
       warn!("An import was attempted while the import service is locked");
-      return Err(
-        JsonStatus::new(
-          JsonStatusType::Error, 
-          "An import is already in progress"
-        )
-      );
+      return Err(locked_status_message());
     }
     let result = self.import_articles_no_lock(pool).await;
     self.unlock();
     result
+  }
+
+  // The way to fully rebuild the fulltext index has 
+  // been tacked on to the import service. It shares 
+  // the same lock, so, makes sense. I guess.
+  pub async fn rebuild_indexes(
+    &self,
+    pool: &Pool
+  ) -> Result<JsonStatus, JsonStatus> {
+    if self.check_lock_set_if_unlocked() {
+      warn!("Index rebuild requested while the import service is locked");
+      return Err(locked_status_message());
+    }
+    
+    self.unlock();
+    Ok(JsonStatus::new(JsonStatusType::Success, "Working on it"))
   }
 
   async fn import_articles_no_lock(
@@ -399,6 +410,13 @@ impl ImportService {
     Ok(import_files.into_iter().map(|f| f.0).collect())
   }
 
+}
+
+fn locked_status_message() -> JsonStatus {
+    JsonStatus::new(
+      JsonStatusType::Error, 
+      "Import service is currently busy"
+    )
 }
 
 // Ignores the chain of errors when reading

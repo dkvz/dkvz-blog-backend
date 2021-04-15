@@ -254,6 +254,8 @@ Renders a barebones version of the full article page in HTML for search engines.
 
 Will require a template, I leave it ultra barebones to make it faster, could add some minimal styles this time around.
 
+**Adds an entry to article stats**.
+
 ## Database
 Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
 
