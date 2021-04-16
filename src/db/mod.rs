@@ -1005,10 +1005,13 @@ pub fn all_published_articles_and_shorts_ids(
 }
 
 // Returns a Vec of either the article_url part or the id
+// At some point I also found out I needed the short 
+// status to be able to generate the right URL so the 
+// return type became a weird tuple.
 pub fn all_published_articles_and_shorts_urls(
   pool: &Pool,
-) -> Result<Vec<String>> {
-  let query = format!("SELECT id, article_url \
+) -> Result<Vec<(String, bool)>> {
+  let query = format!("SELECT id, article_url, short \
    FROM articles WHERE published = 1 ORDER BY id DESC");
   select_many(
     pool,
@@ -1021,7 +1024,11 @@ pub fn all_published_articles_and_shorts_urls(
         Some(url) => url,
         None => id.to_string()
       };
-      Ok(computed_url)
+      let short = match r.get(2)? {
+        1 => true,
+        _ => false
+      };
+      Ok((computed_url, short))
     }
   )
 }

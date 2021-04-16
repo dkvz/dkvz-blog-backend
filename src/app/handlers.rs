@@ -481,13 +481,12 @@ pub async fn sitemap(
     db::all_published_articles_and_shorts_urls(&app_state.pool)
     .unwrap_or(Vec::new())
     .into_iter()
-    .map(|u| format!(
-      "{}/{}/{}", 
-      app_state.site_info.root, 
-      app_state.site_info.articles_root, 
+    .map(|(u, short)| helpers::generate_article_url(
+      &app_state.site_info.root, 
+      if short { &app_state.site_info.shorts_root }  
+        else { &app_state.site_info.articles_root }, 
       u)
-    )
-    .collect();
+    ).collect();
   
   // Let's try creating the template data with the json!
   // macro this time around.
