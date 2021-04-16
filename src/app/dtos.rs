@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use derive_more::Display;
+use super::helpers;
 use crate::db::entities::*;
 use crate::utils::{
   self, 
@@ -144,7 +145,7 @@ impl From<ImportedArticleDto> for Article {
       article_url,
       //thumb_image: serde_utils::empty_string_to_none(dto.thumb_image),
       thumb_image: dto.thumb_image.and_then(
-        |t| serde_utils::empty_string_to_none(t)
+        serde_utils::empty_string_to_none
       ),
       date: time_utils::current_timestamp(),
       user_id: dto.user_id.unwrap_or(1),
@@ -299,6 +300,8 @@ impl JsonStatus {
 pub struct RssFeed<'a> {
   pub title: &'a str,
   pub root: &'a str,
+  pub articles_root: &'a str,
+  pub shorts_root: &'a str,
   pub description: &'a str,
   pub build_date: String,
   pub rss_full_url: &'a str,
@@ -311,6 +314,8 @@ impl<'a> RssFeed<'a> {
     Self {
       title: &site_info.title,
       root: &site_info.root,
+      articles_root: &site_info.articles_root,
+      shorts_root: &site_info.shorts_root,
       description: &site_info.description,
       build_date: time_utils::current_datetime_rfc2822(),
       rss_full_url: &site_info.rss_full_url,
@@ -325,10 +330,14 @@ impl<'a> RssFeed<'a> {
   pub fn add_item(&mut self, article: Article) {
     // Create the link by checking if it's a short or not:
     let link = match article.short {
-      1 => format!("{}/{}", self.root, article.id),
-      _ => format!(
-        "{}/{}", 
+      1 => helpers::generate_article_url(
         self.root, 
+        self.shorts_root, 
+        article.id.to_string()
+      ),
+      _ => helpers::generate_article_url(
+        self.root, 
+        self.articles_root,
         article.article_url.unwrap_or(article.id.to_string())
       )
     };

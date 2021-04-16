@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="{{article.title}}" />
+  <meta property="og:description" content="Article provenant du blog des articles beaucoup trop longs" />
+  <meta property="og:url" content="{{full_article_url}}" />
+  {{#if article.thumb_image}}
+  <meta property="og:image" content="{{article.thumb_image}}" />
+  {{/if}}
+  <meta property="og:type" content="article" />
+  <meta property="article:author" content="{{article.author}}" />
+  <link rel="author" href="{{article.author}}">
+  <meta property="author" content="{{article.author}}">
+  <meta property="article:published_time" content="{{compact_publication_date}}" />
+  <meta property="og:site_name" content="dkvz.eu" />
+  <meta name="description" content="{{site.description}}">
+  <title>{{article.title}} | {{site.title}}</title>
+  <style>
+  	body {
+  		font-family: Roboto, sans-serif;
+  	}
+  </style>
+</head>
+<body>
+  <h1>{{{article.title}}}</h1>
+  {{#if article.thumb_image}}
+  <img src="{{article.thumb_image}}" />
+  {{/if}}
+  <p>Posté le:&nbsp;{{article.date}}</p>
+  <p>Auteur:&nbsp;{{article.author}}</p>
+  <hr />
+  <article>
+  	{{{article.content}}}
+  </article>
+</body>
+</html>

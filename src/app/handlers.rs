@@ -481,7 +481,12 @@ pub async fn sitemap(
     db::all_published_articles_and_shorts_urls(&app_state.pool)
     .unwrap_or(Vec::new())
     .into_iter()
-    .map(|u| format!("{}/{}", app_state.site_info.root, u))
+    .map(|u| format!(
+      "{}/{}/{}", 
+      app_state.site_info.root, 
+      app_state.site_info.articles_root, 
+      u)
+    )
     .collect();
   
   // Let's try creating the template data with the json!
@@ -512,4 +517,12 @@ pub async fn rebuild_indexes(
     .rebuild_indexes(app_state.pool.clone())
     .await;
   HttpResponse::Ok().json(status)
+}
+
+pub async fn render_article(
+  app_state: web::Data<AppState>,
+  hb: web::Data<Handlebars<'_>>
+) -> Result<HttpResponse, Error> {
+
+  Err(Error::NotFound("Article not found".to_string()))
 }

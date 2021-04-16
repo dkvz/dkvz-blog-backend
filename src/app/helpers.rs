@@ -44,3 +44,16 @@ pub fn real_ip_addr(req: &HttpRequest) -> Option<IpAddr> {
     // My brain is dying.
     .unwrap_or(None)
 }
+
+pub fn generate_article_url(
+  root: impl AsRef<str>,
+  article_root: impl AsRef<str>,
+  url: impl AsRef<str>
+) -> String {
+  format!(
+    "{}/{}/{}", 
+    root.as_ref(), 
+    article_root.as_ref(), 
+    url.as_ref()
+  )
+}
