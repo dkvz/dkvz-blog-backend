@@ -173,5 +173,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/articles/search", web::post().to(handlers::search_articles))
     .route("/rss", web::get().guard(ip_guard.clone()).to(handlers::rss))
     .route("/gimme-sitemap", web::get().guard(ip_guard.clone()).to(handlers::sitemap))
+    .route("/rebuild-indexes", web::get().guard(ip_guard.clone()).to(handlers::rebuild_indexes))
     .route("/comments-starting-from/{article_url}", web::get().to(handlers::comments_starting_from));
 }

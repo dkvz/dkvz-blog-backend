@@ -5,6 +5,7 @@ use tokio::fs::{
   remove_file
 };
 use tokio::io;
+use tokio::task;
 use eyre::Report;
 use color_eyre;
 //use std::io;
@@ -130,17 +131,37 @@ impl ImportService {
   // The way to fully rebuild the fulltext index has 
   // been tacked on to the import service. It shares 
   // the same lock, so, makes sense. I guess.
+  // I skipped using the question mark operator 
+  // completely so I just have JsonStatus as the 
+  // return type.
+  // Because this is spawning a thread, it needs its
+  // own fully fledged clone of the DB pool.
   pub async fn rebuild_indexes(
     &self,
-    pool: &Pool
-  ) -> Result<JsonStatus, JsonStatus> {
+    pool: Pool
+  ) -> JsonStatus {
     if self.check_lock_set_if_unlocked() {
       warn!("Index rebuild requested while the import service is locked");
-      return Err(locked_status_message());
+      return locked_status_message();
     }
-    
+    // Supposedly runs the operation in a new thread, 
+    // then wait for it to finish in hopefully magical 
+    // async fashion.
+    let response = match task::spawn_blocking(move || {
+      db::rebuild_fulltext(&pool)
+    }).await {
+      Ok(Ok(count)) => JsonStatus::new(
+        JsonStatusType::Success,
+        &format!("Processed {} entries", count)
+      ),
+      Ok(Err(db_error)) => db_error.into(),
+      _ => JsonStatus::new(
+        JsonStatusType::Error,
+        "Async/await runtime error from hell happened, I'm sorry"
+      )
+    };
     self.unlock();
-    Ok(JsonStatus::new(JsonStatusType::Success, "Working on it"))
+    response
   }
 
   async fn import_articles_no_lock(

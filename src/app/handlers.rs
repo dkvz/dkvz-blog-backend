@@ -501,3 +501,15 @@ pub async fn sitemap(
     .body(body)
   )
 }
+
+pub async fn rebuild_indexes(
+  app_state: web::Data<AppState>
+) -> HttpResponse {
+  // We need a full clone of the DB pool because the import 
+  // service will be spawning a thread for this operation.
+  let status = app_state
+    .import_service
+    .rebuild_indexes(app_state.pool.clone())
+    .await;
+  HttpResponse::Ok().json(status)
+}

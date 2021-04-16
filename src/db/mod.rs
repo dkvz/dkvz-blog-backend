@@ -795,7 +795,7 @@ pub fn rebuild_fulltext(pool: &Pool) -> Result<usize> {
   // Delete all the current fulltext info.
   // Doesn't need to be a prepared statement but I use them everywhere
   // anyway for convenience and future-proofing.
-  let mut stmt = conn.prepare("DELETE FROM articles_fr")?;
+  let mut stmt = conn.prepare("DELETE FROM articles_ft")?;
   stmt.execute(NO_PARAMS)?;
 
   let mut stmt = conn.prepare(
