@@ -421,7 +421,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] In article_import.rs, the whole loop in "files" that saves to DB should be a Tokio blocking task.
 - [ ] I learned so much about Rust working on this that I could probably review all the earlier parts of the code and make most of it better.
 - [ ] When importing an article or short that is unpublished, I still insert all of the fulltext data. Unfortunately this has no easy solution because of how I'm doing things.
-
+- [ ] Some of the structs in the dtos module are actually view models of sort. I could move these somewhere else. Maybe. They're still meant for data transfer.
 - [ ] Add an image to the RSS feed: 
 ```xml
 <image>
