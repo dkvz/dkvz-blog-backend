@@ -1,7 +1,7 @@
 // Adding the context method to errors:
 use eyre::WrapErr;
 use color_eyre::Result;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::convert::From;
 
 #[derive(Debug, Deserialize)]
@@ -32,6 +32,7 @@ pub struct Config {
 // struct would be better than moving all of this
 // info around the app_state, especially since 
 // there could be sensible info in the config.
+#[derive(Serialize)]
 pub struct SiteInfo {
   pub title: String,
   pub root: String,

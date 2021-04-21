@@ -520,8 +520,37 @@ pub async fn rebuild_indexes(
 
 pub async fn render_article(
   app_state: web::Data<AppState>,
-  hb: web::Data<Handlebars<'_>>
+  hb: web::Data<Handlebars<'_>>,
+  path: web::Path<(String,)>,
+  req: HttpRequest
 ) -> Result<HttpResponse, Error> {
-
-  Err(Error::NotFound("Article not found".to_string()))
+  // What follows is mostly a copy paste of the handler that 
+  // gets a single article or short but I feel it's short 
+  // enough to not warrant crazy refactoring.
+  let article_url = path.into_inner().0;
+  // Check if we got an article ID:
+  let article: Option<Article> = match article_url.parse::<i32>() {
+    // Fetch article by id:
+    Ok(article_id) => db::article_by_id(&app_state.pool, article_id),
+    // Fetch article by URL:
+    Err(_) => db::article_by_url(&app_state.pool, &article_url),
+  }.map_err(map_db_error)?;
+  // Send a 404 if there are no articles:
+  match article {
+    Some(a) => {
+      // Save the visit in the stats DB:
+      insert_stats(
+        BaseArticleStat {
+          article_id: a.id,
+          client_ua: helpers::header_value(&req),
+          client_ip: helpers::real_ip_addr(&req)
+        },
+        &app_state.stats_service
+      );
+      // Create the data for the template.
+      
+      Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
+    },
+    None => Err(Error::NotFound("Article does not exist".to_string()))
+  }
 }

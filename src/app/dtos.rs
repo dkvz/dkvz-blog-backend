@@ -404,6 +404,41 @@ pub struct RssFeedEntry {
   pub description: String
 }
 
+// Meant to be given to the server-rendered article template.
+#[derive(Serialize)]
+pub struct RenderedArticle<'a> {
+  article: ArticleDto,
+  site: &'a SiteInfo,
+  full_article_url: String,
+  compact_publication_date: String
+}
+
+impl<'a> RenderedArticle<'a> {
+  pub fn new(
+    article: Article,
+    site: &'a SiteInfo
+  ) -> Self {
+    let full_article_url = match &article.short {
+      1 => helpers::generate_article_url(
+        &site.root, 
+        &site.shorts_root, 
+        article.id.to_string()
+      ),
+      _ => helpers::generate_article_url(
+        &site.root, 
+        &site.articles_root,
+        article.article_url.as_ref().unwrap_or(&article.id.to_string())
+      )
+    };
+    Self {
+      article: article.into(),
+      site,
+      full_article_url,
+      compact_publication_date: String::new()
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

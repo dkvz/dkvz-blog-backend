@@ -378,6 +378,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 
 
 # TODO
+- [ ] Use some sort of enum for the date formats in time_utils since I need a short date format in dtos::RenderedArticle then finish the last handler function.
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
