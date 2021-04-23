@@ -167,6 +167,7 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/article/{articleUrl}", web::get().to(handlers::article))
     .route("/articles-starting-from/{start}", web::get().to(handlers::articles_starting_from))
     .route("/shorts-starting-from/{start}", web::get().to(handlers::shorts_starting_from))
+    .route("/comments-starting-from/{article_url}", web::get().to(handlers::comments_starting_from))
     .route("/comments", web::post().to(handlers::post_comment))
     .route("/last-comment", web::get().to(handlers::last_comment))
     .route("/import-articles", web::get().to(handlers::import_article))
@@ -174,5 +175,5 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route("/rss", web::get().guard(ip_guard.clone()).to(handlers::rss))
     .route("/gimme-sitemap", web::get().guard(ip_guard.clone()).to(handlers::sitemap))
     .route("/rebuild-indexes", web::get().guard(ip_guard.clone()).to(handlers::rebuild_indexes))
-    .route("/comments-starting-from/{article_url}", web::get().to(handlers::comments_starting_from));
+    .route("/render-article/{articleUrl}", web::get().to(handlers::render_article));
 }

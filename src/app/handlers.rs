@@ -548,8 +548,22 @@ pub async fn render_article(
         &app_state.stats_service
       );
       // Create the data for the template.
-      
-      Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
+      let data = RenderedArticle::new(
+        a,
+        &app_state.site_info
+      );
+      let body = hb.render("article", &data)
+        .map_err(|e| {
+          error!("A template engine error occued when rendering \
+            an article: {}", e);
+          Error::InternalServerError("Template engine error".to_string())
+        })?;
+
+      Ok(
+        HttpResponse::Ok()
+        .content_type("text/html; charset=UTF-8")
+        .body(body)
+      )
     },
     None => Err(Error::NotFound("Article does not exist".to_string()))
   }

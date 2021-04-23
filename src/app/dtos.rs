@@ -40,7 +40,10 @@ impl From<Article> for ArticleDto {
   fn from(article: Article) -> Self {
     Self {
       id: article.id,
-      date: time_utils::timestamp_to_date_string(article.date),
+      date: time_utils::timestamp_to_date_string(
+        article.date,
+        time_utils::DateFormat::Standard
+      ),
       summary: article.summary,
       thumb_image: article.thumb_image,
       author: article.author,
@@ -71,7 +74,10 @@ impl From<Comment> for CommentDto {
       article_id: Some(comment.article_id),
       author: comment.author,
       comment: comment.comment,
-      date: time_utils::timestamp_to_date_string(comment.date)
+      date: time_utils::timestamp_to_date_string(
+        comment.date,
+        time_utils::DateFormat::Standard
+      )
     }
   }
 }
@@ -247,7 +253,10 @@ impl From<Article> for SearchResult {
       id: article.id,
       title: article.title,
       article_url,
-      date: time_utils::timestamp_to_date_string(article.date)
+      date: time_utils::timestamp_to_date_string(
+        article.date,
+        time_utils::DateFormat::Standard
+      )
     }
   }
 }
@@ -430,11 +439,17 @@ impl<'a> RenderedArticle<'a> {
         article.article_url.as_ref().unwrap_or(&article.id.to_string())
       )
     };
+    // I need this later on after moving the article into
+    // the DTO:
+    let compact_publication_date = time_utils::timestamp_to_date_string(
+      article.date, 
+      time_utils::DateFormat::USCompact
+    );
     Self {
       article: article.into(),
       site,
       full_article_url,
-      compact_publication_date: String::new()
+      compact_publication_date
     }
   }
 }
