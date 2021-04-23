@@ -71,6 +71,23 @@ pub fn relative_links_to_absolute<'a>(
   )
 }
 
+// More basic version of the previous function that I use
+// to generate absolute thumb images, among other things.
+pub fn single_link_to_absolute(
+  source: impl AsRef<str>,
+  base_url: impl AsRef<str>
+) -> Option<String> {
+  if !source.as_ref().contains("://") {
+    Some(format!(
+      "{}{}", 
+      base_url.as_ref(), 
+      source.as_ref()
+    ))
+  } else {
+    None
+  }
+}
+
 // At some point I found out the truncate method on Strings
 // is actually very unsafe as it can make everything panic
 // if cutting an unfinished unicode character.
@@ -183,6 +200,15 @@ mod tests {
     assert_eq!(
       "just a string é",
       sut
+    );
+  }
+
+  #[test]
+  fn single_link_to_absolute_returns_none() {
+    let sut = "https://wikipedia.org/something/something";
+    assert_eq!(
+      None,
+      single_link_to_absolute(sut, "blahblahbluh")
     );
   }
 

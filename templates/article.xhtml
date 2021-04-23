@@ -6,8 +6,8 @@
   <meta property="og:title" content="{{article.title}}" />
   <meta property="og:description" content="Article provenant du blog des articles beaucoup trop longs" />
   <meta property="og:url" content="{{full_article_url}}" />
-  {{#if article.thumb_image}}
-  <meta property="og:image" content="{{article.thumb_image}}" />
+  {{#if article.thumbImage}}
+  <meta property="og:image" content="{{article.thumbImage}}" />
   {{/if}}
   <meta property="og:type" content="article" />
   <meta property="article:author" content="{{article.author}}" />
@@ -25,8 +25,8 @@
 </head>
 <body>
   <h1>{{{article.title}}}</h1>
-  {{#if article.thumb_image}}
-  <img src="{{article.thumb_image}}" />
+  {{#if article.thumbImage}}
+  <img src="{{article.thumbImage}}" />
   {{/if}}
   <p>Posté le:&nbsp;{{article.date}}</p>
   <p>Auteur:&nbsp;{{article.author}}</p>

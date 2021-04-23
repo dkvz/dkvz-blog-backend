@@ -378,7 +378,8 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 
 
 # TODO
-- [ ] Use some sort of enum for the date formats in time_utils since I need a short date format in dtos::RenderedArticle then finish the last handler function.
+- [ ] I need da CORS.
+- [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
@@ -387,7 +388,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
 - [x] I'm still missing custom errors for request query params.
 - [x] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
-- [ ] Forgot to code the endpoint to get comments for an article.
+- [x] Forgot to code the endpoint to get comments for an article.
 - [ ] Not related to the backend itself but I really need to remove all those TODO HTML comments from the database content fields.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
@@ -399,7 +400,6 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] I think I can use some AsRef thingy instead of String or &str in many places like in app/error.rs in the enum and more (also in the constructors for dtos::JsonStatus for instance), to test
 - [ ] Triple check that comments have escaped HTML (for author and content).
 - [x] What happens if you request a negative article ID? -> 404.
-- [ ] I need da CORS.
 - [ ] There are some places where I could probably combine match statements into something like Ok(Some(variable)) and get a clearer flow (if let is kinda crap).
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
@@ -408,11 +408,10 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
-- [ ] Check that special chars and HTML is removed from the fulltext inserts and updates.
+- [x] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
-- [ ] To re-test: rebuilding fulltext index entirely.
+- [x] To re-test: rebuilding fulltext index entirely.
 - [ ] Test all the comment DB functions.
-- [ ] I need a specific "entity" for search results. Or not? Maybe not, you can choose to not serialize a field when it's None.
 - [x] Create a limited length fixture instead of the full wordlist.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".

@@ -445,8 +445,31 @@ impl<'a> RenderedArticle<'a> {
       article.date, 
       time_utils::DateFormat::USCompact
     );
+    let mut article_dto: ArticleDto = article.into();
+    // Check if we need to transform the thumb image URL, 
+    // then repalce all the relative URLs in summary and
+    // content:
+    if let Some(thumb_image) = &article_dto.thumb_image {
+      if let Some(absolute_url) = text_utils::single_link_to_absolute(
+        thumb_image, 
+        &site.root
+      ) {
+        article_dto.thumb_image = Some(absolute_url);
+      }
+    }
+    article_dto.summary = text_utils::relative_links_to_absolute(
+      &article_dto.summary, 
+      &site.root
+    ).to_string();
+    article_dto.content = article_dto.content.map(
+      |c| text_utils::relative_links_to_absolute(
+        &c, 
+        &site.root
+      ).to_string()
+    );
+
     Self {
-      article: article.into(),
+      article: article_dto,
       site,
       full_article_url,
       compact_publication_date
