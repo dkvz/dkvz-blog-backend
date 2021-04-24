@@ -378,7 +378,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 
 
 # TODO
-- [ ] I need da CORS.
+- [x] I need da CORS.
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
