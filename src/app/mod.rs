@@ -1,4 +1,5 @@
 use actix_web::{middleware, web, App, HttpServer, HttpResponse};
+use actix_cors::Cors;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 use color_eyre::Result;
 use eyre::{WrapErr, eyre};
@@ -135,6 +136,11 @@ pub async fn run() -> Result<()> {
   );
   
   HttpServer::new(move|| {
+    // Create the CORS middleware.
+    let cors = Cors::default()
+      .allow_any_origin()
+      .allow_any_method();
+
     App::new()
       .app_data(app_state.clone())
       .app_data(handlebars_ref.clone())
@@ -146,7 +152,10 @@ pub async fn run() -> Result<()> {
         actix_web::error::ErrorBadRequest("Invalid query string arguments")
       }))
       .wrap(middleware::Logger::default())
-      .configure(base_endpoints_config)
+      // I have to use this web::scope thing because I don't want the
+      // CORS middleware to apply to all the endpoints.
+      .service(web::scope("/").wrap(cors).configure(base_endpoints_config))
+      //.configure(base_endpoints_config)
       .default_service(web::route().to(handlers::not_found))
   })
   .bind(bind_address)?
