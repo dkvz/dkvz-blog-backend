@@ -152,10 +152,12 @@ pub async fn run() -> Result<()> {
         actix_web::error::ErrorBadRequest("Invalid query string arguments")
       }))
       .wrap(middleware::Logger::default())
-      // I have to use this web::scope thing because I don't want the
-      // CORS middleware to apply to all the endpoints.
-      .service(web::scope("/").wrap(cors).configure(base_endpoints_config))
-      //.configure(base_endpoints_config)
+      // Because of how routing currently works I have to wrap every route
+      // into the CORS middleware. The only current alternative would be
+      // to have separate scopes (URL scopes) for the CORS-wrapped and
+      // no-CORS endpoints.
+      .wrap(cors)
+      .configure(base_endpoints_config)
       .default_service(web::route().to(handlers::not_found))
   })
   .bind(bind_address)?
