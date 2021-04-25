@@ -397,7 +397,7 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] DB errors should be their own custom error type so that I could very easily have a From trait for app::error::Error to convert them into that.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
-- [ ] I think I can use some AsRef or impl Display thingy instead of String or &str in many places and more (also in the constructors for dtos::JsonStatus for instance), to test
+- [ ] I think I can use some AsRef or impl Display thingy instead of String or &str in many places - Actually not that many because I escape using lifetimes a lot with owned strings.
 - [ ] Triple check that comments have escaped HTML (for author and content).
 - [x] What happens if you request a negative article ID? -> 404.
 - [ ] There are some places where I could probably combine match statements into something like Ok(Some(variable)) and get a clearer flow (if let is kinda crap).
@@ -421,13 +421,4 @@ But it's using JSON as the template data, which is weird... Seems to be the best
 - [ ] I learned so much about Rust working on this that I could probably review all the earlier parts of the code and make most of it better.
 - [ ] When importing an article or short that is unpublished, I still insert all of the fulltext data. Unfortunately this has no easy solution because of how I'm doing things.
 - [ ] Some of the structs in the dtos module are actually view models of sort. I could move these somewhere else. Maybe. They're still meant for data transfer.
-- [ ] Add an image to the RSS feed: 
-```xml
-<image>
-  <url>
-  https://...
-  </url>
-  <title>Blog des gens compliqués</title>
-  <link>https://dkvz.eu</link>
-</image>
-```
+- [ ] Some values are hardcoded in my templates, they could be config values (site name, image URL in RSS for instance).
