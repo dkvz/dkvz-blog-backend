@@ -91,7 +91,7 @@ Same as the previous endpoint but fetches shorts. Result list also has the "cont
 Expects a URL encoded standard form submission format with fields:
 * comment -> Limit length to 2000 chars
 * author -> Trim + limit length to 70 chars - Refuse if length is 0 after trim with Bad Request
-* article_id -> Supposed to be parsed from a string
+* article_id -> Supposed to be parsed from a string (take note it's NOT in CamelCase - don't ask me why)
 * articleurl
 
 We need either article_id or articleurl, Bad Request when both are absent.

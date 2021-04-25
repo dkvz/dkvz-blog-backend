@@ -11,7 +11,7 @@ use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{time_utils, text_utils};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use log::{error, info};
+use log::{error, info, debug};
 use handlebars::Handlebars;
 use super::dtos::*;
 use super::error::{Error, map_db_error};
@@ -48,8 +48,9 @@ pub struct CommentsQuery {
   pub start: Option<usize>
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Deserialize, Debug)]
+// For some weird reason this is one of the only
+// objects not sent using CamelCase.
 pub struct CommentForm {
   pub comment: String,
   pub author: String,
@@ -224,6 +225,7 @@ pub async fn post_comment(
   mut comment_form: web::Form<CommentForm>,
   req: HttpRequest
 ) -> Result<HttpResponse, Error> {
+  debug!("Posted comment form: {:?}", comment_form);
   // Check if we have either article_id or articleurl.
   // article_id has precedence if both are present.
   // Did we use to check if the article exists?

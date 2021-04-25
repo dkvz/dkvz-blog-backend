@@ -137,9 +137,13 @@ pub async fn run() -> Result<()> {
   
   HttpServer::new(move|| {
     // Create the CORS middleware.
-    let cors = Cors::default()
+    /*let cors = Cors::default()
       .allow_any_origin()
-      .allow_any_method();
+      .allow_any_method()
+      .supports_credentials();*/
+    // Had to use "permissive" because my POST requests were getting
+    // denied (e.g. the comment post thing) and I have no idea why.
+    let cors = Cors::permissive();
 
     App::new()
       .app_data(app_state.clone())
