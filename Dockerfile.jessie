@@ -1,0 +1,13 @@
+FROM debian:jessie
+
+# We really want to cache this step:
+RUN apt-get update && apt-get install -y \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+ADD / /opt/
+WORKDIR /opt
+
+CMD ["/bin/sh", "build.sh"]

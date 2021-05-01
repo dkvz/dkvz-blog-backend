@@ -384,11 +384,21 @@ strip target/release/dkvz-blog-backend
 
 I need to build with different versions of shared libs though, so I use Docker. From the project root directory:
 ```
-docker run --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp rust:slim-jessie cargo build --release
+docker run --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp rust:1-jessie cargo build --release
 ```
 Where "jessie" is my target prod system.
 
-Then use strip on the executable in target/release.
+Except that version is too old so I'll create my own image from a Dockerfile.
+
+Image can be built like so:
+```
+docker build -t dkvz-blog-compiler -f Dockerfile.jessie .
+```
+
+Then to build the executable:
+```
+docker run --rm -v "$PWD/target":/opt/target dkvz-blog-compiler
+```
 
 # Systemd script
 An example I found for Rocket:
