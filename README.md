@@ -375,6 +375,21 @@ https://github.com/actix/examples/tree/master/template_engines/handlebars
 
 But it's using JSON as the template data, which is weird... Seems to be the best template lib after I checked out the other ones though.
 
+# Building the binary
+On a Linux box:
+```
+cargo build --release
+strip target/release/dkvz-blog-backend
+```
+
+I need to build with different versions of shared libs though, so I use Docker. From the project root directory:
+```
+docker run --rm --user "$(id -u)":"$(id -g)" -v "$PWD":/usr/src/myapp -w /usr/src/myapp rust:slim-jessie cargo build --release
+```
+Where "jessie" is my target prod system.
+
+Then use strip on the executable in target/release.
+
 # Systemd script
 An example I found for Rocket:
 ```
