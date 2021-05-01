@@ -400,6 +400,8 @@ Then to build the executable:
 docker run --rm -v "$PWD/target":/opt/target dkvz-blog-compiler
 ```
 
+It should already have been stripped of debug symbols.
+
 # Systemd script
 An example I found for Rocket:
 ```
@@ -443,6 +445,7 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [x] I need da CORS.
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
 - [ ] The app does not crash when the DB file is unreadable, it just continuously outputs an error.
+- [ ] Add a favicon, base route for "/favicon.ico" should work.
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
