@@ -2,7 +2,9 @@ FROM debian:jessie
 
 # We really want to cache this step:
 RUN apt-get update && apt-get install -y \
-  curl \
+  curl \ 
+  build-essential \ 
+  libsqlite3-dev \ 
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
