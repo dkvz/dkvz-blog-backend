@@ -375,11 +375,49 @@ https://github.com/actix/examples/tree/master/template_engines/handlebars
 
 But it's using JSON as the template data, which is weird... Seems to be the best template lib after I checked out the other ones though.
 
+# Systemd script
+An example I found for Rocket:
+```
+[Unit]
+Description=Rust Rocket Web Application Example from steadylearner
 
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/home/yourname/yourwebsite/yourproject/
+Environment="ROCKET_ENV=prod"
+Environment="ROCKET_ADDRESS=0.0.0.0"
+Environment="ROCKET_PORT=8000"
+Environment="ROCKET_LOG=critical"
+ExecStart=/home/yourname/yourwebsite/yourproject/target/release/yourproject
+
+[Install]
+WantedBy=multi-user.target
+```
+
+I'm going to use .env for the config.
+
+Let's make my own:
+```
+[Unit]
+Description=Blog API
+After=network.target
+
+[Service]
+User=<APP_USER>
+WorkingDirectory=<APP_DIR>
+ExecStart=<APP_BINARY>
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Simple with no auto-restart. I just have to test if start, stop and restart really work.
 
 # TODO
 - [x] I need da CORS.
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
+- [ ] The app does not crash when the DB file is unreadable, it just continuously outputs an error.
 - [x] I need a generic function for "count" queries.
 - [x] Log a message when server is started -> Actix already does that.
 - [x] IP+port should be configurable from the .env with some kind of default value maybe?
