@@ -65,7 +65,20 @@ fn insert_stats(article_stat: BaseArticleStat, stats_service: &StatsService) {
 }
 
 pub async fn index() -> HttpResponse {
-  HttpResponse::Ok().body("Nothing here")
+  HttpResponse::Ok()
+    .content_type("text/plain")
+    .body("Nothing here")
+}
+
+// At this time robots.txt is just hardcoded here.
+// I could just disallow everything but I just do
+// for render-article.
+pub async fn robots() -> HttpResponse {
+  HttpResponse::Ok().content_type("text/plain").body(
+    "User-agent: *\n\
+    Disallow: \n\
+    Disallow: /render-article/\n",
+  )
 }
 
 // Default response when no route matched the request:

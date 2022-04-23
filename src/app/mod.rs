@@ -213,5 +213,6 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
     .route(
       "/render-article/{articleUrl}",
       web::get().to(handlers::render_article),
-    );
+    )
+    .route("/robots.txt", web::get().to(handlers::robots));
 }
