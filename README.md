@@ -175,10 +175,12 @@ I'm using a weird rate limiter on that endpoint which basically blocks (with For
 
 Expects a specific JSON body:
 ```json
-include: [
-  "search term 1",
-  "search term 2"
-]
+{
+  include: [
+    "search term 1",
+    "search term 2"
+  ]
+}
 ```
 
 Will respond with Bad Request if the include array is empty or null, which implies it going into a cleaning up function that replaces a few special chars as in the following Java Regex:
