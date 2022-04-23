@@ -1,13 +1,12 @@
+use color_eyre::Result;
+use eyre::{eyre, WrapErr};
+use linecount::count_lines;
+use sha1::{Digest, Sha1};
+use std::collections::VecDeque;
+use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader};
-use std::collections::VecDeque;
-use linecount::count_lines;
-use color_eyre::Result;
-use eyre::{WrapErr, eyre};
-use std::convert::{TryFrom, TryInto};
-use std::rc::Rc;
-use sha1::{Sha1, Digest};
+use std::io::BufReader;
 
 // Capacity of the queue I use for caching
 const CACHE_CAPACITY: usize = 50;
@@ -18,19 +17,19 @@ pub struct WordlistPseudoyimizer {
   filename: String,
   line_count: u64,
   cache: Cache,
-  increment: u64
+  increment: u64,
 }
 
-// I could more than one way to find lines in my 
+// I could more than one way to find lines in my
 // wordlist.
 // https://docs.rs/indexed-line-reader/0.2.1/src/indexed_line_reader
-// uses a binary tree created initially with all the lines position 
+// uses a binary tree created initially with all the lines position
 // as start and end bytes in the file. Kinda smart, do not know how
 // much memory that represents though.
-// Seeking line by line is easier (using "readline()") and can be 
+// Seeking line by line is easier (using "readline()") and can be
 // buffered but I don't know how expensive it is.
 
-// Looks like it takes around 23ms to seek to an advanced line in 
+// Looks like it takes around 23ms to seek to an advanced line in
 // the wordlist:
 /*
 $ time head -n 400000 words.txt | tail -n 1
@@ -41,31 +40,26 @@ user	0m0.020s
 sys	0m0.000s
 */
 // This is annoying to do repeatedly but I could cache the results
-// that have been seen already. That structure needs a limit to 
+// that have been seen already. That structure needs a limit to
 // how much data it can hold though.
-// Also, I'm aware the CLI and piping all of the lines until the 
+// Also, I'm aware the CLI and piping all of the lines until the
 // one I want should be slower than what I'll do in Rust.
 
-// Using open instead of new, that's what they do 
+// Using open instead of new, that's what they do
 // with the File struct to return a Result.
 impl WordlistPseudoyimizer {
-
   pub fn open(filename: &str) -> Result<WordlistPseudoyimizer> {
     match File::open(filename) {
       Err(why) => Err(eyre!("Could not open file {} - {}", filename, why)),
-      Ok(file) => {
-        match line_count(&file) {
-          Err(why) => Err(eyre!("Could not count lines in file - {}", why)),
-          Ok(line_count) => Ok(
-            WordlistPseudoyimizer {
-              filename: String::from(filename),
-              line_count,
-              cache: Cache::new(CACHE_CAPACITY),
-              increment: (MAX / line_count) + 1
-            }
-          )
-        }
-      }
+      Ok(file) => match line_count(&file) {
+        Err(why) => Err(eyre!("Could not count lines in file - {}", why)),
+        Ok(line_count) => Ok(WordlistPseudoyimizer {
+          filename: String::from(filename),
+          line_count,
+          cache: Cache::new(CACHE_CAPACITY),
+          increment: (MAX / line_count) + 1,
+        }),
+      },
     }
   }
 
@@ -89,12 +83,10 @@ impl WordlistPseudoyimizer {
       }
       i += 1;
     }
-    Err(
-      eyre!(
-        "Went to the very end of the wordlist for line {} - This shouldn't happen",
-        line_n
-      )
-    )
+    Err(eyre!(
+      "Went to the very end of the wordlist for line {} - This shouldn't happen",
+      line_n
+    ))
   }
 
   pub fn pseudonymize(&mut self, value: &str) -> Result<String> {
@@ -110,16 +102,17 @@ impl WordlistPseudoyimizer {
       }
     }
   }
-
 }
 
-fn line_count<R>(handle: R) 
--> Result<u64>
-where R: Read {
-  let lines_c = count_lines(handle)
-    .context("Counting lines in word list")?;
+fn line_count<R>(handle: R) -> Result<u64>
+where
+  R: Read,
+{
+  let lines_c = count_lines(handle).context("Counting lines in word list")?;
   if lines_c < 1 {
-    Err(eyre!("Source file needs to have at least one line (I suggest more)"))
+    Err(eyre!(
+      "Source file needs to have at least one line (I suggest more)"
+    ))
   } else {
     Ok(u64::try_from(lines_c)?)
   }
@@ -136,17 +129,17 @@ fn hash_to_8_bytes(value: &str) -> [u8; 8] {
 }
 
 fn bytes_to_u64(hash: [u8; 8]) -> u64 {
-  // Convert to u64 using the current platform preferred 
+  // Convert to u64 using the current platform preferred
   // endian (little endian or big):
   u64::from_ne_bytes(hash)
 }
 
 // Improvised caching system, thought of using either a Vec
 // or a LinkedList, because I wanted to move the last seen
-// hashes to the front of the structure. Not sure that's 
-// worth it as browsing a Vec is really quick anyway but 
-// needing to move items around isn't something a Vec is 
-// made for and I need it for the automatic entry 
+// hashes to the front of the structure. Not sure that's
+// worth it as browsing a Vec is really quick anyway but
+// needing to move items around isn't something a Vec is
+// made for and I need it for the automatic entry
 // "expires when structure is full" mechanism I wanted.
 // In short, I don't know if a linked list is more effective
 // than shifting a whole bunch of elements in a Vec everytime.
@@ -156,29 +149,25 @@ fn bytes_to_u64(hash: [u8; 8]) -> u64 {
 #[derive(PartialEq, Debug, Clone)]
 struct CacheEntry {
   key: u64,
-  value: String
+  value: String,
 }
 
 impl CacheEntry {
   pub fn new(key: u64, value: String) -> Self {
-    Self {
-      key,
-      value,
-    }
-  } 
+    Self { key, value }
+  }
 }
 
 struct Cache {
   cache: VecDeque<CacheEntry>,
-  capacity: usize
+  capacity: usize,
 }
 
 impl Cache {
-
   pub fn new(capacity: usize) -> Self {
     Self {
       capacity,
-      cache: VecDeque::with_capacity(capacity)
+      cache: VecDeque::with_capacity(capacity),
     }
   }
 
@@ -199,7 +188,6 @@ impl Cache {
     }
     None
   }
-
 }
 
 #[cfg(test)]
@@ -221,17 +209,13 @@ mod tests {
 
   #[test]
   fn find_line_in_fixture() {
-    let sut = WordlistPseudoyimizer::open(
-      "./resources/fixtures/fixed_wordlist.txt"
-    ).unwrap();
+    let sut = WordlistPseudoyimizer::open("./resources/fixtures/fixed_wordlist.txt").unwrap();
     assert_eq!("Line 1", sut.find_value_at_line(0).unwrap());
   }
 
   #[test]
   fn pseudonymize_string_1() {
-    let mut sut = WordlistPseudoyimizer::open(
-      "./resources/fixtures/fixed_wordlist.txt"
-    ).unwrap();
+    let mut sut = WordlistPseudoyimizer::open("./resources/fixtures/fixed_wordlist.txt").unwrap();
     assert_eq!("Line 11", sut.pseudonymize("test").unwrap());
     // Test the cache, I guess:
     assert_eq!(1, sut.cache.cache.len());
@@ -240,12 +224,12 @@ mod tests {
 
   #[test]
   fn pseudonymize_string_2() {
-    let mut sut = WordlistPseudoyimizer::open(
-      "./resources/fixtures/fixed_wordlist.txt"
-    ).unwrap();
+    let mut sut = WordlistPseudoyimizer::open("./resources/fixtures/fixed_wordlist.txt").unwrap();
     assert_eq!(
-      "Line 3", 
-      sut.pseudonymize("This is a very long string right there").unwrap()
+      "Line 3",
+      sut
+        .pseudonymize("This is a very long string right there")
+        .unwrap()
     );
   }
 
@@ -293,6 +277,4 @@ mod tests {
     let value: u64 = bytes_to_u64(bytes);
     assert_eq!(value, 13028719972609469994);
   }
-
 }
-

@@ -1,35 +1,26 @@
-use tokio::fs::{
-  read_dir, 
-  DirEntry, 
-  read_to_string, 
-  remove_file
-};
+use color_eyre;
+use eyre::Report;
+use tokio::fs::{read_dir, read_to_string, remove_file, DirEntry};
 use tokio::io;
 use tokio::task;
-use eyre::Report;
-use color_eyre;
 //use std::io;
-use std::fs::Metadata;
-use std::time::SystemTime;
-use std::path::{PathBuf, Path};
-use std::sync::atomic::{self, AtomicBool};
+use super::dtos::{ImportedArticleDto, JsonStatus, JsonStatusType};
+use crate::db::entities::{Article, ArticleUpdate};
+use crate::db::{self, Pool};
+use derive_more::Display;
+use log::{error, warn};
+use serde_json;
 use std::cmp::Ordering;
 use std::convert::From;
-use derive_more::Display;
-use log::{error, info, warn};
-use serde_json;
-use crate::db::{self, Pool};
-use crate::db::entities::{ArticleUpdate, Article};
-use super::dtos::{
-  ImportedArticleDto, 
-  JsonStatus,
-  JsonStatusType
-};
+use std::fs::Metadata;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{self, AtomicBool};
+use std::time::SystemTime;
 
 // On the Java app this is a service.
 // I could also make this happen in a struct
 // that I put in the app state in which case
-// the "import lock" atomic bool could be 
+// the "import lock" atomic bool could be
 // stored in that struct.
 
 // OK let's do that I guess.
@@ -40,14 +31,14 @@ const IMPORT_EXT: &'static str = "json";
 const MAX_FILE_SIZE: u64 = 31457280;
 
 // I thought it'd be a good time to start using
-// custom error types more, even though this is 
+// custom error types more, even though this is
 // mostly an internal thing.
 #[derive(Debug, Display)]
 enum ImportError {
   #[display(fmt = "IO error")]
   IOError,
   #[display(fmt = "Parse error")]
-  ParseError(String)
+  ParseError(String),
 }
 // Standard way to implement the Error trait is
 // to not actually implement any function at all.
@@ -78,18 +69,15 @@ impl From<Report<color_eyre::Handler>> for JsonStatus {
 
 // A struct can't own a "Path" directly, you
 // have to use references with lifetimes and
-// all that business so I'm using PathBuf 
+// all that business so I'm using PathBuf
 // instead.
 pub struct ImportService {
   import_path: PathBuf,
-  is_import_locked: AtomicBool
+  is_import_locked: AtomicBool,
 }
 
 impl ImportService {
-
-  pub fn open(
-    path: &str
-  ) -> Result<Self, io::Error> {
+  pub fn open(path: &str) -> Result<Self, io::Error> {
     // We have to check if the directory is writable.
     // I also suddenly decided coding like this is much
     // clearer:
@@ -99,24 +87,19 @@ impl ImportService {
     match (read_only, is_dir) {
       (false, true) => Ok(Self {
         import_path,
-        is_import_locked: AtomicBool::new(false)
+        is_import_locked: AtomicBool::new(false),
       }),
-      _ => Err(
-        io::Error::new(
-          io::ErrorKind::PermissionDenied, 
-          "Import directory is not writable"
-        )
-      ) 
+      _ => Err(io::Error::new(
+        io::ErrorKind::PermissionDenied,
+        "Import directory is not writable",
+      )),
     }
   }
 
   // Main method for the service.
   // I guess the pool could be owned by the struct, I
   // can probably clone it.
-  pub async fn import_articles(
-    &self,
-    pool: &Pool
-  ) -> Result<Vec<JsonStatus>, JsonStatus> {
+  pub async fn import_articles(&self, pool: &Pool) -> Result<Vec<JsonStatus>, JsonStatus> {
     // Have to check if an import is already in progress.
     // Lock for import otherwise.
     if self.check_lock_set_if_unlocked() {
@@ -128,59 +111,49 @@ impl ImportService {
     result
   }
 
-  // The way to fully rebuild the fulltext index has 
-  // been tacked on to the import service. It shares 
+  // The way to fully rebuild the fulltext index has
+  // been tacked on to the import service. It shares
   // the same lock, so, makes sense. I guess.
-  // I skipped using the question mark operator 
-  // completely so I just have JsonStatus as the 
+  // I skipped using the question mark operator
+  // completely so I just have JsonStatus as the
   // return type.
   // Because this is spawning a thread, it needs its
   // own fully fledged clone of the DB pool.
-  pub async fn rebuild_indexes(
-    &self,
-    pool: Pool
-  ) -> JsonStatus {
+  pub async fn rebuild_indexes(&self, pool: Pool) -> JsonStatus {
     if self.check_lock_set_if_unlocked() {
       warn!("Index rebuild requested while the import service is locked");
       return locked_status_message();
     }
-    // Supposedly runs the operation in a new thread, 
-    // then wait for it to finish in hopefully magical 
+    // Supposedly runs the operation in a new thread,
+    // then wait for it to finish in hopefully magical
     // async fashion.
-    let response = match task::spawn_blocking(move || {
-      db::rebuild_fulltext(&pool)
-    }).await {
+    let response = match task::spawn_blocking(move || db::rebuild_fulltext(&pool)).await {
       Ok(Ok(count)) => JsonStatus::new(
         JsonStatusType::Success,
-        &format!("Processed {} entries", count)
+        &format!("Processed {} entries", count),
       ),
       Ok(Err(db_error)) => db_error.into(),
       _ => JsonStatus::new(
         JsonStatusType::Error,
-        "Async/await runtime error from hell happened, I'm sorry"
-      )
+        "Async/await runtime error from hell happened, I'm sorry",
+      ),
     };
     self.unlock();
     response
   }
 
-  async fn import_articles_no_lock(
-    &self,
-    pool: &Pool
-  ) -> Result<Vec<JsonStatus>, JsonStatus> {
+  async fn import_articles_no_lock(&self, pool: &Pool) -> Result<Vec<JsonStatus>, JsonStatus> {
     // List all the files in the import directory.
     // The only possible IOError means the directory
-    // could not be read for some reason, which is 
+    // could not be read for some reason, which is
     // fatal.
-    let files = self.list_files_earliest_first()
-      .await
-      .map_err(|e| {
-        error!("Error reading import directory: {}", e);
-        JsonStatus::new(
-          JsonStatusType::Error, 
-          "Could not list files in import directory"
-        )
-      })?;
+    let files = self.list_files_earliest_first().await.map_err(|e| {
+      error!("Error reading import directory: {}", e);
+      JsonStatus::new(
+        JsonStatusType::Error,
+        "Could not list files in import directory",
+      )
+    })?;
 
     // Now would have been a good time to use map()
     // except await isn't allowed in there. So it's
@@ -197,16 +170,16 @@ impl ImportService {
           // - action = 1 and id is present => Delete
           // - no action but id present => Update
           // - no action, no id => Insert
-          // When inserting and "short" is absent, 
+          // When inserting and "short" is absent,
           // default to make it true.
-          // Check if the article exist if we got 
+          // Check if the article exist if we got
           // an id first:
           if let Some(id) = article.id {
             if !db::article_exists(pool, id)? {
               statuses.push(JsonStatus::new_with_id(
-                JsonStatusType::Error, 
-                "Article ID doesn't exist", 
-                id
+                JsonStatusType::Error,
+                "Article ID doesn't exist",
+                id,
               ));
               continue;
             }
@@ -216,11 +189,11 @@ impl ImportService {
               // Deleting.
               db::delete_article(pool, id)?;
               statuses.push(JsonStatus::new_with_id(
-                JsonStatusType::Success, 
-                "Article deleted", 
-                id
+                JsonStatusType::Success,
+                "Article deleted",
+                id,
               ));
-            },
+            }
             _ => {
               // Inserting or updating.
               // If tags are present, do they all exist?
@@ -228,8 +201,8 @@ impl ImportService {
                 for tag in tags {
                   if !db::tag_exists(pool, tag.id)? {
                     statuses.push(JsonStatus::new(
-                      JsonStatusType::Error, 
-                      &format!("Tag with ID {} does not exist", tag.id)
+                      JsonStatusType::Error,
+                      &format!("Tag with ID {} does not exist", tag.id),
                     ));
                     continue 'outer;
                   }
@@ -240,29 +213,28 @@ impl ImportService {
               if let Some(user_id) = article.user_id {
                 if !db::user_exists(pool, user_id)? {
                   statuses.push(JsonStatus::new(
-                    JsonStatusType::Error, 
-                    &format!("User with ID {} does not exist", user_id)
+                    JsonStatusType::Error,
+                    &format!("User with ID {} does not exist", user_id),
                   ));
                   continue 'outer;
                 }
               }
               // When article_url is present, check that it doesn't
-              // exist already (it could be that it's the current 
+              // exist already (it could be that it's the current
               // article when updating).
-              // Note that I'm currently allowing inserting an 
+              // Note that I'm currently allowing inserting an
               // article (thus not a short) with no article URL, even
               // though that shouldn't be allowed.
               if let Some(article_url) = &article.article_url {
-                let valid_url = 
-                  match (db::article_id_by_url(pool, &article_url)?, article.id) {
-                    (Some(id_for_url), Some(id)) => id_for_url == id,
-                    (Some(_), None) => false,
-                    _ => true
-                  };
+                let valid_url = match (db::article_id_by_url(pool, &article_url)?, article.id) {
+                  (Some(id_for_url), Some(id)) => id_for_url == id,
+                  (Some(_), None) => false,
+                  _ => true,
+                };
                 if !valid_url {
                   statuses.push(JsonStatus::new(
-                    JsonStatusType::Error, 
-                    &format!("Article URL {} already exists", article_url)
+                    JsonStatusType::Error,
+                    &format!("Article URL {} already exists", article_url),
                   ));
                   continue 'outer;
                 }
@@ -274,18 +246,18 @@ impl ImportService {
                   // Updating, let's convert the ImportedArticle to the special
                   // update entity:
                   let update_entity: ArticleUpdate = article.clone().into();
-                  // The call returns the number of articles affected but I 
+                  // The call returns the number of articles affected but I
                   // just don't care.
                   db::udpate_article(pool, &update_entity)?;
                   statuses.push(JsonStatus::new_with_id(
                     JsonStatusType::Success,
                     "Entity has been updated",
-                    update_entity.id
+                    update_entity.id,
                   ));
                   delete_article = true;
-                },
+                }
                 (None, Some(_)) => {
-                  // Inserting. Converting to the entity will let us know if it's 
+                  // Inserting. Converting to the entity will let us know if it's
                   // a short or not.
                   // We make it mut because the DB function will set the new ID
                   // after insertion. It also returns it so this is kinda dumb.
@@ -294,34 +266,36 @@ impl ImportService {
                   statuses.push(JsonStatus::new_with_id(
                     JsonStatusType::Success,
                     &format!(
-                      "Inserted new {}", 
-                      if article_to_insert.short == 0 
-                        { "article" } else { "short" }
+                      "Inserted new {}",
+                      if article_to_insert.short == 0 {
+                        "article"
+                      } else {
+                        "short"
+                      }
                     ),
-                    new_id
+                    new_id,
                   ));
                   delete_article = true;
-                },
+                }
                 _ => {
                   // Missing user_id for insertion:
                   statuses.push(JsonStatus::new(
-                    JsonStatusType::Error, 
-                    "Field userId is required when inserting articles"
+                    JsonStatusType::Error,
+                    "Field userId is required when inserting articles",
                   ));
                 }
               }
               if delete_article {
                 // Delete the file. I guess there's an async function
                 // for that.
-
               }
             }
           }
           if let Err(delete_err) = remove_file(file.path()).await {
-            // Couldn't delete the file for some reason, let's add 
+            // Couldn't delete the file for some reason, let's add
             // a weird message to the statuses:
             error!(
-              "Could not remove a file after article import: {}", 
+              "Could not remove a file after article import: {}",
               delete_err
             );
             statuses.push(JsonStatus::new(
@@ -330,13 +304,13 @@ impl ImportService {
                 "Could not delete file {:?} - \
                 It could get imported multiple times!",
                 file.path()
-              )
+              ),
             ));
           }
-        },
+        }
         Err(e) => {
           warn!(
-            "Article parsing failed while importing for {:?} - {:?}", 
+            "Article parsing failed while importing for {:?} - {:?}",
             file.path(),
             e
           );
@@ -345,7 +319,6 @@ impl ImportService {
         }
       }
     }
-    
     Ok(statuses)
   }
 
@@ -360,13 +333,13 @@ impl ImportService {
     // in the Err.
     //self.is_import_locked.load(atomic::Ordering::SeqCst)
     match self.is_import_locked.compare_exchange(
-      false, 
-      true, 
-      atomic::Ordering::SeqCst, 
-      atomic::Ordering::Acquire
+      false,
+      true,
+      atomic::Ordering::SeqCst,
+      atomic::Ordering::Acquire,
     ) {
       Ok(_) => false,
-      Err(_) => true
+      Err(_) => true,
     }
   }
 
@@ -376,29 +349,25 @@ impl ImportService {
 
   // At some point I discovered I could just use tokio
   // async/await version of std::fs.
-  async fn list_files_earliest_first(
-    &self
-  ) -> Result<Vec<DirEntry>, io::Error> {
+  async fn list_files_earliest_first(&self) -> Result<Vec<DirEntry>, io::Error> {
     let mut files = read_dir(&self.import_path).await?;
-    // I had a cool way to filter JSON using 
+    // I had a cool way to filter JSON using
     // standard fs and a chain of high order functions
-    // buttokio fs requires calling an async "next_entry" 
+    // buttokio fs requires calling an async "next_entry"
     // function a whole bunch of times.
     // In short, async/await doesn't like closures that
     // much.
-    
-    // Let's create a list of the files and their modified 
+
+    // Let's create a list of the files and their modified
     // timestamp as a u64.
-    let mut import_files: Vec<(DirEntry, u64)> =  Vec::new();
-    // I'm ignoring IO errors from here, files that give 
+    let mut import_files: Vec<(DirEntry, u64)> = Vec::new();
+    // I'm ignoring IO errors from here, files that give
     // out weird vibes are just ignore silently.
     while let Ok(Some(file)) = files.next_entry().await {
-      let is_import_ext: bool = file.path()
+      let is_import_ext: bool = file
+        .path()
         .extension()
-        .map(
-          |ext| 
-          ext.to_str().unwrap_or("").to_lowercase() == IMPORT_EXT
-        )
+        .map(|ext| ext.to_str().unwrap_or("").to_lowercase() == IMPORT_EXT)
         .unwrap_or(false);
       // Add to the list of import files if has the right
       // extension and is a file. We ignore the file if we
@@ -406,62 +375,50 @@ impl ImportService {
       // a certain size.
       if let Ok(metadata) = file.metadata().await {
         // Big ifs are ugly in Rust. I'm so sorry.
-        if is_import_ext && 
-          file.path().is_file() && 
-          metadata.len() < MAX_FILE_SIZE &&
-          !metadata.permissions().readonly() 
-          {
-            let modified = modified_time(&metadata).await;
-            import_files.push((file, modified));
-          }
+        if is_import_ext
+          && file.path().is_file()
+          && metadata.len() < MAX_FILE_SIZE
+          && !metadata.permissions().readonly()
+        {
+          let modified = modified_time(&metadata).await;
+          import_files.push((file, modified));
+        }
       }
     }
     // We can't use await easily in the sort closure, which
     // is why I made the weird Vec of tuples with the modified
     // date already in it.
-    import_files.sort_by(
-      |a, b| 
-        a.1
-        .partial_cmp(&b.1)
-        .unwrap_or(Ordering::Equal)
-    );
-    // I could just return the Vec of tuples (or maybe an 
+    import_files.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
+    // I could just return the Vec of tuples (or maybe an
     // iterator) and spare a few CPU cycles but I couldn't
     // bother.
     Ok(import_files.into_iter().map(|f| f.0).collect())
   }
-
 }
 
 fn locked_status_message() -> JsonStatus {
-    JsonStatus::new(
-      JsonStatusType::Error, 
-      "Import service is currently busy"
-    )
+  JsonStatus::new(JsonStatusType::Error, "Import service is currently busy")
 }
 
 // Ignores the chain of errors when reading
 // file modified date, just returns "0" if
 // something went wrong.
 async fn modified_time(file: &Metadata) -> u64 {
-    file.modified()
-    .map_or(0, |f| {
-      match f.duration_since(SystemTime::UNIX_EPOCH) {
-        Ok(t) => t.as_secs(),
-        Err(_) => u64::MAX
-      }
+  file
+    .modified()
+    .map_or(0, |f| match f.duration_since(SystemTime::UNIX_EPOCH) {
+      Ok(t) => t.as_secs(),
+      Err(_) => u64::MAX,
     })
 }
 
 // Was gonna use &DirEntry as the argument type but
 // I saw this fancy construct somewhere:
-async fn parse_article<P: AsRef<Path>>(
-  path: P
-) -> Result<ImportedArticleDto, ImportError> {
+async fn parse_article<P: AsRef<Path>>(path: P) -> Result<ImportedArticleDto, ImportError> {
   /*let file = File::open(path)
-    .await
-    .map_err(|_| ImportError::IOError)?;*/
-  // Tokio's BufReader can't be used with the 
+  .await
+  .map_err(|_| ImportError::IOError)?;*/
+  // Tokio's BufReader can't be used with the
   // standard serde, so I decided to load the whole
   // thing in memory, provided file size is smaller
   // than a certain threshold.
@@ -471,12 +428,11 @@ async fn parse_article<P: AsRef<Path>>(
   let contents = read_to_string(path)
     .await
     .map_err(|_| ImportError::IOError)?;
-  // Attempt to parse the JSON. We need a DTO that 
-  // is close to what ArticleUpdate is but should 
+  // Attempt to parse the JSON. We need a DTO that
+  // is close to what ArticleUpdate is but should
   // also allow deleting articles.
-  let imported: ImportedArticleDto = 
-    serde_json::from_str(&contents)?;
-    //.map_err(|_| ImportError::ParseError)?;
+  let imported: ImportedArticleDto = serde_json::from_str(&contents)?;
+  //.map_err(|_| ImportError::ParseError)?;
   Ok(imported)
 }
 
@@ -487,27 +443,20 @@ mod tests {
 
   #[tokio::test]
   async fn article_import_valid() {
-    let parsed_article = 
-      parse_article("./resources/fixtures/import_tests/valid.json")
+    let parsed_article = parse_article("./resources/fixtures/import_tests/valid.json")
       .await
       .unwrap();
     assert_eq!(32, parsed_article.id.unwrap());
     assert_eq!("some_url", parsed_article.article_url.unwrap());
-    assert_eq!(
-      7, 
-      parsed_article.tags.unwrap()[0].id
-    );
+    assert_eq!(7, parsed_article.tags.unwrap()[0].id);
   }
 
   #[tokio::test]
   async fn article_import_delete() {
-    let parsed_article = 
-      parse_article("./resources/fixtures/import_tests/delete.json")
+    let parsed_article = parse_article("./resources/fixtures/import_tests/delete.json")
       .await
       .unwrap();
     assert_eq!(42, parsed_article.id.unwrap());
     assert_eq!(1, parsed_article.action.unwrap());
   }
-
 }
-

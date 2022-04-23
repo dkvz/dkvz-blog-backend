@@ -1,4 +1,3 @@
-use chrono::prelude::*;
 use chrono::{Local, TimeZone};
 
 // Very specific date format the old API is doing: dd/MM/yyyy HH:mm:ssZ
@@ -9,14 +8,14 @@ const DATE_FORMAT_USCOMPACT: &'static str = "%Y-%m-%d";
 
 pub enum DateFormat {
   Standard,
-  USCompact
+  USCompact,
 }
 
 pub fn timestamp_to_date_string(timestamp: i64, format: DateFormat) -> String {
   let d = Local.timestamp(timestamp, 0);
   let format_str = match format {
     DateFormat::Standard => DATE_FORMAT_STANDARD,
-    DateFormat::USCompact => DATE_FORMAT_USCOMPACT
+    DateFormat::USCompact => DATE_FORMAT_USCOMPACT,
   };
   d.format(format_str).to_string()
 }

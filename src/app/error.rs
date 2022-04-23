@@ -1,9 +1,6 @@
-use actix_web::{
-  error::ResponseError,
-  HttpResponse
-};
+use actix_web::{error::ResponseError, HttpResponse};
 use log::error;
-use serde::{Deserialize, Serialize};
+//use serde::{Deserialize, Serialize};
 //use std::convert::From;
 use derive_more::Display;
 
@@ -11,9 +8,9 @@ use derive_more::Display;
 // content type everywhere...
 const ERR_CONTENT_TYPE: &str = "text/plain; charset=utf-8";
 
-// Not sure if it's a good idea to call it "Error" 
+// Not sure if it's a good idea to call it "Error"
 // but uh... Yeah I don't know.
-// I could use 
+// I could use
 // #[display(fmt = "Internal server error: {}", _0)]
 // To display the full message, but I don't want it
 // to show up to random internet people, the full
@@ -31,19 +28,20 @@ pub enum Error {
   #[display(fmt = "Bad Request - {}", _0)]
   BadRequest(String),
   #[display(fmt = "Too many requests - Try again later")]
-  TooManyRequests
+  TooManyRequests,
 }
 
 // I'm using plain text for error responses because it's
-// easy and the old API was doing it too. A nice TODO 
+// easy and the old API was doing it too. A nice TODO
 // would be to use JSON instead.
 impl ResponseError for Error {
   fn error_response(&self) -> HttpResponse {
     match self {
-      Error::InternalServerError(_) | Error::DatabaseError(_) => 
+      Error::InternalServerError(_) | Error::DatabaseError(_) => {
         HttpResponse::InternalServerError()
           .content_type(ERR_CONTENT_TYPE)
-          .body(self.to_string()),
+          .body(self.to_string())
+      }
       Error::Forbidden(_) => HttpResponse::Forbidden()
         .content_type(ERR_CONTENT_TYPE)
         .body(self.to_string()),
@@ -55,7 +53,7 @@ impl ResponseError for Error {
         .body(self.to_string()),
       Error::TooManyRequests => HttpResponse::TooManyRequests()
         .content_type(ERR_CONTENT_TYPE)
-        .body(self.to_string())
+        .body(self.to_string()),
     }
   }
 }
@@ -63,9 +61,9 @@ impl ResponseError for Error {
 // Helper to map database errors (could be replaced with
 // a From trait but then I'd need custom database errors)
 // This is also where I could decide to panic on DB errors.
-// TODO: I should have a custom error type for the DB 
-// module and a From trait to convert it into an 
-// InternalServerError from this module, would make the 
+// TODO: I should have a custom error type for the DB
+// module and a From trait to convert it into an
+// InternalServerError from this module, would make the
 // code shorter in handlers.rs.
 pub fn map_db_error<E: ToString + std::fmt::Debug>(err: E) -> Error {
   error!("Database error occured {:?}", err);

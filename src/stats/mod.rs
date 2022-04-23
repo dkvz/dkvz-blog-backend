@@ -1,51 +1,49 @@
-/* 
- * The stats module is meant to group 
- * all the GeoIP and anonymous stats 
+/*
+ * The stats module is meant to group
+ * all the GeoIP and anonymous stats
  * systems together.
  */
 
+use crate::db::entities::ArticleStat;
+use crate::db::{insert_article_stat, Pool};
+use crate::utils::ip_utils::extract_first_bytes;
+use crate::utils::text_utils::first_letter_to_upper;
+use color_eyre::Result;
+use eyre::eyre;
+use log::{debug, error, info};
+use std::net::IpAddr;
 use std::sync::mpsc::{self, SyncSender, TrySendError};
 use std::thread::{self, JoinHandle};
-use color_eyre::Result;
-use eyre::{WrapErr, eyre};
-use std::net::IpAddr;
-use log::{error, info, debug};
-use crate::db::{Pool, insert_article_stat};
-use crate::db::entities::ArticleStat;
-use crate::utils::text_utils::first_letter_to_upper;
-use crate::utils::ip_utils::extract_first_bytes;
-pub mod pseudonymizer;
 pub mod ip_location;
-use ip_location::{IpLocator, GeoInfo};
+pub mod pseudonymizer;
+use ip_location::{GeoInfo, IpLocator};
 use pseudonymizer::WordlistPseudoyimizer;
 
 #[derive(Debug)]
 pub struct BaseArticleStat {
   pub article_id: i32,
   pub client_ua: String,
-  pub client_ip: Option<IpAddr>
+  pub client_ip: Option<IpAddr>,
 }
 
 #[derive(Debug)]
 enum StatsMessage {
   Close,
-  InsertArticleStats(BaseArticleStat)
+  InsertArticleStats(BaseArticleStat),
 }
 
 pub struct StatsService {
   tx: SyncSender<StatsMessage>,
-  thread_handle: Option<JoinHandle<()>>
+  thread_handle: Option<JoinHandle<()>>,
 }
 
 impl StatsService {
-
   pub fn open(
     pool: &Pool,
     wordlist_path: &str,
     iploc_path: &str,
-    message_queue_size: usize
-  ) -> Result<StatsService> 
-  {
+    message_queue_size: usize,
+  ) -> Result<StatsService> {
     let mut pseudonymizer = WordlistPseudoyimizer::open(wordlist_path)?;
     let mut ip_locator = IpLocator::open(iploc_path)?;
     // That 3 is very totally completely arbitrary.
@@ -62,7 +60,7 @@ impl StatsService {
             StatsMessage::Close => {
               info!("Stats thread terminating...");
               break;
-            },
+            }
             StatsMessage::InsertArticleStats(base_article_stat) => {
               // I had to add this mess when I realized the API of Actix could
               // give me no client IP address at all.
@@ -71,28 +69,30 @@ impl StatsService {
                   None => (String::new(), None, String::new()),
                   Some(ip) => {
                     let ip_str = ip.to_string();
-                    let geo_info = match ip_locator.geo_info(&ip_str) {
+                    let geo_info = match ip_locator.geo_info(ip) {
                       Ok(info) => Some(info),
                       Err(e) => {
-                        error!("Error from StatsService for IP Location \
-                    - {}", e);
+                        error!(
+                          "Error from StatsService for IP Location \
+                    - {}",
+                          e
+                        );
                         None
                       }
                     };
                     (
-                      extract_first_bytes(&ip_str), 
+                      extract_first_bytes(&ip_str),
                       geo_info,
-                      pseudonymize(&mut pseudonymizer, &ip_str)
+                      pseudonymize(&mut pseudonymizer, &ip_str),
                     )
                   }
                 };
 
-              let geo_info: GeoInfo = geo_info
-                .unwrap_or(GeoInfo {
-                  country: String::new(),
-                  region: String::new(),
-                  city: String::new()
-                });
+              let geo_info: GeoInfo = geo_info.unwrap_or(GeoInfo {
+                country: String::new(),
+                region: String::new(),
+                city: String::new(),
+              });
               /*let client_ip = base_article_stat.client_ip.to_string();
               // Get the geoip info:
               let geo_info = match ip_locator.geo_info(&client_ip) {
@@ -117,47 +117,47 @@ impl StatsService {
                 date: None,
                 country: geo_info.country,
                 region: geo_info.region,
-                city: geo_info.city
+                city: geo_info.city,
               };
               debug!("Inserting article stats: {:?}", article_stat);
               if let Err(e) = insert_article_stat(&connection, &article_stat) {
-                error!("Error from StatsService: \
-                  could not insert ArticleStats - {}", e);
+                error!(
+                  "Error from StatsService: \
+                  could not insert ArticleStats - {}",
+                  e
+                );
               }
             }
           }
-        },
+        }
         // Stop the stat thread in case of error:
-        Err(_) => break
+        Err(_) => break,
       }
     });
     Ok(StatsService {
       tx,
-      thread_handle: Some(thread_handle)
+      thread_handle: Some(thread_handle),
     })
   }
 
-  pub fn insert_article_stats(
-    &self,
-    article_stats: BaseArticleStat
-  ) -> Result<()> {
+  pub fn insert_article_stats(&self, article_stats: BaseArticleStat) -> Result<()> {
     // The message sending will fail if the thread is dead.
-    // I could make everything panic in that case but I 
+    // I could make everything panic in that case but I
     // won't.
-    // TODO: I'm almost certain I shouldn't clone the 
+    // TODO: I'm almost certain I shouldn't clone the
     // sender for every single insert, it should be clone
     // once per thread (Actix worker threads in my case).
     // I thought of having a separate struct that serves
     // as a remote for the StatsService and that could just
     // derive Clone, and hopefuly that would work.
-    // I'm using try_send because send blocks when the 
+    // I'm using try_send because send blocks when the
     // buffer of the sync_channel is full and that would be
     // terrible. I just need to make sure the buffer is large
     // enough for the inserts to follow.
     let tx = self.tx.clone();
     debug!("Sending stats to stats thread: {:?}", article_stats);
     /*tx.send(StatsMessage::InsertArticleStats(article_stats))
-      .context("Send article stats to stats thread")*/
+    .context("Send article stats to stats thread")*/
     match tx.try_send(StatsMessage::InsertArticleStats(article_stats)) {
       Ok(_) => Ok(()),
       Err(ts_error) => match ts_error {
@@ -166,22 +166,18 @@ impl StatsService {
           // I chose to have buffer full not actually raise an error with the
           // "insert_article_stats" method.
           Ok(())
-        },
+        }
         TrySendError::Disconnected(msg) => {
           error!("Stats thread is dead, could not insert: {:?}", msg);
           Err(eyre!("Stats thread appears to have died"))
         }
-      }
+      },
     }
   }
-
 }
 
-fn pseudonymize(
-  pseudonymizer: &mut WordlistPseudoyimizer,
-  value: &str
-) -> String {
-  // We just return an empty string if the pseudonimizer 
+fn pseudonymize(pseudonymizer: &mut WordlistPseudoyimizer, value: &str) -> String {
+  // We just return an empty string if the pseudonimizer
   // doesn't work for some reason, but we log the error.
   match pseudonymizer.pseudonymize(value) {
     Ok(pseudo) => first_letter_to_upper(pseudo),
@@ -192,19 +188,19 @@ fn pseudonymize(
   }
 }
 
-// Not sure that'll work but Drop is a good place to ask for 
-// termination of the thread. Which should be alive so we 
+// Not sure that'll work but Drop is a good place to ask for
+// termination of the thread. Which should be alive so we
 // don't check for that either.
 impl Drop for StatsService {
   fn drop(&mut self) {
     match self.tx.clone().send(StatsMessage::Close) {
       Ok(_) => info!("StatsService is closing..."),
-      Err(e) => error!("Could not close StatsService - {}", e)
+      Err(e) => error!("Could not close StatsService - {}", e),
     }
     // I would have waited for the thread_handle to join here
     // but you can't. Something about it already being dropped
     // or uh... Yeah I don't know.
-    // Then I used an Option for the thread handler and it 
+    // Then I used an Option for the thread handler and it
     // worked if I use this really weird code.
     // Thanks Stackoverflow.
     self.thread_handle.take().map(JoinHandle::join);
