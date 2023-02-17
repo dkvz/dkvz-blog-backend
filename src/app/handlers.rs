@@ -309,7 +309,7 @@ pub async fn import_article(app_state: web::Data<AppState>) -> HttpResponse {
 
 // The search endpoint shares the same rate limiter as the post
 // comment one. That same rate_limiter should be a guard or a
-// middleware too. It should be a toto item somwhere.
+// middleware too.
 pub async fn search_articles(
   app_state: web::Data<AppState>,
   search_body: web::Json<SearchBody>,

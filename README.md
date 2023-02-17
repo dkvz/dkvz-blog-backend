@@ -476,7 +476,6 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
 - [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
-- [x] Check that special chars and HTML is removed from the fulltext inserts and updates.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
 - [x] To re-test: rebuilding fulltext index entirely.
 - [ ] Test all the comment DB functions.

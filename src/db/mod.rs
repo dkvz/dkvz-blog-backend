@@ -9,7 +9,7 @@ use eyre::WrapErr;
 use std::convert::TryFrom;
 // Re-exporting the query building enums and structs:
 use crate::utils::time_utils::current_timestamp;
-use helpers::{generate_field_equal_qmark, generate_where_placeholders, stripped_article_content};
+use helpers::{generate_field_equal_qmark, generate_where_placeholders, stripped_article_content, strip_html};
 use mappers::{map_article, map_comment, map_count, map_search_result, map_tag};
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
@@ -206,9 +206,13 @@ fn update_article_fulltext(connection: &Connection, article: &ArticleUpdate) -> 
     fields.push(f_title);
     values.push(title);
   }
+  // Declare stripped_content to make sure it lives
+  // long enough:
+  let stripped_content: String;
   if let Some(content) = &article.content {
+    stripped_content = strip_html(content);
     fields.push(f_content);
-    values.push(content);
+    values.push(&stripped_content);
   }
   values.push(&article.id);
   let query = Query::new(QueryType::Update {
