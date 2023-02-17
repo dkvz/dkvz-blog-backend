@@ -176,7 +176,7 @@ I'm using a weird rate limiter on that endpoint which basically blocks (with For
 Expects a specific JSON body:
 ```json
 {
-  include: [
+  "include": [
     "search term 1",
     "search term 2"
   ]
