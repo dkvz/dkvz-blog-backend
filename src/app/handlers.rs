@@ -112,13 +112,10 @@ pub async fn article(
 ) -> Result<HttpResponse, Error> {
   let article_url = path.into_inner().0;
   // Check if we got an article ID:
-  let article: Option<Article> = match article_url.parse::<i32>() {
-    // Fetch article by id:
-    Ok(article_id) => db::article_by_id(&app_state.pool, article_id),
-    // Fetch article by URL:
-    Err(_) => db::article_by_url(&app_state.pool, &article_url),
-  }
-  .map_err(map_db_error)?;
+  let article: Option<Article> = db::article_by_id_or_url(
+    &app_state.pool, 
+    &article_url
+  ).map_err(map_db_error)?;
   // Send a 404 if there are no articles:
   match article {
     Some(a) => {
@@ -135,6 +132,16 @@ pub async fn article(
     }
     None => Err(Error::NotFound("Article does not exist".to_string())),
   }
+}
+
+// Refreshes the date to the current date and time and publishes
+// the article specified by ID in the path.
+pub async fn refresh_date_and_publish(
+  app_state: web::Data<AppState>,
+  path: web::Path<(String,)>,
+) -> Result<HttpResponse, Error> {
+
+  Err(Error::NotFound("Article does not exist".to_string()))
 }
 
 fn articles_or_shorts_starting_from(
@@ -508,13 +515,10 @@ pub async fn render_article(
   // enough to not warrant crazy refactoring.
   let article_url = path.into_inner().0;
   // Check if we got an article ID:
-  let article: Option<Article> = match article_url.parse::<i32>() {
-    // Fetch article by id:
-    Ok(article_id) => db::article_by_id(&app_state.pool, article_id),
-    // Fetch article by URL:
-    Err(_) => db::article_by_url(&app_state.pool, &article_url),
-  }
-  .map_err(map_db_error)?;
+  let article: Option<Article> = db::article_by_id_or_url(
+    &app_state.pool, 
+    &article_url
+  ).map_err(map_db_error)?;
   // Send a 404 if there are no articles:
   match article {
     Some(a) => {

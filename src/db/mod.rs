@@ -457,6 +457,15 @@ pub fn article_by_url(pool: &Pool, url: &str) -> Result<Option<Article>> {
   )
 }
 
+pub fn article_by_id_or_url(pool: &Pool, article_url: &str) -> Result<Option<Article>> {
+  match article_url.parse::<i32>() {
+    // Fetch article by id:
+    Ok(article_id) => article_by_id(pool, article_id),
+    // Fetch article by URL:
+    Err(_) => article_by_url(pool, &article_url),
+  }
+}
+
 pub fn article_exists(pool: &Pool, id: i32) -> Result<bool> {
   entry_exists(
     pool,
