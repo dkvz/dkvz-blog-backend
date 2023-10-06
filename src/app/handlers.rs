@@ -136,9 +136,11 @@ pub async fn article(
 
 // Refreshes the date to the current date and time and publishes
 // the article specified by ID in the path.
+// The DB method takes an i32 so I left that as param.
+// Negative IDs obviously won't work though.
 pub async fn refresh_date_and_publish(
   app_state: web::Data<AppState>,
-  path: web::Path<(String,)>,
+  path: web::Path<(i32,)>,
 ) -> Result<HttpResponse, Error> {
 
   Err(Error::NotFound("Article does not exist".to_string()))

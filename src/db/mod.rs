@@ -563,6 +563,22 @@ pub fn delete_article(pool: &Pool, article_id: i32) -> Result<usize> {
   stmt.execute(parms).context("Delete article")
 }
 
+pub fn update_date_and_publish(pool: &Pool, article_id: i32) -> Result<usize> {
+  let conn = pool.clone().get()?;
+  let query = Query::new(QueryType::Update {
+    table: "articles",
+    fields: &["date", "published"],
+  }).where_clause("id = ?");
+  let mut stmt = conn.prepare(&query.to_string())?;
+  let parms = params![
+    current_timestamp(),
+    1,
+    article_id
+  ];
+  let result = stmt.execute(parms)?;
+  Ok(result)
+}
+
 // Updating articles is weird in that we check for
 // the presence of fields to update or we don't touch
 // them (because the API expects this behavior).
