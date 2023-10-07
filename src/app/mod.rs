@@ -211,6 +211,11 @@ fn base_endpoints_config(cfg: &mut web::ServiceConfig) {
         .to(handlers::rebuild_indexes),
     )
     .route(
+      "/publish/{article_id}", 
+      web::get().guard(ip_guard.clone())
+        .to(handlers::refresh_date_and_publish),
+    )
+    .route(
       "/render-article/{articleUrl}",
       web::get().to(handlers::render_article),
     )

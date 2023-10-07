@@ -251,6 +251,13 @@ Rebuilds the fulltext index completely (tears it down first).
 
 Responds with a JSON success status object with a single field "count" with the number of articles rebuilt.
 
+## /publish - GET
+Quick way to publish an article and refresh the date attached to said article.
+
+Just refreshes the date in case the article was already published.
+
+Responds with a success status if an article was updated, sends a 404 otherwise.
+
 ## /render-article/{articleUrl} - GET
 Renders a barebones version of the full article page in HTML for search engines. Doesn't need any CORS.
 

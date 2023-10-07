@@ -142,8 +142,21 @@ pub async fn refresh_date_and_publish(
   app_state: web::Data<AppState>,
   path: web::Path<(i32,)>,
 ) -> Result<HttpResponse, Error> {
-
-  Err(Error::NotFound("Article does not exist".to_string()))
+  let article_id = path.into_inner().0;
+  let count = db::update_date_and_publish(
+    &app_state.pool, 
+    article_id
+  ).map_err(map_db_error)?;
+  if count > 0 {
+    let success = JsonStatus::new_with_id(
+      JsonStatusType::Success,
+      "Date refreshed and article published",
+      article_id
+    );
+    Ok(HttpResponse::Ok().json(success))
+  } else {
+    Err(Error::NotFound("No updates were made".to_string()))
+  }
 }
 
 fn articles_or_shorts_starting_from(

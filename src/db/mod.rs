@@ -6,13 +6,14 @@ mod queries;
 use color_eyre::Result;
 use entities::*;
 use eyre::WrapErr;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 // Re-exporting the query building enums and structs:
 use crate::utils::time_utils::current_timestamp;
 use helpers::{generate_field_equal_qmark, generate_where_placeholders, stripped_article_content, strip_html};
 use mappers::{map_article, map_comment, map_count, map_search_result, map_tag};
 pub use queries::{Order, OrderBy};
 use queries::{Query, QueryType};
+use log::info;
 
 /**
  * I'll do all the DB stuff in a non-async way first.
@@ -565,9 +566,12 @@ pub fn delete_article(pool: &Pool, article_id: i32) -> Result<usize> {
 
 pub fn update_date_and_publish(pool: &Pool, article_id: i32) -> Result<usize> {
   let conn = pool.clone().get()?;
+  let d_f: &str = &generate_field_equal_qmark("date");
+  let d_p: &str = &generate_field_equal_qmark("published");
+  let fields = [d_f, d_p];
   let query = Query::new(QueryType::Update {
     table: "articles",
-    fields: &["date", "published"],
+    fields: &fields,
   }).where_clause("id = ?");
   let mut stmt = conn.prepare(&query.to_string())?;
   let parms = params![
