@@ -403,7 +403,7 @@ Except that version is too old so I'll create my own image from a Dockerfile.
 
 Image can be built like so:
 ```
-docker build -t dkvz-blog-compiler -f Dockerfile.jessie .
+docker build --ulimit nofile=10000:10000 -t dkvz-blog-compiler -f Dockerfile.jessie .
 ```
 
 Then to build the executable:

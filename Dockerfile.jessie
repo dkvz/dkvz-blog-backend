@@ -1,7 +1,12 @@
 FROM debian:jessie
 
+# The Jessie repos have been archived for 
+# for a while now.
+RUN echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list \
+  && echo "deb http://archive.debian.org/debian-security/ jessie/updates main" >> /etc/apt/sources.list
+
 # We really want to cache this step:
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install --force-yes -y \
   curl \ 
   build-essential \ 
   file \
@@ -12,7 +17,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # I need to custom build the sqlite3 lib or 
 # FT5 support is missing.
-RUN curl "https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release" --output sqlite.tar.gz \
+RUN curl -k "https://www.sqlite.org/src/tarball/sqlite.tar.gz?r=release" --output sqlite.tar.gz \
   && tar -xzf sqlite.tar.gz \
   && cd sqlite \
   && ./configure --enable-fts5 \
