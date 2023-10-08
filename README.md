@@ -252,6 +252,8 @@ Rebuilds the fulltext index completely (tears it down first).
 Responds with a JSON success status object with a single field "count" with the number of articles rebuilt.
 
 ## /publish - GET
+Only works for a set of allowed IP addresses or returns a forbidden exception.
+
 Quick way to publish an article and refresh the date attached to said article.
 
 Just refreshes the date in case the article was already published.
