@@ -3,8 +3,17 @@ name = "dkvz-blog-backend"
 version = "1.1.0"
 authors = ["DkVZ <github@dkvz.eu>"]
 edition = "2018"
+default-run = "dkvz-blog-backend"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "dkvz-blog-backend"
+path = "src/main.rs"
+
+[[bin]]
+name = "dkvz-data-transform"
+path = "src/data-transform.rs"
 
 [dependencies]
 r2d2 = "0.8.2"
