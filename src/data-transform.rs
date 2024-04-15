@@ -3,7 +3,7 @@ mod config;
 mod db;
 mod utils;
 
-use regex::Regex;
+use fancy_regex::Regex;
 use std::env;
 use color_eyre::Result;
 use eyre::eyre;
@@ -37,8 +37,12 @@ fn transform_pre_code(content: String) -> String {
   // followed by a <code> tag.
 
   // TODO The regexes should be set as lazy_static items.
-  let re_start = Regex::new(r"<pre(.*?)>\s*[^<][]code]").unwrap();
-  let re_end = Regex::new(r"[^</code>]\s*</pre>").unwrap();
+  // I have to use one of these cursed negative lookahead 
+  // inside of a non-capturing group (?:()).
+  // Std regex lib doesn't actually provide these so I had
+  // to import some other lib.
+  let re_start = Regex::new(r"<pre(.*?)>\s*(?:(?!<code))").unwrap();
+  let re_end = Regex::new(r"(?:(?!</code>))\s*</pre>").unwrap();
 
   let replaced = re_start.replace_all(&content, "<pre$1><code>");
   let replaced = re_end.replace_all(&replaced, "</code></pre$1>");
@@ -107,14 +111,14 @@ mod tests {
       <pre class=\"screen\">
       </pre>
     ");
+    // Transform will remove line feeds before ending
+    // tags, this is expected, code is still correct:
     let expect = String::from("<p>test text</p>
       <pre class=\"screen\"><code>const a = 1;
         const b = 3;
-        return a + b;
-      </code></pre>
+        return a + b;</code></pre>
       <p>More text</p>
-      <pre class=\"screen\"><code>
-      </code></pre>
+      <pre class=\"screen\"><code></code></pre>
     ");
     let result = transform_pre_code(code);
     assert_eq!(expect, result)

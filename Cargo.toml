@@ -41,3 +41,4 @@ tokio = {version = "0.2.*", features = ["full"] }
 handlebars = { version = "3.0.0", features = ["dir_source"] }
 actix-cors= "0.5.4"
 getopts = "0.2"
+fancy-regex = "0.13.0"
