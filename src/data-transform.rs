@@ -123,4 +123,24 @@ mod tests {
     let result = transform_pre_code(code);
     assert_eq!(expect, result)
   }
+
+  #[test]
+  fn transform_pre_code_no_action_when_code_already_there() {
+    let code = String::from("Some text<hr>More text
+      <pre><code class=\"javascript\">void(false)</code></pre>
+      even more text, modify this one
+      <pre>
+      // epic code right there
+      // More of it
+      </pre>
+      <b>OK I'm done</b>");
+    let expect = String::from("Some text<hr>More text
+      <pre><code class=\"javascript\">void(false)</code></pre>
+      even more text, modify this one
+      <pre><code>// epic code right there
+      // More of it</code></pre>
+      <b>OK I'm done</b>");
+    let result = transform_pre_code(code);
+    assert_eq!(expect, result)
+  }
 }
