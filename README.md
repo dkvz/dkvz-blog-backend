@@ -387,7 +387,9 @@ https://github.com/actix/examples/tree/master/template_engines/handlebars
 But it's using JSON as the template data, which is weird... Seems to be the best template lib after I checked out the other ones though.
 
 # Building the binary
-On a Linux box:
+The sqlite crate won't build on Linux without having the libsqlite3 dev files. On Ubuntu the package is called `libsqlite3-dev`.
+
+To build the API binary:
 ```
 cargo build --release
 strip target/release/dkvz-blog-backend

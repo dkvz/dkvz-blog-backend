@@ -37,11 +37,17 @@ fn transform_pre_code(content: String) -> String {
   // followed by a <code> tag.
 
   // TODO The regexes should be set as lazy_static items.
+
   // I have to use one of these cursed negative lookahead 
   // inside of a non-capturing group (?:()).
   // Std regex lib doesn't actually provide these so I had
   // to import some other lib.
-  let re_start = Regex::new(r"<pre(.*?)>\s*(?:(?!<code))").unwrap();
+  // Lead to a whole bunch of issues making due to me wanting
+  // to copy the classes (and other possible arguments) in 
+  // <pre> so in the end I made a character class that includes
+  // almost everything but ">":
+  // <pre(\s*[\w\d\s“'-=]*?)>(?:(?!<code))
+  let re_start = Regex::new(r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!<code))"#).unwrap();
   let re_end = Regex::new(r"(?:(?!</code>))\s*</pre>").unwrap();
 
   let replaced = re_start.replace_all(&content, "<pre$1><code>");
