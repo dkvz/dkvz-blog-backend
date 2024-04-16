@@ -48,10 +48,11 @@ fn transform_pre_code(content: String) -> String {
   // almost everything but ">":
   // <pre(\s*[\w\d\s“'-=]*?)>(?:(?!<code))
   let re_start = Regex::new(r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!<code))"#).unwrap();
-  let re_end = Regex::new(r"(?:(?!</code>))\s*</pre>").unwrap();
+  // For that one we need a lookbehind (of course):
+  let re_end = Regex::new(r"(?:(?<!<\/code>))\s*<\/pre>").unwrap();
 
   let replaced = re_start.replace_all(&content, "<pre$1><code>");
-  let replaced = re_end.replace_all(&replaced, "</code></pre$1>");
+  let replaced = re_end.replace_all(&replaced, "</code></pre>");
   return replaced.to_string();
 }
 
@@ -143,7 +144,8 @@ mod tests {
     let expect = String::from("Some text<hr>More text
       <pre><code class=\"javascript\">void(false)</code></pre>
       even more text, modify this one
-      <pre><code>// epic code right there
+      <pre><code>
+      // epic code right there
       // More of it</code></pre>
       <b>OK I'm done</b>");
     let result = transform_pre_code(code);
