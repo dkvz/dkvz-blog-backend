@@ -47,12 +47,20 @@ fn transform_pre_code(content: String) -> String {
   // <pre> so in the end I made a character class that includes
   // almost everything but ">":
   // <pre(\s*[\w\d\s“'-=]*?)>(?:(?!<code))
-  let re_start = Regex::new(r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!<code))"#).unwrap();
+  // This whole ordeal feels extremely wonky, hence my many 
+  // tests.
+  let re_start = Regex::new(r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!\s*<code))"#).unwrap();
   // For that one we need a lookbehind (of course):
   let re_end = Regex::new(r"(?:(?<!<\/code>))\s*<\/pre>").unwrap();
+  //let re_end = Regex::new(r"(?:(?!\s*<\/code>\s*))<\/pre>").unwrap();
+  // The regex above sometimes produces double code ending tags,
+  // so here's a bonus one to remove them.
+  // I'm having a lot of fun.
+  let re_double_code = Regex::new(r"<\/code>\s*<\/code>\s*<\/pre>").unwrap();
 
   let replaced = re_start.replace_all(&content, "<pre$1><code>");
   let replaced = re_end.replace_all(&replaced, "</code></pre>");
+  let replaced = re_double_code.replace_all(&replaced, "</code></pre>");
   return replaced.to_string();
 }
 
@@ -151,4 +159,28 @@ mod tests {
     let result = transform_pre_code(code);
     assert_eq!(expect, result)
   }
+
+  #[test]
+  fn transform_pre_code_space_characters_in_between_no_replace() {
+    let code = String::from("<pre>
+    
+        <code>
+        // Code here
+        </code>
+
+
+        </pre>
+        <p>Text that follows</p>
+      ");
+    let expect = String::from("<pre>
+    
+        <code>
+        // Code here
+        </code></pre>
+        <p>Text that follows</p>
+      ");
+    let result = transform_pre_code(code);
+    assert_eq!(expect, result)
+  }
+
 }
