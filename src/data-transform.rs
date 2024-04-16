@@ -63,7 +63,7 @@ fn transform_pre_code(content: String) -> String {
   // Ideally we'd need a HTML parser here.
   lazy_static! {
     static ref RE_START: Regex = Regex::new(
-      r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!\s*<code))"#
+      r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!\s*<code))\s*"#
     ).unwrap();
     // For that one we need a lookbehind (of course):
     static ref RE_END: Regex = Regex::new(
@@ -165,11 +165,13 @@ mod tests {
       // More of it
       </pre>
       <b>OK I'm done</b>");
+    // We still remove line feeds coming right after <code>
+    // because these tend to add a visible line feed on the
+    // code listing on the website.
     let expect = String::from("Some text<hr>More text
       <pre><code class=\"javascript\">void(false)</code></pre>
       even more text, modify this one
-      <pre><code>
-      // epic code right there
+      <pre><code>// epic code right there
       // More of it</code></pre>
       <b>OK I'm done</b>");
     let result = transform_pre_code(code);
