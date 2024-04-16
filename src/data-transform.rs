@@ -11,11 +11,16 @@ use dotenv::dotenv;
 use log::{debug, error, info};
 use r2d2_sqlite::{self, SqliteConnectionManager};
 use getopts::Options;
+use lazy_static::lazy_static;
 use crate::db::Pool;
 use crate::db::Order;
 use crate::config::Config;
 
 // The structure of ths file is horrible I'm so sorry
+
+// WARNING: Data transform operations neither ask for 
+// confirmation nor create a backup of the DB for you.
+// You should DEFINITELY create a backup before though.
 
 // Copy pasted this from getopts doc.
 fn print_usage(program: &str, opts: Options) {
@@ -32,12 +37,6 @@ fn run_pre_code_transform(pool: &Pool) -> Result<()> {
 }
 
 fn transform_pre_code(content: String) -> String {
-  // Let's try one of these "negated classes" in regexes
-  // We don't want to update any <pre> tag this is already
-  // followed by a <code> tag.
-
-  // TODO The regexes should be set as lazy_static items.
-
   // I have to use one of these cursed negative lookahead 
   // inside of a non-capturing group (?:()).
   // Std regex lib doesn't actually provide these so I had
@@ -49,18 +48,27 @@ fn transform_pre_code(content: String) -> String {
   // <pre(\s*[\w\d\s“'-=]*?)>(?:(?!<code))
   // This whole ordeal feels extremely wonky, hence my many 
   // tests.
-  let re_start = Regex::new(r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!\s*<code))"#).unwrap();
-  // For that one we need a lookbehind (of course):
-  let re_end = Regex::new(r"(?:(?<!<\/code>))\s*<\/pre>").unwrap();
-  //let re_end = Regex::new(r"(?:(?!\s*<\/code>\s*))<\/pre>").unwrap();
-  // The regex above sometimes produces double code ending tags,
-  // so here's a bonus one to remove them.
-  // I'm having a lot of fun.
-  let re_double_code = Regex::new(r"<\/code>\s*<\/code>\s*<\/pre>").unwrap();
+  // Ideally we'd need a HTML parser here.
+  lazy_static! {
+    static ref RE_START: Regex = Regex::new(
+      r#"<pre(\s*[\w\d\s"'-=]*?)>(?:(?!\s*<code))"#
+    ).unwrap();
+    // For that one we need a lookbehind (of course):
+    static ref RE_END: Regex = Regex::new(
+      r"(?:(?<!<\/code>))\s*<\/pre>"
+    ).unwrap();
+    //let re_end = Regex::new(r"(?:(?!\s*<\/code>\s*))<\/pre>").unwrap();
+    // The regex above sometimes produces double code ending tags,
+    // so here's a bonus one to remove them.
+    // I'm having a lot of fun.
+    static ref RE_DOUBLE_CODE: Regex = Regex::new(
+      r"<\/code>\s*<\/code>\s*<\/pre>"
+    ).unwrap();
+  }
 
-  let replaced = re_start.replace_all(&content, "<pre$1><code>");
-  let replaced = re_end.replace_all(&replaced, "</code></pre>");
-  let replaced = re_double_code.replace_all(&replaced, "</code></pre>");
+  let replaced = RE_START.replace_all(&content, "<pre$1><code>");
+  let replaced = RE_END.replace_all(&replaced, "</code></pre>");
+  let replaced = RE_DOUBLE_CODE.replace_all(&replaced, "</code></pre>");
   return replaced.to_string();
 }
 
