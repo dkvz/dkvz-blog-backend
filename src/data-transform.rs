@@ -13,6 +13,7 @@ use r2d2_sqlite::{self, SqliteConnectionManager};
 use getopts::Options;
 use lazy_static::lazy_static;
 use crate::db::Pool;
+use crate::db::entities::*;
 use crate::db::Order;
 use crate::config::Config;
 
@@ -28,10 +29,21 @@ fn print_usage(program: &str, opts: Options) {
   print!("{}", opts.usage(&brief));
 }
 
-fn run_pre_code_transform(pool: &Pool) -> Result<()> {
+fn run_pre_tags_update(pool: &Pool) -> Result<()> {
   let article_ids = db::all_articles_and_shorts_ids(pool, Order::Asc, false)?;
   for id in article_ids.iter() {
-
+    // Get the article. We just stop the whole thing immediately in case of error.
+    let article = db::article_by_id(pool, *id)?;
+    if let Some(a) = article {
+      info!("Processing article {} - '{}'", &id, &a.title);
+      let article_update = ArticleUpdate::update_content(
+        id.clone(),
+        transform_pre_code(a.summary),
+        transform_pre_code(a.content.unwrap_or(String::from("")))
+      );
+      // We don't need it but update_article also updates the fulltext index.
+      db::udpate_article(pool, &article_update)?;
+    }
   }
   Ok(())
 }
@@ -101,11 +113,7 @@ fn main() -> Result<()> {
     match operation.as_str() {
       "pre-tags-update" => {
         info!("Start <pre> to <pre><code> transform operation...");
-
-        // Do we need to rebuild the fulltext index? I'd say no.
-        // But important to keep in mind for other transforms.
-
-        return Ok(());
+        return run_pre_tags_update(&pool);
       },
       _ => {
         return Err(eyre!("Provided operation doesn't exist for data transform"));

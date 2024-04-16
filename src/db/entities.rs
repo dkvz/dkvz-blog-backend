@@ -45,6 +45,26 @@ pub struct ArticleUpdate {
   pub tags: Option<Vec<Tag>>
 }
 
+impl ArticleUpdate {
+  pub fn update_content(
+    id: i32, 
+    summary: String, 
+    content: String
+  ) -> Self {
+    Self {
+      id,
+      summary: Some(summary),
+      content: Some(content),
+      title: None,
+      article_url: None,
+      thumb_image: None,
+      user_id: None,
+      published: None,
+      tags: None
+    }
+  }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
