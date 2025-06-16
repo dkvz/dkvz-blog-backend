@@ -455,6 +455,7 @@ WantedBy=multi-user.target
 Simple with no auto-restart. I just have to test if start, stop and restart really work.
 
 # TODO
+- [ ] /render-article should also render the comments
 - [x] I need da CORS.
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
 - [ ] The app does not crash when the DB file is unreadable, it just continuously outputs an error.
@@ -477,7 +478,6 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] I think I can use some AsRef or impl Display thingy instead of String or &str in many places - Actually not that many because I escape using lifetimes a lot with owned strings.
-- [ ] Triple check that comments have escaped HTML (for author and content).
 - [x] What happens if you request a negative article ID? -> 404.
 - [ ] There are some places where I could probably combine match statements into something like Ok(Some(variable)) and get a clearer flow (if let is kinda crap).
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
@@ -489,7 +489,6 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
 - [x] To re-test: rebuilding fulltext index entirely.
-- [ ] Test all the comment DB functions.
 - [x] Create a limited length fixture instead of the full wordlist.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
