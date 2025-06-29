@@ -9,9 +9,7 @@ use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{text_utils, time_utils};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use handlebars::Handlebars;
-use lazy_static::lazy_static;
 use log::{debug, error};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::convert::{From, TryInto};
@@ -22,8 +20,8 @@ use std::convert::{From, TryInto};
 
 // Few constants I don't know where to put. They
 // don't really qualify for the config file:
-const MAX_ARTICLES: usize = 30;
-const MAX_COMMENTS: usize = 30;
+const MAX_ARTICLES: usize = 20;
+const MAX_COMMENTS: usize = 20;
 const MAX_COMMENT_LENGTH: usize = 2000;
 const MAX_AUTHOR_LENGTH: usize = 70;
 // Max length of article content in RSS descriptions:
