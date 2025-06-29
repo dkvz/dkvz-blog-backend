@@ -2,6 +2,7 @@ use super::dtos::*;
 use super::error::{map_db_error, Error};
 use super::helpers;
 use super::AppState;
+use crate::app::helpers::header_value;
 use crate::db;
 use crate::db::entities::*;
 use crate::stats::{BaseArticleStat, StatsService};
@@ -155,10 +156,12 @@ pub async fn refresh_date_and_publish(
 }
 
 fn articles_or_shorts_starting_from(
+    api_root: &Option<String>,
     pool: &db::Pool,
     path: web::Path<(usize,)>,
     query: web::Query<ArticlesQuery>,
     article_selector: db::ArticleSelector,
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     let start = path.into_inner().0;
     let max = query.max.unwrap_or(MAX_ARTICLES);
@@ -209,11 +212,24 @@ fn articles_or_shorts_starting_from(
         let articles = db::articles_from_to(pool, &article_selector, start, max, &tags, order)
             .map_err(map_db_error)?;
 
+        // Generate a link header with the last page on it
+        // TODO: Might need to extrat this to a helper for re-use
+        let mut link_header = String::new();
+        if api_root.is_some() {
+            link_header.push_str(&api_root.clone().unwrap());
+        } else {
+            // We use https by default, might be wrong but whatever.
+            let host = req.headers().get("host").map(|h| h.to_str().unwrap_or(""));
+            link_header.push_str(&format!("https://{}", host.unwrap_or("localhost")));
+        }
+        // Now we add the current path and whatever is needed to create the
+        // link for the last page
+
         // Might be another way to convert the whole Vec, but I don't know
         // about it.
         let article_dtos: Vec<ArticleDto> = articles.into_iter().map(|a| a.into()).collect();
         Ok(HttpResponse::Ok()
-            .set_header("link", "cool")
+            .set_header("link", link_header)
             .json(article_dtos))
     }
 }
@@ -222,16 +238,32 @@ pub async fn articles_starting_from(
     app_state: web::Data<AppState>,
     path: web::Path<(usize,)>,
     query: web::Query<ArticlesQuery>,
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
-    articles_or_shorts_starting_from(&app_state.pool, path, query, db::ArticleSelector::Article)
+    articles_or_shorts_starting_from(
+        &app_state.site_info.api_root,
+        &app_state.pool,
+        path,
+        query,
+        db::ArticleSelector::Article,
+        req,
+    )
 }
 
 pub async fn shorts_starting_from(
     app_state: web::Data<AppState>,
     path: web::Path<(usize,)>,
     query: web::Query<ArticlesQuery>,
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
-    articles_or_shorts_starting_from(&app_state.pool, path, query, db::ArticleSelector::Short)
+    articles_or_shorts_starting_from(
+        &app_state.site_info.api_root,
+        &app_state.pool,
+        path,
+        query,
+        db::ArticleSelector::Short,
+        req,
+    )
 }
 
 pub async fn post_comment(

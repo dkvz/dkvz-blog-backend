@@ -54,4 +54,3 @@ pub fn generate_article_url(
         url.as_ref()
     )
 }
-
