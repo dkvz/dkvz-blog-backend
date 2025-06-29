@@ -232,7 +232,7 @@ fn articles_or_shorts_starting_from(
             lazy_static! {
                 static ref REQ_REGEX: Regex = Regex::new(r"(.+/)(\d+)?$").unwrap();
             }
-            link_header.push_str(&REQ_REGEX.replace(req.path(), format!("$1/{}", count - max)));
+            link_header.push_str(&REQ_REGEX.replace(req.path(), format!("$1/{}", max - count)));
         }
         link_header.push_str(">; rel=\"last\"");
 
