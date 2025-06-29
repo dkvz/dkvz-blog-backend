@@ -2,14 +2,15 @@ use super::dtos::*;
 use super::error::{map_db_error, Error};
 use super::helpers;
 use super::AppState;
-use crate::app::helpers::header_value;
 use crate::db;
 use crate::db::entities::*;
 use crate::stats::{BaseArticleStat, StatsService};
 use crate::utils::{text_utils, time_utils};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use handlebars::Handlebars;
+use lazy_static::lazy_static;
 use log::{debug, error};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::convert::{From, TryInto};
@@ -213,8 +214,8 @@ fn articles_or_shorts_starting_from(
             .map_err(map_db_error)?;
 
         // Generate a link header with the last page on it
-        // TODO: Might need to extrat this to a helper for re-use
-        let mut link_header = String::new();
+        // TODO: Might need to extrat this to a helper for re-use and testing
+        let mut link_header = String::from("<");
         if api_root.is_some() {
             link_header.push_str(&api_root.clone().unwrap());
         } else {
@@ -225,6 +226,15 @@ fn articles_or_shorts_starting_from(
         // Now we add the current path and whatever is needed to create the
         // link for the last page, it's in req.path()
         // But we have to replace the current "start" with the one from the last page
+        if count >= max {
+            link_header.push_str(req.path());
+        } else {
+            lazy_static! {
+                static ref REQ_REGEX: Regex = Regex::new(r"(.+/)(\d+)?$").unwrap();
+            }
+            link_header.push_str(&REQ_REGEX.replace(req.path(), format!("$1/{}", count - max)));
+        }
+        link_header.push_str(">; rel=\"last\"");
 
         // Might be another way to convert the whole Vec, but I don't know
         // about it.
