@@ -223,7 +223,8 @@ fn articles_or_shorts_starting_from(
             link_header.push_str(&format!("https://{}", host.unwrap_or("localhost")));
         }
         // Now we add the current path and whatever is needed to create the
-        // link for the last page
+        // link for the last page, it's in req.path()
+        // But we have to replace the current "start" with the one from the last page
 
         // Might be another way to convert the whole Vec, but I don't know
         // about it.
