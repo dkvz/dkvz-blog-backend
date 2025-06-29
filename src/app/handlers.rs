@@ -2,6 +2,7 @@ use super::dtos::*;
 use super::error::{map_db_error, Error};
 use super::helpers;
 use super::AppState;
+use crate::app::helpers::replace_start_in_pagination_path;
 use crate::db;
 use crate::db::entities::*;
 use crate::stats::{BaseArticleStat, StatsService};
@@ -214,7 +215,7 @@ fn articles_or_shorts_starting_from(
             .map_err(map_db_error)?;
 
         // Generate a link header with the last page on it
-        // TODO: Might need to extrat this to a helper for re-use and testing
+        // TODO: Might need to extract this to a helper for re-use and testing
         let mut link_header = String::from("<");
         if api_root.is_some() {
             link_header.push_str(&api_root.clone().unwrap());
@@ -223,18 +224,14 @@ fn articles_or_shorts_starting_from(
             let host = req.headers().get("host").map(|h| h.to_str().unwrap_or(""));
             link_header.push_str(&format!("https://{}", host.unwrap_or("localhost")));
         }
-        // Now we add the current path and whatever is needed to create the
-        // link for the last page, it's in req.path()
-        // But we have to replace the current "start" with the one from the last page
-        if count >= max {
+        // Processing the "last" one:
+        if max >= count {
             link_header.push_str(req.path());
         } else {
-            lazy_static! {
-                static ref REQ_REGEX: Regex = Regex::new(r"(.+/)(\d+)?$").unwrap();
-            }
-            link_header.push_str(&REQ_REGEX.replace(req.path(), format!("$1/{}", max - count)));
+            let factor = count / max;
+            link_header.push_str(&replace_start_in_pagination_path(req.path(), factor * max));
         }
-        link_header.push_str(">; rel=\"last\"");
+        link_header.push_str(&format!("?max={}>; rel=\"last\"", max));
 
         // Might be another way to convert the whole Vec, but I don't know
         // about it.

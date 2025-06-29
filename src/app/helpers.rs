@@ -1,6 +1,7 @@
 use actix_web::HttpRequest;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::borrow::Cow;
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -53,4 +54,30 @@ pub fn generate_article_url(
         article_root.as_ref(),
         url.as_ref()
     )
+}
+
+pub fn replace_start_in_pagination_path(path: &str, start: usize) -> Cow<str> {
+    lazy_static! {
+        static ref REQ_REGEX: Regex = Regex::new(r"(.+)/(\d+)?$").unwrap();
+    }
+    REQ_REGEX.replace(path, &format!("$1/{}", start))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn can_replace_pagination_start_happy() {
+        let sut = "/articles-starting-from/0";
+        let expected = "/articles-starting-from/100";
+        assert_eq!(expected, replace_start_in_pagination_path(sut, 100))
+    }
+
+    #[test]
+    fn can_replace_pagination_multiple_slashes() {
+        let sut = "/v2/articles-starting-from/10";
+        let expected = "/v2/articles-starting-from/100";
+        assert_eq!(expected, replace_start_in_pagination_path(sut, 100));
+    }
 }
