@@ -84,6 +84,11 @@ Responds with a list of posts with no "content" field when compared to the /arti
 
 Responds with a 404 when requested starting point (referred to as "start") is past the article count for that request (takes tags into account). The endpoint actually queries for the article count internally before responding.
 
+At some point I added a link header to the response with just a single link item indicating what the link to the last page would be when using the same `max` argument and incrementing `start` logically:
+```
+<https://apidomain.tld/articles-starting-from/56?max=8>; rel="last"
+```
+
 ## /shorts-starting-from/{start} - GET
 Same as the previous endpoint but fetches shorts. Result list also has the "content" field in this case.
 
