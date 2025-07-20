@@ -236,6 +236,7 @@ fn articles_or_shorts_starting_from(
         let article_dtos: Vec<ArticleDto> = articles.into_iter().map(|a| a.into()).collect();
         Ok(HttpResponse::Ok()
             .set_header("link", link_header)
+            .set_header("Access-Control-Expose-Headers", "link")
             .json(article_dtos))
     }
 }
