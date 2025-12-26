@@ -3,6 +3,7 @@ use super::error::{map_db_error, Error};
 use super::helpers;
 use super::AppState;
 use crate::app::helpers::replace_start_in_pagination_path;
+use crate::app::ALLOWED_IP_ADDRESSES;
 use crate::db;
 use crate::db::entities::*;
 use crate::stats::{BaseArticleStat, StatsService};
@@ -13,6 +14,7 @@ use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::convert::{From, TryInto};
+use std::net::IpAddr;
 
 // Module with all the API handler functions.
 // Should probably be split into a directory
@@ -118,15 +120,24 @@ pub async fn article(
     // Send a 404 if there are no articles:
     match article {
         Some(a) => {
-            // Save the visit in the stats DB:
-            insert_stats(
-                BaseArticleStat {
-                    article_id: a.id,
-                    client_ua: helpers::header_value(&req, "user-agent"),
-                    client_ip: helpers::real_ip_addr(&req),
-                },
-                &app_state.stats_service,
-            );
+            let real_ip: Option<IpAddr> = helpers::real_ip_addr(&req);
+            // Save the visit in the stats DB if the request
+            // wasn't made by localhost (we check for proxy
+            // headers first).
+            if real_ip.is_some()
+                && !ALLOWED_IP_ADDRESSES
+                    .iter()
+                    .any(|i| i.as_ref() == real_ip.unwrap().to_string())
+            {
+                insert_stats(
+                    BaseArticleStat {
+                        article_id: a.id,
+                        client_ua: helpers::header_value(&req, "user-agent"),
+                        client_ip: real_ip,
+                    },
+                    &app_state.stats_service,
+                );
+            }
             Ok(HttpResponse::Ok().json(ArticleDto::from(a)))
         }
         None => Err(Error::NotFound("Article does not exist".to_string())),
