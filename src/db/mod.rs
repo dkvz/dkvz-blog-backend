@@ -6,6 +6,7 @@ mod queries;
 use color_eyre::Result;
 use entities::*;
 use eyre::WrapErr;
+use r2d2_sqlite::rusqlite;
 use std::convert::TryFrom;
 // Re-exporting the query building enums and structs:
 use crate::utils::time_utils::current_timestamp;
