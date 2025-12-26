@@ -1,4 +1,4 @@
-use rusqlite::{params, OptionalExtension, Row, ToSql, NO_PARAMS};
+use rusqlite::{params, OptionalExtension, Row, ToSql};
 pub mod entities;
 mod helpers;
 mod mappers;
@@ -26,6 +26,7 @@ use queries::{Query, QueryType};
  */
 
 const ANONYMOUS_USERNAME: &'static str = "Anonymous";
+const NO_PARAMS: &[&dyn ToSql] = &[];
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -43,8 +44,7 @@ pub enum ArticleSelector {
 // Google takes you to old versions of the doc.
 fn select_many<T, P, F>(pool: &Pool, query: &str, params: P, mapper: F) -> Result<Vec<T>>
 where
-    P: IntoIterator,
-    P::Item: ToSql,
+    P: rusqlite::Params,
     F: FnMut(&Row<'_>) -> Result<T, rusqlite::Error>,
 {
     // Do the reference counting thingand get a connection
@@ -57,8 +57,7 @@ where
 
 fn select_one<T, P, F>(pool: &Pool, query: &str, params: P, mapper: F) -> Result<Option<T>>
 where
-    P: IntoIterator,
-    P::Item: ToSql,
+    P: rusqlite::Params,
     F: FnMut(&Row<'_>) -> rusqlite::Result<T>,
 {
     // Do the reference counting thing and get a connection
@@ -73,8 +72,7 @@ where
 
 fn select_count<P>(pool: &Pool, query: &str, params: P) -> Result<i64>
 where
-    P: IntoIterator,
-    P::Item: ToSql,
+    P: rusqlite::Params,
 {
     let count = select_one(pool, query, params, map_count)?.unwrap_or(0);
     Ok(count)
@@ -220,7 +218,7 @@ fn update_article_fulltext(connection: &Connection, article: &ArticleUpdate) -> 
     .to_string();
     //let conn = pool.clone().get()?;
     let mut stmt = connection.prepare(&query)?;
-    stmt.execute(values)
+    stmt.execute(values.as_slice())
         .context("Update fulltext data for article")
 }
 
@@ -359,8 +357,8 @@ pub fn articles_from_to(
 
     // haven't thought of something more "optimal" than
     // providing an empty vector.
-    let params: Vec<&str> = match tags {
-        Some(ts) => ts.clone(),
+    let params: &[&dyn ToSql] = match tags {
+        Some(ts) => ts.clone().as_slice(),
         None => Vec::new(),
     };
 

@@ -16,9 +16,9 @@ name = "dkvz-data-transform"
 path = "src/data-transform.rs"
 
 [dependencies]
-r2d2 = "0.8.2"
-r2d2_sqlite = "0.14"
-rusqlite = "0.21"
+r2d2 = "0.8.10"
+r2d2_sqlite = "0.31"
+rusqlite = "0.37"
 dotenv = "0.15.0"
 config = "0.10.1"
 serde = { version = "1.0.118", features = ["derive"] }
