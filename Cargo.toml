@@ -1,6 +1,6 @@
 [package]
 name = "dkvz-blog-backend"
-version = "2.1.1"
+version = "2.1.2"
 authors = ["DkVZ <github@dkvz.eu>"]
 edition = "2018"
 default-run = "dkvz-blog-backend"
@@ -24,7 +24,7 @@ serde = { version = "1.0.118", features = ["derive"] }
 serde_json = "1.0.60"
 eyre = "0.4"
 color-eyre = "0.3"
-chrono = "0.4"
+chrono = "0.4.42"
 html2text = "0.2.1"
 linecount = "0.1.0"
 sha-1 = "0.9.3"
