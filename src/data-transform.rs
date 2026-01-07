@@ -23,24 +23,38 @@ use std::env;
 // confirmation nor create a backup of the DB for you.
 // You should DEFINITELY create a backup before though.
 
+pub enum ContentTransform {
+    PreTags,
+    ImgLightbox,
+}
+
 // Copy pasted this from getopts doc.
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
 
-fn run_pre_tags_update(pool: &Pool) -> Result<()> {
+fn run_content_update(pool: &Pool, transform_type: ContentTransform) -> Result<()> {
     let article_ids = db::all_articles_and_shorts_ids(pool, Order::Asc, false)?;
     for id in article_ids.iter() {
         // Get the article. We just stop the whole thing immediately in case of error.
         let article = db::article_by_id(pool, *id)?;
         if let Some(a) = article {
             info!("Processing article {} - '{}'", &id, &a.title);
-            let article_update = ArticleUpdate::update_content(
-                id.clone(),
-                transform_pre_code(a.summary),
-                transform_pre_code(a.content.unwrap_or(String::from(""))),
-            );
+            // There's some repeat code but I don't want to pass
+            // function pointers around.
+            let article_update = match transform_type {
+                ContentTransform::PreTags => ArticleUpdate::update_content(
+                    id.clone(),
+                    transform_pre_code(a.summary),
+                    transform_pre_code(a.content.unwrap_or(String::from(""))),
+                ),
+                ContentTransform::ImgLightbox => ArticleUpdate::update_content(
+                    id.clone(),
+                    transform_img_add_lightbox(a.summary),
+                    transform_img_add_lightbox(a.content.unwrap_or(String::from(""))),
+                ),
+            };
             // We don't need it but update_article also updates the fulltext index.
             db::udpate_article(pool, &article_update)?;
         }
@@ -128,7 +142,11 @@ fn main() -> Result<()> {
         match operation.as_str() {
             "pre-tags-update" => {
                 info!("Start <pre> to <pre><code> transform operation...");
-                return run_pre_tags_update(&pool);
+                return run_content_update(&pool, ContentTransform::PreTags);
+            }
+            "img-lightbox-update" => {
+                info!("Start <img> to <img-lightbox><img> transform operation...");
+                return run_content_update(&pool, ContentTransform::ImgLightbox);
             }
             _ => {
                 return Err(eyre!("Provided operation doesn't exist for data transform"));
