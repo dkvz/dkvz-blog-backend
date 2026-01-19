@@ -4,16 +4,16 @@ mod db;
 mod utils;
 
 use crate::config::Config;
-use crate::db::entities::*;
 use crate::db::Order;
 use crate::db::Pool;
+use crate::db::entities::*;
 use color_eyre::Result;
 use dotenv::dotenv;
 use eyre::eyre;
 use fancy_regex::Regex;
 use getopts::Options;
 use lazy_static::lazy_static;
-use log::{debug, error, info};
+use log::info;
 use r2d2_sqlite::{self, SqliteConnectionManager};
 use std::env;
 

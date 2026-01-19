@@ -2,7 +2,7 @@
 name = "dkvz-blog-backend"
 version = "2.2.1"
 authors = ["DkVZ <github@dkvz.eu>"]
-edition = "2018"
+edition = "2024"
 default-run = "dkvz-blog-backend"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
