@@ -10,6 +10,7 @@ mod utils;
 use crate::config::Config;
 use crate::db::Pool;
 use crate::db::entities::*;
+use crate::utils::time_utils;
 use color_eyre::Result;
 use dotenv::dotenv;
 use eyre::eyre;
@@ -35,6 +36,11 @@ struct ParsedLogLine {
     pub client_ua: String,
     pub timestamp: i64,
 }
+
+// Needed because I wanted the shorts and
+// articles URLs to by determined based on
+// the config file - Guess I was bored.
+struct UrlParser {}
 
 // Copy pasted this from getopts doc.
 pub fn print_usage(program: &str, opts: Options) {
@@ -88,6 +94,8 @@ fn parse_log_line(line: &str, pool: &Pool) -> Result<Option<ParsedLogLine>> {
         // IP, date, URL, referrer, user agent
         static ref RE_LOG_LINE: Regex =
             Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s\"\S{0,5}\s(\S+?)\s.+?\".+?\"(\S+?)\"\s\"(.+)\"$"#).unwrap();
+        static ref RE_URL: Regex =
+            Regex::new(r#"/(breves|articles)"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -101,7 +109,10 @@ fn parse_log_line(line: &str, pool: &Pool) -> Result<Option<ParsedLogLine>> {
         return Err(eyre!("Log line is missing values"));
     }
 
-    let date = &caps[2];
+    // Check if we got an article or short URL in the
+    // direct URL or referrer
+
+    let date = time_utils::parse_nginx_log_date(&caps[2]);
 
     Err(eyre!("Not implemented"))
 }
