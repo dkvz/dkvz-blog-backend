@@ -5,13 +5,11 @@
 */
 mod config;
 mod db;
-mod stats;
 mod utils;
 
 use crate::config::Config;
 use crate::db::Pool;
 use crate::db::entities::*;
-use crate::stats::BaseArticleStat;
 use color_eyre::Result;
 use dotenv::dotenv;
 use eyre::eyre;
@@ -22,6 +20,21 @@ use regex::Regex;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+
+#[derive(Debug)]
+enum ArticleType {
+    Short,
+    Article,
+}
+
+#[derive(Debug)]
+struct ParsedLogLine {
+    pub id_or_url: String,
+    pub article_type: ArticleType,
+    pub client_ip: String,
+    pub client_ua: String,
+    pub timestamp: i64,
+}
 
 // Copy pasted this from getopts doc.
 pub fn print_usage(program: &str, opts: Options) {
@@ -67,16 +80,28 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn parse_log_line(line: &str, pool: &Pool) -> Result<Option<BaseArticleStat>> {
+fn parse_log_line(line: &str, pool: &Pool) -> Result<Option<ParsedLogLine>> {
     // Thought I could split the lines but they're too weird
     // We have to use a regex. Also this is hyper specific to
     // Nginx, probably.
-    //
-    // TODO: I need to be able to save stats with a specific
-    // timestamp in it.
-    //
     lazy_static! {
-        static ref RE_LOG_LINE: Regex = Regex::new(r"^(\S+?)\s-").unwrap();
+        // IP, date, URL, referrer, user agent
+        static ref RE_LOG_LINE: Regex =
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s\"\S{0,5}\s(\S+?)\s.+?\".+?\"(\S+?)\"\s\"(.+)\"$"#).unwrap();
     }
+
+    let captures = RE_LOG_LINE.captures(line);
+    if captures.is_none() {
+        return Err(eyre!("Log line couldn't be parsed"));
+    }
+    let caps = captures.unwrap();
+    // Not sure this can happen but that's my excuse
+    // for unleashing an unwrap party:
+    if caps.len() < 6 {
+        return Err(eyre!("Log line is missing values"));
+    }
+
+    let date = &caps[2];
+
     Err(eyre!("Not implemented"))
 }
