@@ -31,7 +31,7 @@ enum ArticleType {
 
 #[derive(Debug)]
 struct ParsedLogLine {
-    pub article_id: i32,
+    pub article_id_or_url: String,
     pub article_type: ArticleType,
     pub client_ip: String,
     pub client_ua: String,
@@ -114,6 +114,8 @@ fn main() -> Result<()> {
     //     println!("{}", line?);
     // }
 
+    // TODO: Could keep a cache of some article_url -> id
+
     // We may get several identical "visits" from the referrer
     // lines. We should only keep one.
     // TODO: The watcher mode should keep the last referrer
@@ -131,11 +133,9 @@ fn parse_log_line(
     // We have to use a regex. Also this is hyper specific to
     // Nginx, probably.
     lazy_static! {
-        // IP, date, URL, referrer, user agent
+        // IP, date, URL, status, referrer, user agent
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s\"\S{0,5}\s(\S+?)\s.+?\".+?\"(\S+?)\"\s\"(.+)\"$"#).unwrap();
-        static ref RE_URL: Regex =
-            Regex::new(r#"/(breves|articles)"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s\"\S{0,5}\s(\S+?)\s.+?\"\s(\d+)\s.+?\"(\S+?)\"\s\"(.+)\"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -145,33 +145,46 @@ fn parse_log_line(
     let caps = captures.unwrap();
     // Not sure this can happen but that's my excuse
     // for unleashing an unwrap party:
-    if caps.len() < 6 {
+    if caps.len() < 7 {
         return Err(eyre!("Log line is missing values"));
+    }
+
+    // We use the HTTP status to determine if the article
+    // "exists" though the site will currently send valid
+    // responses with a 404 if the URL is not canonical,
+    // sometimes. We'll just ignore that for now.
+    let status: u32 = caps[4].parse().unwrap_or(0);
+    if status >= 300 || status < 200 {
+        return Ok(None);
     }
 
     // Check if we got an article or short URL in the
     // direct URL or referrer
     let parsed = url_parser
         .parse_url(&caps[3])
-        .or_else(|| url_parser.parse_url(&caps[4]));
+        .or_else(|| url_parser.parse_url(&caps[5]));
 
     // Doesn't match a direct article visit
     if parsed.is_none() {
         return Ok(None);
     }
-
-    // Check if the id or url does exist - We could cache
-    // some of these or devise a way to find out which visits
-    // are correct. Using 404 errors doesn't really work for
-    // now as they can actually return true content (lol).
-    // However I'll accept these false positives and just look
-    // for 2xx responses and just log their stats without
-    // checking the database.
+    let parsed = parsed.unwrap();
 
     // We have a visit, gather the data to save it
     let date = time_utils::parse_nginx_log_date(&caps[2]);
+    if date.is_none() {
+        return Err(eyre!(
+            "The date could not be parsed - Not supposed to happen"
+        ));
+    }
 
-    Err(eyre!("Not implemented"))
+    Ok(Some(ParsedLogLine {
+        article_id_or_url: parsed.1,
+        article_type: parsed.0,
+        timestamp: date.unwrap().timestamp(),
+        client_ip: String::from(&caps[1]),
+        client_ua: String::from(&caps[6]),
+    }))
 }
 
 #[cfg(test)]
