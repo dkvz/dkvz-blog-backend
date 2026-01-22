@@ -114,6 +114,11 @@ fn main() -> Result<()> {
     //     println!("{}", line?);
     // }
 
+    // We may get several identical "visits" from the referrer
+    // lines. We should only keep one.
+    // TODO: The watcher mode should keep the last referrer
+    // visits in some cache
+
     Ok(())
 }
 
