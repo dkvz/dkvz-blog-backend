@@ -31,7 +31,14 @@ impl IpLocator {
     // Add function to request GeoInfo.
     // The "db" object has to be mutable.
     pub fn geo_info(&mut self, ip: IpAddr) -> Result<GeoInfo> {
-        match self.dbv4.ip_lookup(ip) {
+        let db: &mut DB = if ip.is_ipv4() {
+            &mut self.dbv4
+        } else if self.dbv6.is_some() {
+            &mut self.dbv6.as_mut().unwrap()
+        } else {
+            return Err(eyre!("Ipv6 DB is missing"));
+        };
+        match db.ip_lookup(ip) {
             Ok(record) => {
                 let country = match record.country {
                     Some(country) => remove_dash(country.long_name),

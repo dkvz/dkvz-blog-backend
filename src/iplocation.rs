@@ -8,7 +8,7 @@ use crate::config::Config;
 use crate::stats::ip_location::IpLocator;
 use color_eyre::Result;
 use dotenv::dotenv;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr};
 
 // Pretty much just an integration test for iplocation
 // I tried using a [[test]] target but that requires a
@@ -24,13 +24,21 @@ fn main() -> Result<()> {
 
     // I hope Google doesn't disappear before my blog backend does
     let test_addr_v4 = IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8));
+    let test_addr_v6: IpAddr = "2001:4860:4860::8888".parse().unwrap();
     let res_v4 = iploc.geo_info(test_addr_v4)?;
+    let res_v6 = iploc.geo_info(test_addr_v6)?;
 
     assert_eq!("mountain view", res_v4.city.to_lowercase());
     assert_eq!("california", res_v4.region.to_lowercase());
     assert_eq!("united states of america", res_v4.country.to_lowercase());
 
     println!("✅ ipv4 tests passed");
+
+    assert_eq!("mountain view", res_v6.city.to_lowercase());
+    assert_eq!("california", res_v6.region.to_lowercase());
+    assert_eq!("united states of america", res_v6.country.to_lowercase());
+
+    println!("✅ ipv6 tests passed");
 
     Ok(())
 }

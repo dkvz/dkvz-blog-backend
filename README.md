@@ -287,6 +287,11 @@ They have the DB committed on Github but I thought I probably shouldn't.
 
 At some point I also added the ipv6 version of DB5.LITE as "optional". Not including it in the `.env` will disable ipv6 location.
 
+To test the IP location, there's a specific binary target (unless I changed it to a test after migrating the whole project to a Cargo workspace):
+```
+cargo run --bin iplocation
+```
+
 # Logging
 The crate [env_logger](https://docs.rs/env_logger/0.8.3/env_logger) integreates with Actix but I can also use it in my StatsService.
 
