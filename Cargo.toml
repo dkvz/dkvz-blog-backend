@@ -15,6 +15,14 @@ path = "src/main.rs"
 name = "dkvz-data-transform"
 path = "src/data-transform.rs"
 
+# Pretty much just an integration test for iplocation
+# I tried using a [[test]] target but that requires a
+# [[lib]] target to work as I want it to so that'll be
+# something for later. Probably never.
+[[bin]]
+name = "iplocation"
+path = "src/iplocation.rs"
+
 [dependencies]
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.17"
