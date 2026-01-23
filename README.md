@@ -461,19 +461,14 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 
 # TODO
 - [ ] /render-article should also render the comments
-- [x] I need da CORS.
+- [ ] Project could become a workspace instead of having multiple binaries with chaotic code in their single main file
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.
 - [ ] The app does not crash when the DB file is unreadable, it just continuously outputs an error.
 - [ ] Add a favicon, base route for "/favicon.ico" should work.
 - [x] I need a generic function for "count" queries.
-- [x] Log a message when server is started -> Actix already does that.
-- [x] IP+port should be configurable from the .env with some kind of default value maybe?
-- [x] Make some generic way to convert to DTOs in request handlers, I probably need a trait -> From seems to work on vectors so From is all I need.
 - [x] A custom 404 message for invalid URLs would be nice
 - [x] Do I also need a custom BadRequest or whatever is sent when you provide invalid path params?
-- [x] I'm still missing custom errors for request query params.
 - [x] To test for article import: I think it wouldn't allow me to remove thumbImage (for instance) by setting it to null.
-- [x] Forgot to code the endpoint to get comments for an article.
 - [ ] Not related to the backend itself but I really need to remove all those TODO HTML comments from the database content fields.
 - [ ] I'm allowing importing articles with article_url being null, as if they were short. Does that cause weird fatal errors?
 - [ ] Can we use web::FormConfig to limit the size of form POST requests?
@@ -488,13 +483,9 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [x] Fields like thumb_image and article_url can be NULL; Does Option automatically work in the entity?
 - [x] Make the stats thread message queue size configurable! Could also probably set it to be larger by default.
 - [x] None of the plain text and "default error messages" (like when an endpoint fails parsing a path variable) specify encoding, so browsers are using US-ASCII and that's a problem. I'm missing "content-type: text/plain; charset=utf-8".
-- [x] Does encoding actually work with the JSON endpoints?
-- [x] Should use a Logger instead of println! inside of StatsService, I should be able to use the log crate.
-- [x] The Query struct doesn't need to get vectors, we could give slices of arrays instead.
 - [x] Forgot to replace some special chars before inserting the fulltext data ("<" and ">") - Used to to this with JSoup.
 - [ ] full_article_mapper should probably take a Connection instead of a Pool.
 - [x] To re-test: rebuilding fulltext index entirely.
-- [x] Create a limited length fixture instead of the full wordlist.
 - [ ] I'm not sure cloning the connection pool for almost every request is the way to go in db/mod.rs. Maybe it's how the "pool" gets used the most efficienctly though.
 - [ ] Similar remark with cloning the SyncSender in stats/mod.rs, search for "TODO".
 - [ ] I get the author name in full_article_mapper for every single article (old API does that too), I should add it to the actual query, possibly with a LEFT JOIN. I'm not sure that would even be faster though, especially with SQLite. Search function already includes fetching username in the query.
