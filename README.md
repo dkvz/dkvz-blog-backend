@@ -462,6 +462,7 @@ WantedBy=multi-user.target
 Simple with no auto-restart. I just have to test if start, stop and restart really work.
 
 # TODO
+- [ ] I should create a lib target and a Cargo workspace with separate projects (or at least try it)
 - [ ] /render-article should also render the comments
 - [ ] Project could become a workspace instead of having multiple binaries with chaotic code in their single main file
 - [ ] The relative to absolute link functions in text_utils do not check if there's already a slash in the URL - It's possible to create URLs with two slashes, I should probably check if the URL is leading with a slash or not.

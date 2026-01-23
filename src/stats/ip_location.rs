@@ -13,21 +13,25 @@ pub struct GeoInfo {
 }
 
 pub struct IpLocator {
-    db: DB,
+    dbv4: DB,
+    dbv6: Option<DB>,
 }
 
 impl IpLocator {
-    pub fn open(filename: &str) -> Result<IpLocator> {
-        match DB::from_file(filename) {
-            Ok(db) => Ok(Self { db }),
-            Err(_) => Err(eyre!("Error opening ip2location DB")),
-        }
+    pub fn open(filename_v4: &str, filename_v6: &Option<String>) -> Result<IpLocator> {
+        let dbv4 = DB::from_file(filename_v4).map_err(|_| eyre!("Error opening ip2location DB"))?;
+        let dbv6 = match filename_v6 {
+            Some(f) => DB::from_file(f).ok(),
+            None => None,
+        };
+
+        Ok(Self { dbv6, dbv4 })
     }
 
     // Add function to request GeoInfo.
     // The "db" object has to be mutable.
     pub fn geo_info(&mut self, ip: IpAddr) -> Result<GeoInfo> {
-        match self.db.ip_lookup(ip) {
+        match self.dbv4.ip_lookup(ip) {
             Ok(record) => {
                 let country = match record.country {
                     Some(country) => remove_dash(country.long_name),
@@ -50,9 +54,5 @@ impl IpLocator {
 }
 
 fn remove_dash(value: String) -> String {
-    if value == "-" {
-        String::new()
-    } else {
-        value
-    }
+    if value == "-" { String::new() } else { value }
 }

@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{App, HttpResponse, HttpServer, middleware, web};
 use article_import::ImportService;
 use color_eyre::Result;
 use eyre::WrapErr;
@@ -103,6 +103,7 @@ pub async fn run() -> Result<()> {
         &pool_stats,
         &config.wordlist_path,
         &config.iploc_path,
+        &config.iploc_v6_path,
         config.message_queue_size,
     )?;
 
