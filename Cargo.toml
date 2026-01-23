@@ -21,8 +21,8 @@ path = "src/log-to-stats.rs"
 
 [[test]]
 name = "iplocation"
-path = "tests/iplocation.rs"
-test = false
+path = "src/tests/iplocation.rs"
+test = true
 harness = false
 
 [dependencies]
