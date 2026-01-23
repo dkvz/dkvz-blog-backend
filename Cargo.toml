@@ -19,6 +19,12 @@ path = "src/data-transform.rs"
 name = "dkvz-log-parser"
 path = "src/log-to-stats.rs"
 
+[[test]]
+name = "iplocation"
+path = "tests/iplocation.rs"
+test = false
+harness = false
+
 [dependencies]
 r2d2 = "0.8.10"
 r2d2_sqlite = "0.17"
