@@ -175,7 +175,7 @@ The endpoint slightly changed in that it's now only deleting the files that were
 I do not allow removing article_url with an update (AKA setting it to null) but there are no errors if you attempt to do it. It's just ignored.
 TODO: Would be nice to have an error for that behavior but I can't bother for now.
 
-# /articles/search - POST
+## /articles/search - POST
 I'm using a weird rate limiter on that endpoint which basically blocks (with Forbidden HTTP error) ALL searches when a certain threshold is reached.
 
 Expects a specific JSON body:
@@ -272,20 +272,22 @@ Will require a template, I leave it ultra barebones to make it faster, could add
 
 **Adds an entry to article stats**.
 
-## Database
+# Database
 Some of the database workings were inspired by this example: https://github.com/actix/examples/tree/master/async_db
 
-## Uselful links
+# Uselful links
 * [Data access class from current backend](https://github.com/dkvz/DoradeBlogEngineSpring/blob/master/src/main/java/eu/dkvz/BlogAuthoring/model/BlogDataAccessSpring.java)
 
-## IP Location
+# IP Location
 I'm using ip2location, more precisely the DB5.LITE from here https://lite.ip2location.com/ip2location-lite. I guess I'll be using the IPv4 BIN.
 
 Rust library that looks promising: https://github.com/marirs/rust-ip2location.
 
 They have the DB committed on Github but I thought I probably shouldn't.
 
-## Logging
+At some point I also added the ipv6 version of DB5.LITE as "optional". Not including it in the `.env` will disable ipv6 location.
+
+# Logging
 The crate [env_logger](https://docs.rs/env_logger/0.8.3/env_logger) integreates with Actix but I can also use it in my StatsService.
 
 Got version 0.7 in my Actix notes.
@@ -325,10 +327,10 @@ I use it like so, which means default log level for sources is info, and then sp
 std::env::set_var("RUST_LOG", "info,actix_web=info");
 ```
 
-## CORS
+# CORS
 I think there's an example in the official "examples" repo, otherwise this middleware sounds promising: https://github.com/actix/examples/tree/master/web-cors
 
-## Custom errors
+# Custom errors
 I wanted to have some text with the default 404 responses that are sent when no route handler matches the request (I think there's also another error when path or query matching failed) and at first I tried the ErrorHandlers middleware with the following wrap call:
 
 ```
@@ -371,10 +373,10 @@ Another lead would be to use a ''default_service'' which calls a handler when no
 
 It's explained here: https://docs.rs/actix-web/3.3.2/actix_web/struct.App.html#method.default_service
 
-### Customizing JSON errors
+## Customizing JSON errors
 I think this only applies to requests with JSON bodies, but there's some app_data() that can be injected and is explained in the JSON section of this page: https://actix.rs/docs/extractors
 
-### Customizing path and query extractor errors
+## Customizing path and query extractor errors
 It looks like it's super complicated to do. I could use the first method described on top of the section with the middleware... Or implement the whole extraction logic inside of the function. But I couldn't get that to work for the query params.
 
 I'll just leave these errors as is, looks like Actix isn't as flushed out as I thought.
@@ -385,7 +387,7 @@ And the equivalent for query params: https://docs.rs/actix-web/3.3.2/actix_web/w
 
 We need both.
 
-## Template engine
+# Template engine
 I thought of creating my own thingy but couldn't be bothered in the end, let's explore some template examples, starting with one using the handlebars library:
 https://github.com/actix/examples/tree/master/template_engines/handlebars
 
