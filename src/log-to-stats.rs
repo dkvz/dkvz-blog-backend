@@ -124,11 +124,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn parse_log_line(
-    line: &str,
-    pool: &Pool,
-    url_parser: &UrlParser,
-) -> Result<Option<ParsedLogLine>> {
+fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLogLine>> {
     // Thought I could split the lines but they're too weird
     // We have to use a regex. Also this is hyper specific to
     // Nginx, probably.
@@ -208,5 +204,22 @@ mod log_to_stats_tests {
         assert_eq!("127", parsed1.1);
         assert_eq!("127", parsed2.1);
         assert_eq!("article_slug_here", parsed3.1);
+    }
+
+    #[test]
+    fn can_parse_url_log_line() {
+        let line = r###"2001:4860:4860::8844 - - [17/Jan/2026:09:23:18 +0100] "GET /articles/config_zsh_minimale_avec_starship HTTP/2.0" 206 1580 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/612.17 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/612.17""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        let data = parsed.unwrap();
+
+        assert_eq!("2001:4860:4860::8844", data.client_ip);
+        assert_eq!(1723923928, data.timestamp);
+        assert_eq!("config_zsh_minimale_avec_starfish", data.article_id_or_url);
+        assert_eq!(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/612.17 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/612.17",
+            data.client_ua
+        );
+        assert_eq!(ArticleType::Article, data.article_type);
     }
 }
