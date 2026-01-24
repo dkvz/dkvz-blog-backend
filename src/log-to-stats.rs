@@ -131,7 +131,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     lazy_static! {
         // IP, date, URL, status, referrer, user agent
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s\"\S{0,5}\s(\S+?)\s.+?\"\s(\d+)\s.+?\"(\S+?)\"\s\"(.+)\"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s(\S+?)\s.+?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -214,8 +214,8 @@ mod log_to_stats_tests {
         let data = parsed.unwrap();
 
         assert_eq!("2001:4860:4860::8844", data.client_ip);
-        assert_eq!(1723923928, data.timestamp);
-        assert_eq!("config_zsh_minimale_avec_starfish", data.article_id_or_url);
+        assert_eq!(1768638198, data.timestamp);
+        assert_eq!("config_zsh_minimale_avec_starship", data.article_id_or_url);
         assert_eq!(
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/612.17 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/612.17",
             data.client_ua
