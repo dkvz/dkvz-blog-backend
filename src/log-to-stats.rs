@@ -23,6 +23,8 @@ use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+const LAST_STATS_COUNT: usize = 30;
+
 #[derive(Debug, PartialEq)]
 enum ArticleType {
     Short,
@@ -102,11 +104,17 @@ fn main() -> Result<()> {
     println!("Processing file {}...", file_arg);
 
     let config = Config::from_env().expect("Configuration (environment or .env file) is missing");
-    let manager = SqliteConnectionManager::file(&config.db_path);
+    let manager = SqliteConnectionManager::file(&config.stats_db_path);
     let pool = Pool::new(manager).expect("Database connection failed");
 
     let url_parser = UrlParser::from(&config.site_articles_root, &config.site_shorts_root)
         .context("UrlParser creation")?;
+
+    let last_stats = db::last_article_stats(&pool, LAST_STATS_COUNT)?;
+    println!("Found {} stats", last_stats.len());
+    for stat in last_stats {
+        println!("{:?}", stat);
+    }
 
     // let file = File::open(file_arg)?;
     // let reader = BufReader::new(file);
