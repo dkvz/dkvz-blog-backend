@@ -1,4 +1,4 @@
-use rusqlite::{params, OptionalExtension, Row, ToSql, NO_PARAMS};
+use rusqlite::{NO_PARAMS, OptionalExtension, Row, ToSql, params};
 pub mod entities;
 mod helpers;
 mod mappers;
@@ -9,7 +9,7 @@ use eyre::WrapErr;
 use r2d2_sqlite::rusqlite;
 use std::convert::TryFrom;
 // Re-exporting the query building enums and structs:
-use crate::utils::time_utils::current_timestamp;
+use crate::{db::mappers::map_article_stat, utils::time_utils::current_timestamp};
 use helpers::{
     generate_field_equal_qmark, generate_where_placeholders, strip_html, stripped_article_content,
 };
@@ -760,6 +760,29 @@ pub fn comments_from_to(
     select_many(pool, query.as_str(), params![article_id], map_comment)
 }
 
+pub fn last_article_stats(pool: &Pool, count: usize) -> Result<Vec<ArticleStat>> {
+    let query = Query::new(QueryType::Select {
+        from: &["article_stats"],
+        fields: &[
+            "id",
+            "article_id",
+            "pseudo_ua",
+            "pseudo_ip",
+            "client_ua",
+            "client_ip",
+            "date",
+            "country",
+            "region",
+            "city",
+        ],
+    })
+    .order(OrderBy::new(Order::Desc, "id"))
+    .limit(count)
+    .to_string();
+
+    select_many(pool, query.as_str(), NO_PARAMS, map_article_stat)
+}
+
 // Uses SQLite fulltext search.
 // WARNING: The API endpoint or whatever is using the DB
 // lib will have to clean the search terms up itself first.
@@ -776,11 +799,13 @@ pub fn search_published_articles<T: AsRef<str>>(pool: &Pool, terms: &[T]) -> Res
     select_many(
         pool,
         query,
-        params![terms
-            .iter()
-            .map(AsRef::as_ref)
-            .collect::<Vec<&str>>()
-            .join(" ")],
+        params![
+            terms
+                .iter()
+                .map(AsRef::as_ref)
+                .collect::<Vec<&str>>()
+                .join(" ")
+        ],
         map_search_result,
     )
 }

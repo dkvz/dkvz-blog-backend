@@ -1,5 +1,5 @@
-use super::entities::*;
 use super::ArticleSelector;
+use super::entities::*;
 use r2d2_sqlite::rusqlite::{Error, Row};
 
 // Decided to use something larger than i32 for...
@@ -76,6 +76,21 @@ pub fn map_comment(row: &Row) -> Result<Comment, Error> {
     })
 }
 
+pub fn map_article_stat(row: &Row) -> Result<ArticleStat, Error> {
+    Ok(ArticleStat {
+        id: row.get(0)?,
+        article_id: row.get(1)?,
+        pseudo_ua: row.get(2)?,
+        pseudo_ip: row.get(3)?,
+        client_ua: row.get(4)?,
+        client_ip: row.get(5)?,
+        date: row.get(6)?,
+        country: row.get(7)?,
+        region: row.get(8)?,
+        city: row.get(9)?,
+    })
+}
+
 pub fn map_search_result(row: &Row) -> Result<Article, Error> {
     Ok(Article {
         id: row.get(0)?,
@@ -94,4 +109,3 @@ pub fn map_search_result(row: &Row) -> Result<Article, Error> {
         author: row.get(7)?,
     })
 }
-
