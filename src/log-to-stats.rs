@@ -222,4 +222,21 @@ mod log_to_stats_tests {
         );
         assert_eq!(ArticleType::Article, data.article_type);
     }
+
+    #[test]
+    fn can_parse_referrer_log_line() {
+        let line = r###"8.8.4.4 - - [20/Jan/2026:09:30:01 +0100] "POST /assets/shorts/image.png HTTP/1.1" 200 12907 "https://dkvz.eu/breves/176" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        let data = parsed.unwrap();
+
+        assert_eq!("8.8.4.4", data.client_ip);
+        assert_eq!(1768897801, data.timestamp);
+        assert_eq!("176", data.article_id_or_url);
+        assert_eq!(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            data.client_ua
+        );
+        assert_eq!(ArticleType::Short, data.article_type);
+    }
 }
