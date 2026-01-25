@@ -2,14 +2,23 @@
 * Process stats from log files and inserts them in the
 * stats database. Probably has absolutely no use to
 * anyone but me.
+*
+* ALWAYS BACKUP THE STATS DB BEFORE RUNNING
 */
 mod config;
 mod db;
+mod stats;
 mod utils;
 
 use crate::config::Config;
-use crate::db::Pool;
 use crate::db::entities::*;
+use crate::db::{Pool, article_by_url, insert_article_stat};
+use crate::stats::ip_location::GeoInfo;
+use crate::stats::ip_location::IpLocator;
+use crate::stats::pseudonymize;
+use crate::stats::pseudonymizer::WordlistPseudoyimizer;
+use crate::utils::ip_utils;
+use crate::utils::text_utils;
 use crate::utils::time_utils;
 use color_eyre::Result;
 use dotenv::dotenv;
@@ -17,13 +26,21 @@ use eyre::Context;
 use eyre::eyre;
 use getopts::Options;
 use lazy_static::lazy_static;
+use log::{debug, error};
 use r2d2_sqlite::SqliteConnectionManager;
 use regex::Regex;
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::convert::From;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::net::IpAddr;
 
 const LAST_STATS_COUNT: usize = 30;
+// Duration window meant to identify duplicate stat entries:
+const EXPIRED_STAT_SECONDS: i64 = 60;
+const URL_MAX_LENGTH: usize = 120;
 
 #[derive(Debug, PartialEq)]
 enum ArticleType {
@@ -34,10 +51,91 @@ enum ArticleType {
 #[derive(Debug)]
 struct ParsedLogLine {
     pub article_id_or_url: String,
+    // Not sure we actually need the ArticleType
     pub article_type: ArticleType,
     pub client_ip: String,
     pub client_ua: String,
     pub timestamp: i64,
+}
+
+impl From<ArticleStat> for StatHistoryItem {
+    fn from(value: ArticleStat) -> Self {
+        Self {
+            article_id: value.article_id,
+            timestamp: value.date.unwrap_or(0),
+            client_ip: value.client_ip,
+            client_ua: value.client_ua,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StatHistoryItem {
+    pub article_id: i32,
+    pub timestamp: i64,
+    pub client_ip: String,
+    pub client_ua: String,
+}
+
+// There's a lot of stuff in this file, should be split
+// up but then I need to refactor the whole project into
+// a Cargo workspace first.
+
+pub struct StatsHistory {
+    entries: VecDeque<StatHistoryItem>,
+    capacity: usize,
+}
+
+impl StatsHistory {
+    pub fn from(initial: Vec<StatHistoryItem>) -> Self {
+        let entries = VecDeque::from(initial);
+        Self {
+            capacity: entries.len(),
+            entries,
+        }
+    }
+
+    pub fn add(&mut self, entry: StatHistoryItem) {
+        // Supposed to use push_back
+        if self.entries.len() >= self.capacity {
+            self.entries.pop_front();
+        }
+        self.entries.push_back(entry);
+    }
+
+    pub fn is_duplicate(&self, s: &StatHistoryItem) -> Result<bool> {
+        if !self.entries.is_empty() {
+            // Oh crap, date is an Option? Oh well
+            if s.timestamp < self.entries[self.entries.len() - 1].timestamp {
+                // The entry is in the past compared to the earliest
+                // entry in the history, we currently ignore these
+                // with an error.
+                return Err(eyre!(
+                    "We currently don't allow inserting stats older than the latest entry"
+                ));
+            }
+
+            for e in &self.entries {
+                // Only consider entries with the same article id,
+                // user agent and ip address
+                if s.article_id == e.article_id
+                    && s.client_ip == e.client_ip
+                    && s.client_ua == e.client_ua
+                {
+                    // Candidate stat time is supposed to be higher
+                    // than any history stat time.
+                    // This is already sort of checked for above but
+                    // since I order by ID and not date I might as
+                    // well double check.
+                    let diff = s.timestamp - e.timestamp;
+                    if diff >= 0 && diff <= EXPIRED_STAT_SECONDS {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        Ok(false)
+    }
 }
 
 // Needed because I wanted the shorts and
@@ -51,7 +149,10 @@ struct UrlParser {
 
 impl UrlParser {
     pub fn from(articles_root: &str, shorts_root: &str) -> Result<Self> {
-        let re = Regex::new(&format!(r#"/({}|{})/(.+?)/?$"#, articles_root, shorts_root))?;
+        let re = Regex::new(&format!(
+            r#"/({}|{})/([^/]+?)/?$"#,
+            articles_root, shorts_root
+        ))?;
 
         Ok(Self {
             url_regex: re,
@@ -62,12 +163,21 @@ impl UrlParser {
 
     pub fn parse_url(&self, url: &str) -> Option<(ArticleType, String)> {
         self.url_regex.captures(url).and_then(|caps| {
-            if caps[1] == self.shorts_root {
-                return Some((ArticleType::Short, String::from(&caps[2])));
+            let article_type = if caps[1] == self.shorts_root {
+                Some(ArticleType::Short)
             } else if caps[1] == self.articles_root {
-                return Some((ArticleType::Article, String::from(&caps[2])));
-            }
-            None
+                Some(ArticleType::Article)
+            } else {
+                None
+            };
+            article_type.map(|a| {
+                // Truncate the URL part
+                // My utility function takes a weird mutable string
+                // as its argument so here we go
+                let mut url = String::from(&caps[2]);
+                text_utils::truncate_utf8(&mut url, URL_MAX_LENGTH);
+                (a, url)
+            })
         })
     }
 }
@@ -105,29 +215,122 @@ fn main() -> Result<()> {
 
     let config = Config::from_env().expect("Configuration (environment or .env file) is missing");
     let manager = SqliteConnectionManager::file(&config.stats_db_path);
+    let manager_main = SqliteConnectionManager::file(&config.db_path);
     let pool = Pool::new(manager).expect("Database connection failed");
+    let pool_main = Pool::new(manager_main).expect("Database connection failed");
+
+    // Create the ip locator:
+    let mut iploc = IpLocator::open(&config.iploc_path, &config.iploc_v6_path)?;
+    // Create the pseudonymizer:
+    let mut pseudonymizer = WordlistPseudoyimizer::open(&config.wordlist_path)?;
 
     let url_parser = UrlParser::from(&config.site_articles_root, &config.site_shorts_root)
         .context("UrlParser creation")?;
 
     let last_stats = db::last_article_stats(&pool, LAST_STATS_COUNT)?;
-    println!("Found {} stats", last_stats.len());
-    for stat in last_stats {
-        println!("{:?}", stat);
+    println!(
+        "Populating last stats history with {} items",
+        last_stats.len()
+    );
+    let mut stats_history: StatsHistory =
+        StatsHistory::from(last_stats.into_iter().map(|s| s.into()).collect());
+
+    // Only referrer based visits risk being duplicated but
+    // I'm applying it to every entry because that's easier
+
+    let file = File::open(file_arg)?;
+    let reader = BufReader::new(file);
+    let mut last_article: RefCell<Option<(i32, String)>> = RefCell::new(None);
+
+    for line in reader.lines() {
+        // I gave up handling all of the log file edge cases and
+        // just log things that couldn't be parsed - Should all
+        // be spam.
+        let line = line?;
+        let parsed = parse_log_line(&line, &url_parser);
+        if parsed.is_err() {
+            error!("Can't parse a log line: {}", &line);
+            continue;
+        }
+        if let Some(p) = parsed.unwrap() {
+            println!("Found matching line with URL/ID: {}", &p.article_id_or_url);
+            // Can we parse the id as an i32?
+            // First check whether the last inserted ArticleStat matches that ID
+            let article_id = p.article_id_or_url.parse::<i32>().ok().or_else(|| {
+                debug!("Found possible article URL");
+                // I don't remember why my utility function requires
+                // a mutable string but it does.
+                if let Some(art) = last_article.borrow().as_ref() {
+                    if art.1 == p.article_id_or_url {
+                        debug!("Last resolved article has the same URL - id {}", art.0);
+                        return Some(art.0);
+                    }
+                }
+                // Get from DB when we don't have it:
+                let id_from_db = article_by_url(&pool_main, &p.article_id_or_url)
+                    .unwrap_or(None)
+                    .map(|a| a.id);
+
+                if id_from_db.is_some() {
+                    debug!("Got article ID from database");
+                    // Save it in the "cache"
+                    // Has to make things extra convoluted to be able to
+                    *last_article.get_mut() =
+                        Some((id_from_db.unwrap(), p.article_id_or_url.clone()));
+                } else {
+                    debug!("No article ID was found for the URL");
+                }
+
+                id_from_db
+            });
+
+            // Do we have that stat in history?
+            if article_id.is_some() {
+                let entry = StatHistoryItem {
+                    article_id: article_id.unwrap(),
+                    timestamp: p.timestamp,
+                    client_ip: p.client_ip,
+                    client_ua: p.client_ua,
+                };
+
+                if !stats_history.is_duplicate(&entry)? {
+                    let client_ip: IpAddr = entry.client_ip.parse()?;
+                    // Get the Geoip info:
+                    let geo_info: GeoInfo = iploc.geo_info(client_ip).ok().unwrap_or(GeoInfo {
+                        country: String::from(""),
+                        region: String::from(""),
+                        city: String::from(""),
+                    });
+
+                    let article_stat = ArticleStat {
+                        id: -1,
+                        article_id: entry.article_id,
+                        pseudo_ua: pseudonymize(&mut pseudonymizer, &entry.client_ua),
+                        pseudo_ip: pseudonymize(&mut pseudonymizer, &entry.client_ip),
+                        client_ua: entry.client_ua.clone(),
+                        client_ip: ip_utils::extract_first_bytes(&entry.client_ip),
+                        date: Some(entry.timestamp),
+                        country: geo_info.country,
+                        region: geo_info.region,
+                        city: geo_info.city,
+                    };
+                    debug!(
+                        "Saving article stat for article ID {}",
+                        &article_stat.article_id
+                    );
+
+                    // Crash if we can't save the entry in DB
+                    let connecton = pool.get()?;
+                    insert_article_stat(&connecton, &article_stat)?;
+
+                    // Add to the stats_history:
+                    stats_history.add(entry);
+                } else {
+                    debug!("Found duplicate entry {:?}", &entry);
+                }
+            }
+        }
     }
-
-    // let file = File::open(file_arg)?;
-    // let reader = BufReader::new(file);
-    // for line in reader.lines() {
-    //     println!("{}", line?);
-    // }
-
-    // TODO: Could keep a cache of some article_url -> id
-
-    // We may get several identical "visits" from the referrer
-    // lines. We should only keep one.
-    // TODO: The watcher mode should keep the last referrer
-    // visits in some cache
 
     Ok(())
 }
@@ -138,13 +341,16 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     // Nginx, probably.
     lazy_static! {
         // IP, date, URL, status, referrer, user agent
+        // Used to not have an optional space in the URL. Added it
+        // because some requests do not have any verb and still get
+        // logged for some reason. Might be an Nginx thing.
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s(\S+?)\s.+?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S+?)\s.+?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
     if captures.is_none() {
-        return Err(eyre!("Log line couldn't be parsed"));
+        return Err(eyre!("Log line couldn't be parsed: {}", &line));
     }
     let caps = captures.unwrap();
     // Not sure this can happen but that's my excuse
@@ -215,6 +421,15 @@ mod log_to_stats_tests {
     }
 
     #[test]
+    fn url_parser_only_matches_url_or_id() {
+        let url = "/breves/119/_payload.json?3e2bb066-5554-4406-bfde-a5f17fb20b86";
+        let parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parser.parse_url(url);
+
+        assert!(parsed.is_none());
+    }
+
+    #[test]
     fn can_parse_url_log_line() {
         let line = r###"2001:4860:4860::8844 - - [17/Jan/2026:09:23:18 +0100] "GET /articles/config_zsh_minimale_avec_starship HTTP/2.0" 206 1580 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/612.17 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/612.17""###;
         let url_parser = UrlParser::from("articles", "breves").unwrap();
@@ -246,6 +461,15 @@ mod log_to_stats_tests {
             data.client_ua
         );
         assert_eq!(ArticleType::Short, data.article_type);
+    }
+
+    #[test]
+    fn can_parse_log_line_no_verb() {
+        // I made that IP address up, sorry if it's yours
+        let line = r###"91.233.92.2 - - [28/Jan/2026:00:00:46 +0100] "\x03\x00\x00/*\xE0\x00\x00\x00\x00\x00Cookie: mstshash=Administr" 400 150 "-" "-""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        assert!(parsed.is_none());
     }
 
     #[test]

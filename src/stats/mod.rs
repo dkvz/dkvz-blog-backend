@@ -185,7 +185,7 @@ impl StatsService {
     }
 }
 
-fn pseudonymize(pseudonymizer: &mut WordlistPseudoyimizer, value: &str) -> String {
+pub fn pseudonymize(pseudonymizer: &mut WordlistPseudoyimizer, value: &str) -> String {
     // We just return an empty string if the pseudonimizer
     // doesn't work for some reason, but we log the error.
     match pseudonymizer.pseudonymize(value) {

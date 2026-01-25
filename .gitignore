@@ -1,6 +1,7 @@
 /target
 db.sqlite
 stats.sqlite
+backups
 resources/ip_location
 resources/local
 *.BIN
