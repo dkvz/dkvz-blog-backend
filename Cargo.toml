@@ -7,6 +7,9 @@ default-run = "dkvz-blog-backend"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["lib"]
+
 [[bin]]
 name = "dkvz-blog-backend"
 path = "src/main.rs"
