@@ -1,12 +1,7 @@
 #![allow(dead_code)]
-mod config;
-mod db;
-mod stats;
-mod utils;
-
-use crate::config::Config;
-use crate::stats::ip_location::IpLocator;
 use color_eyre::Result;
+use dkvz_blog_backend::config::Config;
+use dkvz_blog_backend::stats::ip_location::IpLocator;
 use dotenv::dotenv;
 use std::net::{IpAddr, Ipv4Addr};
 

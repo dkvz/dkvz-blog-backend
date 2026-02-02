@@ -5,22 +5,17 @@
 *
 * ALWAYS BACKUP THE STATS DB BEFORE RUNNING
 */
-mod config;
-mod db;
-mod stats;
-mod utils;
-
-use crate::config::Config;
-use crate::db::entities::*;
-use crate::db::{Pool, article_by_url, insert_article_stat};
-use crate::stats::ip_location::GeoInfo;
-use crate::stats::ip_location::IpLocator;
-use crate::stats::pseudonymize;
-use crate::stats::pseudonymizer::WordlistPseudoyimizer;
-use crate::utils::ip_utils;
-use crate::utils::text_utils;
-use crate::utils::time_utils;
 use color_eyre::Result;
+use dkvz_blog_backend::config::Config;
+use dkvz_blog_backend::db::entities::*;
+use dkvz_blog_backend::db::{Pool, article_by_url, insert_article_stat, last_article_stats};
+use dkvz_blog_backend::stats::ip_location::GeoInfo;
+use dkvz_blog_backend::stats::ip_location::IpLocator;
+use dkvz_blog_backend::stats::pseudonymize;
+use dkvz_blog_backend::stats::pseudonymizer::WordlistPseudoyimizer;
+use dkvz_blog_backend::utils::ip_utils;
+use dkvz_blog_backend::utils::text_utils;
+use dkvz_blog_backend::utils::time_utils;
 use dotenv::dotenv;
 use eyre::Context;
 use eyre::eyre;
@@ -227,7 +222,7 @@ fn main() -> Result<()> {
     let url_parser = UrlParser::from(&config.site_articles_root, &config.site_shorts_root)
         .context("UrlParser creation")?;
 
-    let last_stats = db::last_article_stats(&pool, LAST_STATS_COUNT)?;
+    let last_stats = last_article_stats(&pool, LAST_STATS_COUNT)?;
     println!(
         "Populating last stats history with {} items",
         last_stats.len()

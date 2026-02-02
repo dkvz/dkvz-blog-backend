@@ -1,10 +1,5 @@
-mod app;
-mod config;
-mod db;
-mod stats;
-mod utils;
-
 use color_eyre::Result;
+use dkvz_blog_backend::app;
 use dotenv::dotenv;
 use std::env;
 

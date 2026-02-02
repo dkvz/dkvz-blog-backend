@@ -1,13 +1,10 @@
 #![allow(dead_code)]
-mod config;
-mod db;
-mod utils;
-
-use crate::config::Config;
-use crate::db::Order;
-use crate::db::Pool;
-use crate::db::entities::*;
 use color_eyre::Result;
+use dkvz_blog_backend::config::Config;
+use dkvz_blog_backend::db;
+use dkvz_blog_backend::db::Order;
+use dkvz_blog_backend::db::Pool;
+use dkvz_blog_backend::db::entities::*;
 use dotenv::dotenv;
 use eyre::eyre;
 use fancy_regex::Regex;
