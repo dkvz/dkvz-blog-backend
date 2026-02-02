@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{App, HttpResponse, HttpServer, middleware, web};
+use actix_web::{App, HttpServer, middleware, web};
 use article_import::ImportService;
 use color_eyre::Result;
 use eyre::WrapErr;
