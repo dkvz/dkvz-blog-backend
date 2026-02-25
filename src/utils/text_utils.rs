@@ -23,7 +23,11 @@ pub fn escape_html<T: AsRef<str>>(s: T) -> String {
 
 pub fn sanitize_search_terms(terms: &Vec<String>, max_search_terms: usize) -> Vec<String> {
     lazy_static! {
-        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[\[\]\s\$\^%\+-]").unwrap();
+        // static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r##"["\[\]\s!\$\^%\+-]"##).unwrap();
+        // In the end a lot of special characters are refused by the
+        // ft5 engine.
+        // I'll keep allowing the "*" wildcard.
+        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\*]").unwrap();
     }
 
     terms
@@ -190,4 +194,3 @@ mod tests {
         assert_eq!(None, single_link_to_absolute(sut, "blahblahbluh"));
     }
 }
-
