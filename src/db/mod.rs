@@ -27,6 +27,8 @@ use queries::{Query, QueryType};
  */
 
 const ANONYMOUS_USERNAME: &'static str = "Anonymous";
+pub const SNIPPET_START: &'static str = "[**";
+pub const SNIPPET_END: &'static str = "**]";
 
 // Type alias to make function signatures much clearer:
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -789,16 +791,19 @@ pub fn last_article_stats(pool: &Pool, count: usize) -> Result<Vec<ArticleStat>>
 pub fn search_published_articles<T: AsRef<str>>(pool: &Pool, terms: &[T]) -> Result<Vec<Article>> {
     // Copy pasted the query from the old backend. It's probably suboptimal.
     // As other things are in here.
-    let query = "SELECT articles_ft.id, articles_ft.title, \
+    let query = format!(
+        "SELECT articles_ft.id, articles_ft.title, \
     articles.article_url, articles.short, articles.date, articles.user_id, \
-    snippet(articles_ft, 2, '<b>', '</b>', ' [...] ', 50) AS snippet, users.name \
+    snippet(articles_ft, 2, '{}', '{}', ' [...] ', 50) AS snippet, users.name \
     FROM articles_ft, articles, users WHERE articles_ft MATCH ? \
     AND articles.id = articles_ft.id AND articles.published = 1 \
     AND articles.user_id = users.id \
-    ORDER BY rank LIMIT 15";
+    ORDER BY rank LIMIT 15",
+        SNIPPET_START, SNIPPET_END
+    );
     select_many(
         pool,
-        query,
+        &query,
         params![
             terms
                 .iter()
