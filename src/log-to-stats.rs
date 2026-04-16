@@ -479,9 +479,11 @@ mod log_to_stats_tests {
 
     #[test]
     fn will_ignore_non_stat_log_line() {
-        let line = r###"1.1.1.1 - - [20/Jan/2026:11:40:22 +0100] "GET / HTTP/2.0" 200 11152 "-" "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot""###;
+        let line1 = r###"1.1.1.1 - - [20/Jan/2026:11:40:22 +0100] "GET / HTTP/2.0" 200 11152 "-" "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot""###;
+        let line2 = r###"216.73.216.61 - - [09/Apr/2026:22:17:24 +0200] "GET /robots.txt HTTP/2.0" 200 205 "-" "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)""###;
         let url_parser = UrlParser::from("articles", "breves").unwrap();
-        let parsed = parse_log_line(line, &url_parser).unwrap();
-        assert!(parsed.is_none());
+        let parsed1 = parse_log_line(line1, &url_parser).unwrap();
+        let parsed2 = parse_log_line(line2, &url_parser).unwrap();
+        assert!(parsed1.is_none() && parsed2.is_none());
     }
 }
