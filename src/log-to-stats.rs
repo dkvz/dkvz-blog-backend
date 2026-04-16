@@ -340,7 +340,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
         // because some requests do not have any verb and still get
         // logged for some reason. Might be an Nginx thing.
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S+?)\s.+?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S+?)(\s.+?)?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -350,7 +350,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     let caps = captures.unwrap();
     // Not sure this can happen but that's my excuse
     // for unleashing an unwrap party:
-    if caps.len() < 7 {
+    if caps.len() < 8 {
         return Err(eyre!("Log line is missing values"));
     }
 
@@ -358,7 +358,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     // "exists" though the site will currently send valid
     // responses with a 404 if the URL is not canonical,
     // sometimes. We'll just ignore that for now.
-    let status: u32 = caps[4].parse().unwrap_or(0);
+    let status: u32 = caps[5].parse().unwrap_or(0);
     if status >= 300 || status < 200 {
         return Ok(None);
     }
@@ -367,7 +367,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     // direct URL or referrer
     let parsed = url_parser
         .parse_url(&caps[3])
-        .or_else(|| url_parser.parse_url(&caps[5]));
+        .or_else(|| url_parser.parse_url(&caps[6]));
 
     // Doesn't match a direct article visit
     if parsed.is_none() {
@@ -388,7 +388,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
         article_type: parsed.0,
         timestamp: date.unwrap().timestamp(),
         client_ip: String::from(&caps[1]),
-        client_ua: String::from(&caps[6]),
+        client_ua: String::from(&caps[7]),
     }))
 }
 
@@ -461,10 +461,12 @@ mod log_to_stats_tests {
     #[test]
     fn can_parse_log_line_no_verb() {
         // I made that IP address up, sorry if it's yours
-        let line = r###"91.233.92.2 - - [28/Jan/2026:00:00:46 +0100] "\x03\x00\x00/*\xE0\x00\x00\x00\x00\x00Cookie: mstshash=Administr" 400 150 "-" "-""###;
+        let line1 = r###"91.233.92.2 - - [28/Jan/2026:00:00:46 +0100] "\x03\x00\x00/*\xE0\x00\x00\x00\x00\x00Cookie: mstshash=Administr" 400 150 "-" "-""###;
+        let line2 = r###"40.80.203.87 - - [11/Apr/2026:04:56:52 +0200] "MGLNDD_51.255.166.120_443" 400 150 "-" "-""###;
         let url_parser = UrlParser::from("articles", "breves").unwrap();
-        let parsed = parse_log_line(line, &url_parser).unwrap();
-        assert!(parsed.is_none());
+        let parsed1 = parse_log_line(line1, &url_parser).unwrap();
+        let parsed2 = parse_log_line(line2, &url_parser).unwrap();
+        assert!(parsed1.is_none() && parsed2.is_none());
     }
 
     #[test]
