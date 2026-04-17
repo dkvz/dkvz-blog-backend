@@ -215,7 +215,7 @@ fn main() -> Result<()> {
     let pool_main = Pool::new(manager_main).expect("Database connection failed");
 
     // Create the ip locator:
-    let mut iploc = IpLocator::open(&config.iploc_path, &config.iploc_v6_path)?;
+    let mut iploc = IpLocator::open(&config.iploc_path)?;
     // Create the pseudonymizer:
     let mut pseudonymizer = WordlistPseudoyimizer::open(&config.wordlist_path)?;
 
