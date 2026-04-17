@@ -42,11 +42,10 @@ impl StatsService {
         pool: &Pool,
         wordlist_path: &str,
         iploc_path: &str,
-        iploc_v6_path: &Option<String>,
         message_queue_size: usize,
     ) -> Result<StatsService> {
         let mut pseudonymizer = WordlistPseudoyimizer::open(wordlist_path)?;
-        let mut ip_locator = IpLocator::open(iploc_path, iploc_v6_path)?;
+        let mut ip_locator = IpLocator::open(iploc_path)?;
         // That 3 is very totally completely arbitrary.
         // Supposed to be the buffer size for messages, producers will
         // block the thread if the buffer is full. Will still error if

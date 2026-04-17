@@ -15,7 +15,7 @@ fn main() -> Result<()> {
 
     let config = Config::from_env().expect("Configuration (environment or .env file) is missing");
 
-    let mut iploc = IpLocator::open(&config.iploc_path, &config.iploc_v6_path)?;
+    let mut iploc = IpLocator::open(&config.iploc_path)?;
 
     // I hope Google doesn't disappear before my blog backend does
     let test_addr_v4 = IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8));

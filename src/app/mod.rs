@@ -103,7 +103,6 @@ pub async fn run() -> Result<()> {
         &pool_stats,
         &config.wordlist_path,
         &config.iploc_path,
-        &config.iploc_v6_path,
         config.message_queue_size,
     )?;
 

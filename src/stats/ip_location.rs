@@ -13,32 +13,27 @@ pub struct GeoInfo {
 }
 
 pub struct IpLocator {
-    dbv4: DB,
-    dbv6: Option<DB>,
+    db: DB,
 }
 
 impl IpLocator {
-    pub fn open(filename_v4: &str, filename_v6: &Option<String>) -> Result<IpLocator> {
-        let dbv4 = DB::from_file(filename_v4).map_err(|_| eyre!("Error opening ip2location DB"))?;
-        let dbv6 = match filename_v6 {
-            Some(f) => DB::from_file(f).ok(),
-            None => None,
-        };
+    pub fn open(filename: &str) -> Result<IpLocator> {
+        let db = DB::from_file(filename).map_err(|_| eyre!("Error opening ip2location DB"))?;
 
-        Ok(Self { dbv6, dbv4 })
+        Ok(Self { db })
     }
 
     // Add function to request GeoInfo.
     // The "db" object has to be mutable.
     pub fn geo_info(&mut self, ip: IpAddr) -> Result<GeoInfo> {
-        let db: &mut DB = if ip.is_ipv4() {
-            &mut self.dbv4
-        } else if self.dbv6.is_some() {
-            &mut self.dbv6.as_mut().unwrap()
-        } else {
-            return Err(eyre!("Ipv6 DB is missing"));
-        };
-        match db.ip_lookup(ip) {
+        // let db: &mut DB = if ip.is_ipv4() {
+        //     &mut self.dbv4
+        // } else if self.dbv6.is_some() {
+        //     &mut self.dbv6.as_mut().unwrap()
+        // } else {
+        //     return Err(eyre!("Ipv6 DB is missing"));
+        // };
+        match self.db.ip_lookup(ip) {
             Ok(record) => {
                 let country = match record.country {
                     Some(country) => remove_dash(country.long_name),

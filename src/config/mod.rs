@@ -9,7 +9,6 @@ pub struct Config {
     pub db_path: String,
     pub stats_db_path: String,
     pub iploc_path: String,
-    pub iploc_v6_path: Option<String>,
     pub wordlist_path: String,
     pub bind_address: String,
     pub message_queue_size: usize,

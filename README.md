@@ -279,7 +279,7 @@ Some of the database workings were inspired by this example: https://github.com/
 * [Data access class from current backend](https://github.com/dkvz/DoradeBlogEngineSpring/blob/master/src/main/java/eu/dkvz/BlogAuthoring/model/BlogDataAccessSpring.java)
 
 # IP Location
-I'm using ip2location, more precisely the DB5.LITE from here https://lite.ip2location.com/ip2location-lite. I guess I'll be using the IPv4 BIN.
+I'm using ip2location, more precisely the DB5.LITE from here https://lite.ip2location.com/ip2location-lite. At some point I migrated to using IPv6 (it's a breaking change) and now require the "DB5" file for IPv6.
 
 Rust library that looks promising: https://github.com/marirs/rust-ip2location.
 
