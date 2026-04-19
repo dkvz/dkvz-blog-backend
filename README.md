@@ -483,6 +483,7 @@ Simple with no auto-restart. I just have to test if start, stop and restart real
 - [ ] Try to see a database error on purpose, not sure if it even works.
 - [ ] DB errors should be their own custom error type so that I could very easily have a From trait for app::error::Error to convert them into that.
 - [ ] Try selecting only the features I need from dependencies and see if that reduces the binary size - I don't think I need the whole serde crate.
+- [ ] Should use GeoIP instead of ip2location to get access to the organization for free - Or integrate the ASN DB as well
 - [ ] Try reorganizing the giant closure that is in StatsService::open. We could open the iploc and pseudonymizer inside of a function given to spawn() and have the loop happen after that.
 - [ ] I think I can use some AsRef or impl Display thingy instead of String or &str in many places - Actually not that many because I escape using lifetimes a lot with owned strings.
 - [x] What happens if you request a negative article ID? -> 404.
