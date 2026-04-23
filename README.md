@@ -466,6 +466,13 @@ WantedBy=multi-user.target
 
 Simple with no auto-restart. I just have to test if start, stop and restart really work.
 
+# Reading stats from log files
+The Nuxt website is pre-rendered and most often does not hit the API at all.
+
+The stats can be parsed from the log files in either reading the whole thing or watching for changes.
+
+Adding a config option for lower-case parts of user agents to ignore in stats since we can't operate using GeoIP ASN or organizations as they're not included in the free ip2location databases.
+
 # TODO
 - [ ] /render-article should also render the comments
 - [ ] Project could become a workspace instead of having multiple binaries with chaotic code in their single main file

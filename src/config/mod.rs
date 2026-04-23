@@ -30,6 +30,9 @@ pub struct Config {
     // Used in some response header generation,
     // optional
     pub api_root: Option<String>,
+    // List of lowercase user agents to ignore
+    // for stats
+    pub ignored_uas: Vec<String>,
 }
 
 // Looks redundant but I thought having another
@@ -97,6 +100,7 @@ impl Config {
             "site_description",
             "Blog bizarre d'un humble consultant en progress bars.",
         )?;
+        c.set_default("ignored_uas", Vec::<String>::new())?;
 
         c.merge(config::Environment::default())?;
         // The error has to be given a context for
