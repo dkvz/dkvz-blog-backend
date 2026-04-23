@@ -249,6 +249,16 @@ fn main() -> Result<()> {
         }
         if let Some(p) = parsed.unwrap() {
             println!("Found matching line with URL/ID: {}", &p.article_id_or_url);
+            // Check if the user agent is in the ignored list:
+            let is_ignored_ua = &config
+                .ignored_uas
+                .iter()
+                .any(|ua| p.client_ua.to_lowercase().contains(ua));
+            if *is_ignored_ua {
+                debug!("Ignoring line due to User Agent {}", &p.client_ua);
+                continue;
+            }
+
             // Can we parse the id as an i32?
             // First check whether the last inserted ArticleStat matches that ID
             let article_id = p.article_id_or_url.parse::<i32>().ok().or_else(|| {
