@@ -69,42 +69,44 @@ impl From<Config> for SiteInfo {
 
 impl Config {
     pub fn from_env() -> Result<Config> {
-        let mut c = config::Config::new();
-        // RUST_LOG is already set in main.rs if it
-        // was absent.
-        // Let's set other default values. You have
-        // to use lowercase when compared to what's
-        // in the .env file.
-        c.set_default("bind_address", "127.0.0.1:8080")?;
-        // Used to set the queue size for sync_sender
-        // (the Stats thread uses it):
-        c.set_default("message_queue_size", 30)?;
-        // Settings for the basic rate limiter I'm
-        // using:
-        c.set_default("rl_max_requests", 120)?;
-        c.set_default("rl_max_requests_time", 60)?;
-        c.set_default("rl_block_duration", 60)?;
-        // Default import path:
-        c.set_default("import_path", "./import/")?;
-        // Default template directory:
-        c.set_default("template_dir", "./templates")?;
-        // Default website URLs and OpenGraph etc.
-        // config:
-        c.set_default("site_title", "Blog des gens compliqués")?;
-        // Should never have a trailing slash or THINGS WILL BREAK.
-        c.set_default("site_root", "https://dkvz.eu")?;
-        c.set_default("site_rss_full_url", "https://dkvz.eu/rss.xml")?;
-        c.set_default("site_articles_root", "articles")?;
-        c.set_default("site_shorts_root", "breves")?;
-        c.set_default(
-            "site_description",
-            "Blog bizarre d'un humble consultant en progress bars.",
-        )?;
-        c.set_default("ignored_uas", Vec::<String>::new())?;
+        let c = config::Config::builder()
+            .add_source(config::Environment::default())
+            .set_default("bind_address", "127.0.0.1:8080")?
+            // Used to set the queue size for sync_sender
+            // (the Stats thread uses it):
+            .set_default("message_queue_size", 30)?
+            // Settings for the basic rate limiter I'm
+            // using:
+            .set_default("rl_max_requests", 120)?
+            .set_default("rl_max_requests_time", 60)?
+            .set_default("message_queue_size", 30)?
+            .set_default("rl_max_requests", 120)?
+            .set_default("rl_max_requests_time", 60)?
+            .set_default("rl_block_duration", 60)?
+            // Default import path:
+            .set_default("import_path", "./import/")?
+            // Default template directory:
+            .set_default("template_dir", "./templates")?
+            // Default website URLs and OpenGraph etc.
+            // config:
+            .set_default("site_title", "Blog des gens compliqués")?
+            // Should never have a trailing slash or THINGS WILL BREAK.
+            .set_default("site_root", "https://dkvz.eu")?
+            .set_default("site_rss_full_url", "https://dkvz.eu/rss.xml")?
+            .set_default("site_articles_root", "articles")?
+            .set_default("site_shorts_root", "breves")?
+            .set_default(
+                "site_description",
+                "Blog bizarre d'un humble consultant en progress bars.",
+            )?
+            .set_default("ignored_uas", Vec::<String>::new())?;
 
-        c.merge(config::Environment::default())?;
+        let settings = c.build()?;
         // The error has to be given a context for
         // color_eyre to work here:
-        c.try_into().context("Loading configuration from env")
+        // c.try_into().context("Loading configuration from env")
+        settings
+            .try_deserialize::<Config>()
+            .context("Loading configuration from env")
     }
 }
