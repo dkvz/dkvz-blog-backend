@@ -70,7 +70,12 @@ impl From<Config> for SiteInfo {
 impl Config {
     pub fn from_env() -> Result<Config> {
         let c = config::Config::builder()
-            .add_source(config::Environment::default())
+            .add_source(
+                config::Environment::default()
+                    .list_separator(",")
+                    .with_list_parse_key("ignored_uas")
+                    .try_parsing(true),
+            )
             .set_default("bind_address", "127.0.0.1:8080")?
             // Used to set the queue size for sync_sender
             // (the Stats thread uses it):

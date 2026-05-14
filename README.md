@@ -447,7 +447,7 @@ ExecStart=/home/yourname/yourwebsite/yourproject/target/release/yourproject
 WantedBy=multi-user.target
 ```
 
-I'm going to use .env for the config.
+I'm going to use .env for the config. **Make sure all the variable declarations are quoted or the dotenv module will fail to parse the variables**.
 
 Let's make my own:
 ```
