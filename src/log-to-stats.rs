@@ -350,7 +350,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
         // because some requests do not have any verb and still get
         // logged for some reason. Might be an Nginx thing.
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(\S+?)"\s"(.+)"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(\S+?)"\s"(.*)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -482,6 +482,14 @@ mod log_to_stats_tests {
     #[test]
     fn can_parse_log_line_empty_url() {
         let line = r###"3.2.241.100 - - [10/Apr/2026:20:44:03 +0200] "" 400 0 "-" "-""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn can_parse_log_line_no_ua() {
+        let line = r###"216.73.12.240 - - [11/Apr/2026:23:33:38 +0200] "GET /robots.txt HTTP/2.0" 200 205 "-" """###;
         let url_parser = UrlParser::from("articles", "breves").unwrap();
         let parsed = parse_log_line(line, &url_parser).unwrap();
         assert!(parsed.is_none());
