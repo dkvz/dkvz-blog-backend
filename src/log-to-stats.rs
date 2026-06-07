@@ -350,7 +350,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
         // because some requests do not have any verb and still get
         // logged for some reason. Might be an Nginx thing.
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(\S+?)"\s"(.*)"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(\S*?)"\s"(.*)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -466,6 +466,14 @@ mod log_to_stats_tests {
             data.client_ua
         );
         assert_eq!(ArticleType::Short, data.article_type);
+    }
+
+    #[test]
+    fn can_parse_log_line_no_referrer() {
+        let line = r###"34.63.167.138 - - [09/Feb/2026:18:56:16 +0100] "GET /articles/javascript_revue_frameworks_2019_2020 HTTP/1.1" 301 162 "" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        assert!(parsed.is_none());
     }
 
     #[test]
