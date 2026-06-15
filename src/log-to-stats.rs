@@ -350,7 +350,7 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
         // because some requests do not have any verb and still get
         // logged for some reason. Might be an Nginx thing.
         static ref RE_LOG_LINE: Regex =
-            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(\S*?)"\s"(.*)"$"#).unwrap();
+            Regex::new(r#"^(\S+?)\s-.+\[(.+?)\]\s"\S{0,5}\s?(\S*?)(\s.+?)?"\s(\d+)\s.+?"(.*?)"\s"(.*)"$"#).unwrap();
     }
 
     let captures = RE_LOG_LINE.captures(line);
@@ -369,6 +369,10 @@ fn parse_log_line(line: &str, url_parser: &UrlParser) -> Result<Option<ParsedLog
     // responses with a 404 if the URL is not canonical,
     // sometimes. We'll just ignore that for now.
     let status: u32 = caps[5].parse().unwrap_or(0);
+    // We can ignore the 301 due to missing slash for
+    // the statically generated website because they
+    // should always be followed by a 200 from the
+    // request with the slash at the end.
     if status >= 300 || status < 200 {
         return Ok(None);
     }
@@ -470,10 +474,27 @@ mod log_to_stats_tests {
 
     #[test]
     fn can_parse_log_line_no_referrer() {
-        let line = r###"34.63.167.138 - - [09/Feb/2026:18:56:16 +0100] "GET /articles/javascript_revue_frameworks_2019_2020 HTTP/1.1" 301 162 "" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36""###;
+        let line = r###"34.63.167.138 - - [09/Feb/2026:18:56:16 +0100] "GET /articles/javascript_revue_frameworks_2019_2020 HTTP/1.1" 200 162 "" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36""###;
         let url_parser = UrlParser::from("articles", "breves").unwrap();
         let parsed = parse_log_line(line, &url_parser).unwrap();
-        assert!(parsed.is_none());
+        assert!(parsed.is_some());
+    }
+
+    #[test]
+    fn can_parse_log_line_with_spaces_in_referrer() {
+        let line = r###"212.80.249.212 - - [12/May/2026:07:51:01 +0200] "GET /articles/css_masquer_x_derniers_elements HTTP/1.1" 200 162 "https://dkvz.eu/tag/Informatique & Web/page/2" "Mozilla/5.0 (Windows NT 6.1; rv:24.0) Gecko/20100101 Firefox/24.0""###;
+        let url_parser = UrlParser::from("articles", "breves").unwrap();
+        let parsed = parse_log_line(line, &url_parser).unwrap();
+        let data = parsed.unwrap();
+
+        assert_eq!("212.80.249.212", data.client_ip);
+        assert_eq!(1778565061, data.timestamp);
+        assert_eq!("css_masquer_x_derniers_elements", data.article_id_or_url);
+        assert_eq!(
+            "Mozilla/5.0 (Windows NT 6.1; rv:24.0) Gecko/20100101 Firefox/24.0",
+            data.client_ua
+        );
+        assert_eq!(ArticleType::Article, data.article_type);
     }
 
     #[test]
