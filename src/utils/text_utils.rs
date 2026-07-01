@@ -27,13 +27,17 @@ pub fn sanitize_search_terms(terms: &Vec<String>, max_search_terms: usize) -> Ve
         // In the end a lot of special characters are refused by the
         // ft5 engine.
         // I'll keep allowing the "*" wildcard.
-        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\*]").unwrap();
+        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\-*]").unwrap();
     }
+
+    // Dash should be allowed but it requires escaping by surrounding it
+    // in double quotes. Don't ask me why.
 
     terms
         .iter()
         .take(max_search_terms)
         .map(|t| SEARCH_CLEANUP_REGEX.replace_all(t, "").to_string())
+        .map(|t| t.replace("-", "\"-\""))
         .filter(|t| !t.is_empty())
         .collect()
 }
