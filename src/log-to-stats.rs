@@ -1,3 +1,4 @@
+use actix_web::dev::Url;
 /**
 * Process stats from log files and inserts them in the
 * stats database. Probably has absolutely no use to
@@ -11,8 +12,8 @@ use dkvz_blog_backend::db::entities::*;
 use dkvz_blog_backend::db::{Pool, article_by_url, insert_article_stat, last_article_stats};
 use dkvz_blog_backend::stats::ip_location::GeoInfo;
 use dkvz_blog_backend::stats::ip_location::IpLocator;
-use dkvz_blog_backend::stats::pseudonymize;
 use dkvz_blog_backend::stats::pseudonymizer::WordlistPseudoyimizer;
+use dkvz_blog_backend::stats::{pseudonymize, pseudonymizer};
 use dkvz_blog_backend::utils::ip_utils;
 use dkvz_blog_backend::utils::text_utils;
 use dkvz_blog_backend::utils::time_utils;
@@ -235,108 +236,132 @@ fn main() -> Result<()> {
 
     let file = File::open(file_arg)?;
     let reader = BufReader::new(file);
-    let mut last_article: RefCell<Option<(i32, String)>> = RefCell::new(None);
 
     for line in reader.lines() {
         // I gave up handling all of the log file edge cases and
         // just log things that couldn't be parsed - Should all
         // be spam.
         let line = line?;
-        let parsed = parse_log_line(&line, &url_parser);
-        if parsed.is_err() {
-            error!("Can't parse a log line: {}", &line);
-            continue;
+        process_log_line(
+            line,
+            &url_parser,
+            &config.ignored_uas,
+            pool.clone(),
+            pool_main.clone(),
+            &mut stats_history,
+            &mut iploc,
+            &mut pseudonymizer,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn process_log_line(
+    line: String,
+    url_parser: &UrlParser,
+    ignored_uas: &Vec<String>,
+    pool: Pool,
+    pool_main: Pool,
+    stats_history: &mut StatsHistory,
+    iploc: &mut IpLocator,
+    pseudonymizer: &mut WordlistPseudoyimizer,
+) -> Result<()> {
+    let mut last_article: RefCell<Option<(i32, String)>> = RefCell::new(None);
+
+    let parsed = parse_log_line(&line, &url_parser);
+    if parsed.is_err() {
+        error!("Can't parse a log line: {}", &line);
+        // We just ignore those
+        return Ok(());
+    }
+
+    if let Some(p) = parsed.unwrap() {
+        println!("Found matching line with URL/ID: {}", &p.article_id_or_url);
+        // Check if the user agent is in the ignored list:
+        let is_ignored_ua = ignored_uas
+            .iter()
+            .any(|ua| p.client_ua.to_lowercase().contains(ua));
+        if is_ignored_ua {
+            debug!("Ignoring line due to User Agent {}", &p.client_ua);
+            return Ok(());
         }
-        if let Some(p) = parsed.unwrap() {
-            println!("Found matching line with URL/ID: {}", &p.article_id_or_url);
-            // Check if the user agent is in the ignored list:
-            let is_ignored_ua = &config
-                .ignored_uas
-                .iter()
-                .any(|ua| p.client_ua.to_lowercase().contains(ua));
-            if *is_ignored_ua {
-                debug!("Ignoring line due to User Agent {}", &p.client_ua);
-                continue;
+
+        // Can we parse the id as an i32?
+        // First check whether the last inserted ArticleStat matches that ID
+        let article_id = p.article_id_or_url.parse::<i32>().ok().or_else(|| {
+            debug!("Found possible article URL");
+            // I don't remember why my utility function requires
+            // a mutable string but it does.
+            if let Some(art) = last_article.borrow().as_ref() {
+                if art.1 == p.article_id_or_url {
+                    debug!("Last resolved article has the same URL - id {}", art.0);
+                    return Some(art.0);
+                }
+            }
+            // Get from DB when we don't have it:
+            let id_from_db = article_by_url(&pool_main, &p.article_id_or_url)
+                .unwrap_or(None)
+                .map(|a| a.id);
+
+            if id_from_db.is_some() {
+                debug!("Got article ID from database");
+                // Save it in the "cache"
+                // Has to make things extra convoluted to be able to
+                *last_article.get_mut() = Some((id_from_db.unwrap(), p.article_id_or_url.clone()));
+            } else {
+                debug!("No article ID was found for the URL");
             }
 
-            // Can we parse the id as an i32?
-            // First check whether the last inserted ArticleStat matches that ID
-            let article_id = p.article_id_or_url.parse::<i32>().ok().or_else(|| {
-                debug!("Found possible article URL");
-                // I don't remember why my utility function requires
-                // a mutable string but it does.
-                if let Some(art) = last_article.borrow().as_ref() {
-                    if art.1 == p.article_id_or_url {
-                        debug!("Last resolved article has the same URL - id {}", art.0);
-                        return Some(art.0);
-                    }
-                }
-                // Get from DB when we don't have it:
-                let id_from_db = article_by_url(&pool_main, &p.article_id_or_url)
-                    .unwrap_or(None)
-                    .map(|a| a.id);
+            id_from_db
+        });
 
-                if id_from_db.is_some() {
-                    debug!("Got article ID from database");
-                    // Save it in the "cache"
-                    // Has to make things extra convoluted to be able to
-                    *last_article.get_mut() =
-                        Some((id_from_db.unwrap(), p.article_id_or_url.clone()));
-                } else {
-                    debug!("No article ID was found for the URL");
-                }
+        // Do we have that stat in history?
+        if article_id.is_some() {
+            let entry = StatHistoryItem {
+                article_id: article_id.unwrap(),
+                timestamp: p.timestamp,
+                client_ip: p.client_ip,
+                client_ua: p.client_ua,
+            };
 
-                id_from_db
-            });
+            if !stats_history.is_duplicate(&entry)? {
+                let client_ip: IpAddr = entry.client_ip.parse()?;
+                // Get the Geoip info:
+                let geo_info: GeoInfo = iploc.geo_info(client_ip).ok().unwrap_or(GeoInfo {
+                    country: String::from(""),
+                    region: String::from(""),
+                    city: String::from(""),
+                });
 
-            // Do we have that stat in history?
-            if article_id.is_some() {
-                let entry = StatHistoryItem {
-                    article_id: article_id.unwrap(),
-                    timestamp: p.timestamp,
-                    client_ip: p.client_ip,
-                    client_ua: p.client_ua,
+                let article_stat = ArticleStat {
+                    id: -1,
+                    article_id: entry.article_id,
+                    pseudo_ua: pseudonymize(pseudonymizer, &entry.client_ua),
+                    pseudo_ip: pseudonymize(pseudonymizer, &entry.client_ip),
+                    client_ua: entry.client_ua.clone(),
+                    client_ip: ip_utils::extract_first_bytes(&entry.client_ip),
+                    date: Some(entry.timestamp),
+                    country: geo_info.country,
+                    region: geo_info.region,
+                    city: geo_info.city,
                 };
+                debug!(
+                    "Saving article stat for article ID {}",
+                    &article_stat.article_id
+                );
 
-                if !stats_history.is_duplicate(&entry)? {
-                    let client_ip: IpAddr = entry.client_ip.parse()?;
-                    // Get the Geoip info:
-                    let geo_info: GeoInfo = iploc.geo_info(client_ip).ok().unwrap_or(GeoInfo {
-                        country: String::from(""),
-                        region: String::from(""),
-                        city: String::from(""),
-                    });
+                // Crash if we can't save the entry in DB
+                let connecton = pool.get()?;
+                insert_article_stat(&connecton, &article_stat)?;
 
-                    let article_stat = ArticleStat {
-                        id: -1,
-                        article_id: entry.article_id,
-                        pseudo_ua: pseudonymize(&mut pseudonymizer, &entry.client_ua),
-                        pseudo_ip: pseudonymize(&mut pseudonymizer, &entry.client_ip),
-                        client_ua: entry.client_ua.clone(),
-                        client_ip: ip_utils::extract_first_bytes(&entry.client_ip),
-                        date: Some(entry.timestamp),
-                        country: geo_info.country,
-                        region: geo_info.region,
-                        city: geo_info.city,
-                    };
-                    debug!(
-                        "Saving article stat for article ID {}",
-                        &article_stat.article_id
-                    );
-
-                    // Crash if we can't save the entry in DB
-                    let connecton = pool.get()?;
-                    insert_article_stat(&connecton, &article_stat)?;
-
-                    // Add to the stats_history:
-                    stats_history.add(entry);
-                } else {
-                    debug!("Found duplicate entry {:?}", &entry);
-                }
+                // Add to the stats_history:
+                stats_history.add(entry);
+            } else {
+                debug!("Found duplicate entry {:?}", &entry);
             }
         }
     }
-
     Ok(())
 }
 
