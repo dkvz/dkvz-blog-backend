@@ -1,4 +1,3 @@
-use actix_web::dev::Url;
 /**
 * Process stats from log files and inserts them in the
 * stats database. Probably has absolutely no use to
@@ -12,8 +11,8 @@ use dkvz_blog_backend::db::entities::*;
 use dkvz_blog_backend::db::{Pool, article_by_url, insert_article_stat, last_article_stats};
 use dkvz_blog_backend::stats::ip_location::GeoInfo;
 use dkvz_blog_backend::stats::ip_location::IpLocator;
+use dkvz_blog_backend::stats::pseudonymize;
 use dkvz_blog_backend::stats::pseudonymizer::WordlistPseudoyimizer;
-use dkvz_blog_backend::stats::{pseudonymize, pseudonymizer};
 use dkvz_blog_backend::utils::ip_utils;
 use dkvz_blog_backend::utils::text_utils;
 use dkvz_blog_backend::utils::time_utils;
@@ -22,16 +21,20 @@ use eyre::Context;
 use eyre::eyre;
 use getopts::Options;
 use lazy_static::lazy_static;
-use log::{debug, error};
+use log::{debug, error, info};
+use notify::event::ModifyKind;
+use notify::{self, Event, EventKind, RecursiveMode, Watcher};
 use r2d2_sqlite::SqliteConnectionManager;
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::convert::From;
-use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::net::IpAddr;
+use std::time::Duration;
+use std::{env, thread};
+use std::{path::Path, sync::mpsc};
 
 const LAST_STATS_COUNT: usize = 30;
 // Duration window meant to identify duplicate stat entries:
@@ -207,8 +210,6 @@ fn main() -> Result<()> {
         return Ok(());
     };
 
-    println!("Processing file {}...", file_arg);
-
     let config = Config::from_env().expect("Configuration (environment or .env file) is missing");
     let manager = SqliteConnectionManager::file(&config.stats_db_path);
     let manager_main = SqliteConnectionManager::file(&config.db_path);
@@ -234,24 +235,56 @@ fn main() -> Result<()> {
     // Only referrer based visits risk being duplicated but
     // I'm applying it to every entry because that's easier
 
-    let file = File::open(file_arg)?;
-    let reader = BufReader::new(file);
+    println!("Processing file {}...", file_arg);
 
-    for line in reader.lines() {
-        // I gave up handling all of the log file edge cases and
-        // just log things that couldn't be parsed - Should all
-        // be spam.
-        let line = line?;
-        process_log_line(
-            line,
-            &url_parser,
-            &config.ignored_uas,
-            pool.clone(),
-            pool_main.clone(),
-            &mut stats_history,
-            &mut iploc,
-            &mut pseudonymizer,
-        )?;
+    if opt_matches.opt_present("w") {
+        println!("Watch mode enabled");
+
+        let (tx, rx) = mpsc::channel::<notify::Result<Event>>();
+        let mut watcher = notify::recommended_watcher(tx)?;
+
+        let f_path = Path::new(&file_arg);
+        watcher.watch(f_path, RecursiveMode::NonRecursive)?;
+
+        // Will block forever unless there's an error:
+        for res in rx {
+            let r = res.context("Error watching file for changes")?;
+
+            debug!("Watcher event: {:?}", r);
+
+            // Check which event we got:
+            match r.kind {
+                EventKind::Modify(ModifyKind::Name(_)) | EventKind::Remove(_) => {
+                    // File was renamed or removed
+                    // Might indicate log rotation, try to re-watch
+                    info!("File was renamed or removed, attempt re-watching...");
+                    watcher.unwatch(f_path)?;
+                    thread::sleep(Duration::from_secs(3));
+                    watcher.watch(f_path, RecursiveMode::NonRecursive)?;
+                }
+                _ => debug!("Event was ignored"),
+            }
+        }
+    } else {
+        let file = File::open(file_arg)?;
+        let reader = BufReader::new(file);
+
+        for line in reader.lines() {
+            // I gave up handling all of the log file edge cases and
+            // just log things that couldn't be parsed - Should all
+            // be spam.
+            let line = line?;
+            process_log_line(
+                line,
+                &url_parser,
+                &config.ignored_uas,
+                pool.clone(),
+                pool_main.clone(),
+                &mut stats_history,
+                &mut iploc,
+                &mut pseudonymizer,
+            )?;
+        }
     }
 
     Ok(())
