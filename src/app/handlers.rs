@@ -237,8 +237,16 @@ fn articles_or_shorts_starting_from(
         if max >= count {
             link_header.push_str(req.path());
         } else {
+            // I leave the two operations side by side like that
+            // because an AI told me the compiler would fuse the
+            // operations internally.
             let factor = count / max;
-            link_header.push_str(&replace_start_in_pagination_path(req.path(), factor * max));
+            let remainder = count % max;
+            let last_page_fix = if remainder == 0 { 1 } else { 0 };
+            link_header.push_str(&replace_start_in_pagination_path(
+                req.path(),
+                (factor - last_page_fix) * max,
+            ));
         }
         link_header.push_str(&format!("?max={}>; rel=\"last\"", max));
 
