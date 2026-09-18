@@ -240,6 +240,8 @@ fn articles_or_shorts_starting_from(
             // I leave the two operations side by side like that
             // because an AI told me the compiler would fuse the
             // operations internally.
+            // Also, factor here cannot be 0 because of a check
+            // made above but be careful if that changes.
             let factor = count / max;
             let remainder = count % max;
             let last_page_fix = if remainder == 0 { 1 } else { 0 };
