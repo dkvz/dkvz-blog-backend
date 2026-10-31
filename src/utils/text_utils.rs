@@ -27,7 +27,13 @@ pub fn sanitize_search_terms(terms: &Vec<String>, max_search_terms: usize) -> Ve
         // In the end a lot of special characters are refused by the
         // ft5 engine.
         // I'll keep allowing the "*" wildcard.
+        // Also had to allow most french accented characters.
+        // TODO: Would be better to preform some sort of unicode
+        // normalization because SQlite does it anyway when searching
+        // in fulltext.
+        // static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^\w_*éèâàêôîùû-]").unwrap();
         static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\-*]").unwrap();
+
     }
 
     // Dash should be allowed but it requires escaping by surrounding it
