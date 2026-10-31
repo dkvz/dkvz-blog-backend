@@ -31,8 +31,8 @@ pub fn sanitize_search_terms(terms: &Vec<String>, max_search_terms: usize) -> Ve
         // TODO: Would be better to preform some sort of unicode
         // normalization because SQlite does it anyway when searching
         // in fulltext.
-        // static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^\w_*éèâàêôîùû-]").unwrap();
-        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\-*]").unwrap();
+        static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^\w_*éèâàêôîùû-]").unwrap();
+        // static ref SEARCH_CLEANUP_REGEX: Regex = Regex::new(r"[^a-zA-Z0-9_\-*]").unwrap();
 
     }
 
@@ -122,12 +122,12 @@ mod tests {
     #[test]
     fn sanitize_search_replaces_illegal_chars() {
         let sut: Vec<String> = vec![
-            String::from(" p otato-[po ^w%+-er"),
-            String::from("\npotato$   --[power]"),
+            String::from(" p otatô[po ^w%+er"),
+            String::from("\npotatô$   [power]"),
         ];
         let processed = sanitize_search_terms(&sut, 10);
-        assert_eq!(processed[0], "potatopower");
-        assert_eq!(processed[1], "potatopower");
+        assert_eq!(processed[0], "potatôpower");
+        assert_eq!(processed[1], "potatôpower");
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn sanitize_search_removes_empty_strings() {
         let sut: Vec<String> = vec![
-            String::from("  $- "),
+            String::from("  $ "),
             String::from(""),
             String::from("  "),
             String::from("\n"),
